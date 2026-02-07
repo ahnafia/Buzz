@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import './App.css'
 import LoadingScreen from './screens/LoadingScreen'
 import MainMapScreen from './screens/MainMapScreen'
@@ -17,16 +18,21 @@ function App() {
     return () => clearTimeout(timer)
   }, [finishLoading])
 
-  // Render different screens based on current state
-  switch (currentScreen) {
-    case 'loading':
-      return <LoadingScreen />
-    case 'profile':
-      return <ProfileScreen />
-    case 'main':
-    default:
-      return <MainMapScreen />
-  }
+  return (
+    <Routes>
+      <Route path="/Profile" element={<ProfileScreen />} />
+      <Route
+        path="/*"
+        element={
+          currentScreen === 'loading' ? (
+            <LoadingScreen />
+          ) : (
+            <MainMapScreen />
+          )
+        }
+      />
+    </Routes>
+  )
 }
 
 export default App
