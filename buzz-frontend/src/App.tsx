@@ -8,9 +8,12 @@ import { useAppState } from './hooks/useAppState'
 function App() {
   const { currentScreen, finishLoading } = useAppState()
 
-  // Simulate loading time, then show main map
+  // Simulate loading time
   useEffect(() => {
-    const timer = setTimeout(() => finishLoading(), 3000)
+    const timer = setTimeout(() => {
+      finishLoading()
+    }, 3000) // 3 second loading screen
+
     return () => clearTimeout(timer)
   }, [finishLoading])
 
