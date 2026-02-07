@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Location } from '../types'
+import { useState } from 'react'
+import type { Location } from '../types'
 
 export const useLocation = () => {
   const [location, setLocation] = useState<Location | null>(null)
