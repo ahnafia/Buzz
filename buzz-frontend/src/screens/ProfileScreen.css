@@ -1,167 +1,211 @@
+/* Landscape, Instagram-style profile */
 .profile-screen {
-  height: 100vh;
-  background: #f8f9fa;
+  min-height: 100vh;
+  min-width: 100vw;
+  background: #FFE2B7;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .profile-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 226, 183, 0.95);
+  border-bottom: 1px solid rgba(255, 155, 86, 0.3);
   position: sticky;
   top: 0;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .back-btn, .settings-btn {
   background: none;
   border: none;
-  font-size: 1.1rem;
+  font-size: 1rem;
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 8px;
+  text-decoration: none;
+  color: #333;
 }
 
 .back-btn:hover, .settings-btn:hover {
-  background: #f0f0f0;
+  opacity: 0.8;
+}
+
+.profile-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-icon-btn {
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 0.25rem;
+  cursor: pointer;
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-icon-btn:hover {
+  border-color: #FF9B56;
+}
+
+.profile-icon-btn:focus,
+.profile-icon-btn:active {
+  outline: none;
+  border-color: #FF9B56;
+}
+
+.profile-header-icon {
+  height: 2.8em;
+  width: auto;
+  object-fit: contain;
 }
 
 .profile-header h1 {
   margin: 0;
-  font-size: 1.3rem;
-  color: #333;
-}
-
-.profile-content {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
-
-.profile-info {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.avatar-section {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-.avatar-placeholder {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: #e3f2fd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  margin: 0 auto 1rem;
-}
-
-.edit-avatar-btn {
-  background: #2196F3;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  cursor: pointer;
-}
-
-.user-details {
-  text-align: center;
-}
-
-.username {
-  margin: 0 0 0.5rem 0;
-  color: #2196F3;
-  font-size: 1.5rem;
-}
-
-.display-name {
-  margin: 0 0 1rem 0;
   font-size: 1.2rem;
-  color: #333;
   font-weight: 600;
-}
-
-.bio {
-  margin: 0 0 2rem 0;
-  color: #666;
-  line-height: 1.5;
-}
-
-.stats {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-}
-
-.stat {
-  text-align: center;
-}
-
-.stat-number {
-  display: block;
-  font-size: 1.5rem;
-  font-weight: bold;
   color: #333;
 }
 
-.stat-label {
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.profile-tabs {
+/* Horizontal body: profile left, content right */
+.profile-body {
   display: flex;
-  background: white;
-  border-radius: 12px;
-  padding: 0.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.tab {
+  flex-direction: row;
   flex: 1;
-  padding: 0.75rem;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 500;
+  padding: 2rem;
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-.tab.active {
-  background: #2196F3;
-  color: white;
-}
-
-.tab:not(.active):hover {
-  background: #f0f0f0;
-}
-
-.post-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 1rem;
-}
-
-.post-item {
-  aspect-ratio: 1;
-  background: white;
-  border-radius: 12px;
+/* Left: Circle, meta, Landmarks */
+.profile-info-section {
+  flex-shrink: 0;
+  padding-top: 0.5rem;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  color: #666;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.profile-avatar-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.profile-circle {
+  width: 150px;
+  height: 150px;
+  min-width: 150px;
+  min-height: 150px;
+  border-radius: 50%;
+  background: #FF9B56;
+  flex-shrink: 0;
+}
+
+.profile-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.profile-underline {
+  padding: 0.25rem 0;
+  border-bottom: 2px solid #FF9B56;
+  color: #333;
   font-weight: 500;
+  text-align: left;
+  min-width: 120px;
+}
+
+.profile-meta .profile-underline {
+  border-bottom: none;
+}
+
+/* Landmarks block - under the circle */
+.landmarks-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.landmarks-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: auto;
+}
+
+.landmark-names {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 0.05rem;
+  row-gap: 0.2rem;
+}
+
+.landmark-outline {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  border: 1px solid #FF9B56;
+  background: transparent;
+  color: #333;
+  font-weight: 500;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+/* Right: Tabs */
+.profile-main-section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tabs row - underline as active indicator */
+.profile-tabs-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.landmarks-buttons {
+  display: flex;
+  justify-content: space-evenly;
+  width: 100%;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: 0 2px 0 transparent;
+  color: #333;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+  outline: none;
+}
+
+.tab-btn.active {
+  box-shadow: 0 2px 0 #FF9B56;
+}
+
+.tab-btn:focus,
+.tab-btn:active {
+  outline: none;
+  background: transparent;
+  color: #333;
 }

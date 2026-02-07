@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import './MainMapScreen.css'
 
 const MainMapScreen = () => {
@@ -17,7 +18,7 @@ const MainMapScreen = () => {
           />
         </div>
         <div className="header-right">
-          <button className="profile-btn">👤</button>
+          <Link to="/Profile" className="profile-btn">👤</Link>
         </div>
       </div>
 
