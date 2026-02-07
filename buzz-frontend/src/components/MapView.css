@@ -1,0 +1,71 @@
+.map-container {
+  flex: 1;
+  position: relative;
+  background: #e8f5e8;
+}
+
+.map-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(45deg, #e8f5e8, #f0f8f0);
+}
+
+.map-content {
+  text-align: center;
+  color: #666;
+}
+
+.map-content h2 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.map-controls {
+  margin-top: 2rem;
+}
+
+.map-btn {
+  margin: 0 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.map-btn:hover {
+  background: #45a049;
+}
+
+.floating-panels {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 300px;
+}
+
+.post-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  margin-bottom: 1rem;
+}
+
+.post-panel h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
+.post-item {
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
