@@ -1,7 +1,11 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import './MainMapScreen.css'
+import InteractiveMap, { type InteractiveMapHandle } from '../components/InteractiveMap.tsx'
 
 const MainMapScreen = () => {
+  const mapRef = useRef<InteractiveMapHandle>(null)
+
   return (
     <div className="main-map-screen">
       {/* Top Header */}
@@ -22,20 +26,15 @@ const MainMapScreen = () => {
         </div>
       </div>
 
-      {/* Main Map Area */}
+      {/* Map fills the rest of the screen */}
       <div className="map-container">
-        <div className="map-placeholder">
-          <div className="map-overlay">
-            <h2>Interactive Map View</h2>
-            <p>Map integration (Google Maps, Mapbox, etc.) goes here</p>
-          </div>
-        </div>
+        <InteractiveMap ref={mapRef} />
 
         {/* Map Controls */}
         <div className="map-controls">
-          <button className="control-btn location-btn">📍</button>
-          <button className="control-btn zoom-in">+</button>
-          <button className="control-btn zoom-out">-</button>
+          <button type="button" className="control-btn location-btn">📍</button>
+          <button type="button" className="control-btn zoom-in" onClick={() => mapRef.current?.zoomIn()}>+</button>
+          <button type="button" className="control-btn zoom-out" onClick={() => mapRef.current?.zoomOut()}>-</button>
         </div>
 
         {/* Floating Action Button */}
@@ -43,40 +42,6 @@ const MainMapScreen = () => {
           <span className="fab-icon">+</span>
           <span className="fab-text">Post</span>
         </button>
-
-        {/* Bottom Sheet for Posts */}
-        <div className="bottom-sheet">
-          <div className="sheet-handle"></div>
-          <div className="sheet-content">
-            <h3>Nearby Posts</h3>
-            <div className="post-list">
-              <div className="post-preview">
-                <div className="post-avatar">👤</div>
-                <div className="post-content">
-                  <strong>@user1</strong>
-                  <p>Just checked in at the coffee shop! ☕</p>
-                  <span className="post-location">📍 0.2 km away</span>
-                </div>
-              </div>
-              <div className="post-preview">
-                <div className="post-avatar">👤</div>
-                <div className="post-content">
-                  <strong>@user2</strong>
-                  <p>Beautiful sunset at the park 🌅</p>
-                  <span className="post-location">📍 0.5 km away</span>
-                </div>
-              </div>
-              <div className="post-preview">
-                <div className="post-avatar">👤</div>
-                <div className="post-content">
-                  <strong>@user3</strong>
-                  <p>Great food at this restaurant! 🍕</p>
-                  <span className="post-location">📍 1.2 km away</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   )

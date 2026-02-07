@@ -1,12 +1,12 @@
 // API utility functions - placeholder for backend integration
 
-const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api'
 
 export const api = {
   // Posts
   getPosts: async (location?: { lat: number; lng: number; radius?: number }) => {
-    // TODO: Implement API call
-    console.log('Getting posts for location:', location)
+    // TODO: Implement API call using API_BASE_URL
+    console.log('Getting posts for location:', location, 'base:', API_BASE_URL)
     return []
   },
 
