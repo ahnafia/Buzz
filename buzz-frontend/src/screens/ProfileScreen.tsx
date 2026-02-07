@@ -25,11 +25,24 @@ const ProfileScreen = () => {
         {/* Left: Circle, meta, Landmarks */}
         <div className="profile-info-section">
           <div className="profile-avatar-row">
-            <div className="profile-circle"></div>
+            <div className="profile-circle">
+              <svg
+                className="profile-silhouette"
+                viewBox="0 0 100 100"
+                fill="none"
+                stroke="#FF9B56"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden
+              >
+                <circle cx="50" cy="40" r="22" />
+                <path d="M 15 98 Q 50 45 85 98" />
+              </svg>
+            </div>
             <div className="profile-meta">
-              <div className="profile-underline name-box">name</div>
-              <div className="profile-underline city-box">city</div>
-              <div className="profile-underline friends-box">friends</div>
+              <div className="profile-underline name-box">Name</div>
+              <div className="profile-underline city-box">City</div>
+              <div className="profile-underline friends-box">Friends</div>
             </div>
           </div>
 
@@ -52,7 +65,7 @@ const ProfileScreen = () => {
                 className={`tab-btn ${activeTab === 'flag' ? 'active' : ''}`}
                 onClick={() => setActiveTab('flag')}
               >
-                Flag
+                Flags
               </button>
               <button
                 className={`tab-btn ${activeTab === 'friends' ? 'active' : ''}`}

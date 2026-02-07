@@ -2,7 +2,7 @@
 .profile-screen {
   min-height: 100vh;
   min-width: 100vw;
-  background: #FFE2B7;
+  background: #FFFBF5;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -14,7 +14,7 @@
   justify-content: space-between;
   padding: 0.75rem 1.5rem;
   background: rgba(255, 226, 183, 0.95);
-  border-bottom: 1px solid rgba(255, 155, 86, 0.3);
+  border-bottom: 3px solid rgba(255, 155, 86, 0.45);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -29,7 +29,7 @@
   padding: 0.5rem;
   border-radius: 8px;
   text-decoration: none;
-  color: #333;
+  color: #FF9B56;
 }
 
 .back-btn:hover, .settings-btn:hover {
@@ -74,7 +74,7 @@
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;
-  color: #333;
+  color: #FF9B56;
 }
 
 /* Horizontal body: profile left, content right */
@@ -105,13 +105,23 @@
 }
 
 .profile-circle {
-  width: 150px;
-  height: 150px;
-  min-width: 150px;
-  min-height: 150px;
+  width: 120px;
+  height: 120px;
+  min-width: 120px;
+  min-height: 120px;
   border-radius: 50%;
-  background: #FF9B56;
+  background: #FFE2B7;
+  border: 2px solid #FF9B56;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.profile-silhouette {
+  width: 85%;
+  height: 85%;
 }
 
 .profile-meta {
@@ -159,8 +169,8 @@
   padding: 0.35rem 0.75rem;
   font-size: 0.85rem;
   border: 1px solid #FF9B56;
-  background: transparent;
-  color: #333;
+  background: #FFE2B7;
+  color: #FF9B56;
   font-weight: 500;
   border-radius: 6px;
   width: fit-content;
