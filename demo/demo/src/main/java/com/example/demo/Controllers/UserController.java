@@ -320,4 +320,45 @@ public class UserController {
         UsersResponse response = service.getFollowing(user.id(), cursor, limit);
         return ResponseEntity.ok(response);
     }
+
+    // Add to UserController
+@GetMapping("/{username}/profile")
+public ResponseEntity<EnhancedUserProfile> getEnhancedProfile(
+        @PathVariable String username,
+        @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
+) {
+    try {
+        UUID currentUserId = userIdHeader != null && !userIdHeader.isBlank() ? 
+                UUID.fromString(userIdHeader) : null;
+        EnhancedUserProfile profile = service.getEnhancedPublicProfile(username, currentUserId);
+        return profile != null ? ResponseEntity.ok(profile) : ResponseEntity.notFound().build();
+    } catch (Exception e) {
+        return ResponseEntity.badRequest().build();
+    }
 }
+// ==================== FRIENDS (MUTUAL FOLLOWS) ====================
+
+@GetMapping("/{username}/friends")
+public ResponseEntity<UsersResponse> getFriends(
+        @PathVariable String username,
+        @RequestParam(required = false) String cursor,
+        @RequestParam(defaultValue = "20") int limit
+) {
+    User user = service.getUserByUsername(username);
+    if (user == null) return ResponseEntity.notFound().build();
+
+    UsersResponse response = service.getFriends(user.id(), cursor, limit);
+    return ResponseEntity.ok(response);
+}
+
+@GetMapping("/{username}/friends/count")
+public ResponseEntity<Map<String, Integer>> getFriendCount(@PathVariable String username) {
+    User user = service.getUserByUsername(username);
+    if (user == null) return ResponseEntity.notFound().build();
+
+    int count = service.getFriendCount(user.id());
+    return ResponseEntity.ok(Map.of("friendCount", count));
+}
+
+}
+

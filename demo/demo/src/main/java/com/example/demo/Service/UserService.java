@@ -22,9 +22,13 @@ public class UserService {
     private static final int MAX_LIMIT = 100;
 
     private final UserRepository repo;
+    private final LandmarkService landmarkService;
+    private final FlagService flagService;
 
-    public UserService(UserRepository repo) {
+    public UserService(UserRepository repo, LandmarkService landmarkService, FlagService flagService) {
         this.repo = repo;
+        this.landmarkService = landmarkService;
+        this.flagService = flagService;
     }
 
     // ==================== USER CRUD ====================
@@ -270,4 +274,72 @@ public class UserService {
     private static int clamp(int v, int lo, int hi) {
         return Math.max(lo, Math.min(hi, v));
     }
+
+    // Add this method to UserService
+public EnhancedUserProfile getEnhancedPublicProfile(String username, UUID currentUserId) {
+    User user = repo.fetchUserByUsername(username);
+    if (user == null || !user.profilePublic()) {
+        return null;
+    }
+
+    int followerCount = repo.countFollowers(user.id());
+    int followingCount = repo.countFollowing(user.id());
+    int eventCount = repo.countEvents(user.id());
+    int landmarkCount = landmarkService.countUserLandmarks(user.id());
+    int flagCount = flagService.countUserFlags(user.id());
+    int totalLikesGiven = flagService.getUserLikeCount(user.id());
+
+    List<Landmark> landmarks = landmarkService.getUserLandmarks(user.id(), 10);
+    List<Flag> recentFlags = flagService.getUserFlags(user.id(), 10);
+
+    // Attach like counts to flags
+    List<FlagWithLikeCount> flagsWithLikeCounts = recentFlags.stream()
+            .map(flag -> new FlagWithLikeCount(
+                    flag,
+                    flagService.getLikeCount(flag.id()),
+                    currentUserId != null ? flagService.isLiked(flag.id(), currentUserId) : false
+            ))
+            .collect(java.util.stream.Collectors.toList());
+
+    return EnhancedUserProfile.from(
+            user,
+            followerCount,
+            followingCount,
+            eventCount,
+            landmarkCount,
+            flagCount,
+            totalLikesGiven,
+            landmarks,
+            recentFlags,
+            flagsWithLikeCounts
+    );
+}
+
+// ==================== FRIENDS (MUTUAL FOLLOWS) ====================
+
+public UsersResponse getFriends(UUID userId, String cursor, int limit) {
+    int clampedLimit = clamp(limit, 1, MAX_LIMIT);
+
+    List<User> users = repo.fetchFriends(userId, cursor, clampedLimit + 1);
+
+    String nextCursor = null;
+    if (users.size() > clampedLimit) {
+        users = users.subList(0, clampedLimit);
+        nextCursor = users.get(users.size() - 1).id().toString();
+    }
+
+    List<UserProfile> profiles = users.stream()
+            .map(u -> UserProfile.from(u,
+                    repo.countEvents(u.id()),
+                    repo.countFollowers(u.id()),
+                    repo.countFollowing(u.id())))
+            .collect(java.util.stream.Collectors.toList());
+
+    return new UsersResponse(profiles, nextCursor);
+}
+
+public int getFriendCount(UUID userId) {
+    return repo.countFriends(userId);
+}
+
 }

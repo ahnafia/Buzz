@@ -404,4 +404,55 @@ public class UserRepository {
                 rs.getObject("last_active_at", OffsetDateTime.class)
         );
     }
+
+    // ==================== FRIENDS (MUTUAL FOLLOWS) ====================
+
+public List<User> fetchFriends(UUID userId, String cursor, int limit) {
+    StringBuilder sql = new StringBuilder("""
+        select
+            u.id, u.username, u.email, u.display_name, u.bio, u.profile_image_url,
+            u.user_type, st_y(u.location::geometry) as lat, st_x(u.location::geometry) as lon,
+            u.city, u.business_name, u.business_category, u.location_visible,
+            u.profile_public, u.verified, u.created_at, u.last_active_at
+        from users u
+        join user_follows f_out
+          on f_out.following_id = u.id
+         and f_out.follower_id = ?
+        join user_follows f_in
+          on f_in.follower_id = u.id
+         and f_in.following_id = ?
+        where 1=1
+    """);
+
+    List<Object> params = new java.util.ArrayList<>();
+    params.add(userId);
+    params.add(userId);
+
+    if (cursor != null && !cursor.isBlank()) {
+        try {
+            UUID cursorId = UUID.fromString(cursor);
+            sql.append(" and u.id > ?");
+            params.add(cursorId);
+        } catch (IllegalArgumentException ignored) {}
+    }
+
+    sql.append(" order by u.id asc limit ?");
+    params.add(limit);
+
+    return jdbc.query(sql.toString(), this::mapUser, params.toArray());
+}
+
+public int countFriends(UUID userId) {
+    String sql = """
+        select count(*)
+        from user_follows f_out
+        join user_follows f_in
+          on f_in.follower_id = f_out.following_id
+         and f_in.following_id = f_out.follower_id
+        where f_out.follower_id = ?
+    """;
+    Integer count = jdbc.queryForObject(sql, Integer.class, userId);
+    return count != null ? count : 0;
+}
+
 }
