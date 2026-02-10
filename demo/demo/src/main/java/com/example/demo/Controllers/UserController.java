@@ -5,6 +5,8 @@ import com.example.demo.Service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -12,9 +14,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 public class UserController {
 
+    private static final Logger log = LoggerFactory.getLogger(UserController.class);
     private final UserService service;
 
     public UserController(UserService service) {
@@ -191,6 +194,27 @@ public class UserController {
         return service.searchUsers(q, limit);
     }
 
+    /**
+     * Debug endpoint - list all users (remove in production)
+     */
+    @GetMapping("/debug/all")
+    public ResponseEntity<?> getAllUsers() {
+        try {
+            log.info("Debug endpoint called - listing all users");
+            
+            // Let's try to get basic info about users table
+            List<String> usernames = service.getAllUsernames();
+            return ResponseEntity.ok(Map.of(
+                "message", "Found users", 
+                "usernames", usernames,
+                "count", usernames.size()
+            ));
+        } catch (Exception e) {
+            log.error("Error in debug endpoint: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // ==================== FOLLOW SYSTEM ====================
 
     /**
@@ -328,12 +352,18 @@ public ResponseEntity<EnhancedUserProfile> getEnhancedProfile(
         @PathVariable String username,
         @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
 ) {
+    log.info("getEnhancedProfile endpoint called with username: '{}', userIdHeader: '{}'", username, userIdHeader);
     try {
         UUID currentUserId = userIdHeader != null && !userIdHeader.isBlank() ? 
                 UUID.fromString(userIdHeader) : null;
+        log.info("Parsed currentUserId: {}", currentUserId);
+        
         EnhancedUserProfile profile = service.getEnhancedPublicProfile(username, currentUserId);
+        log.info("Service returned profile: {}", profile != null ? "Profile found" : "Profile is null");
+        
         return profile != null ? ResponseEntity.ok(profile) : ResponseEntity.notFound().build();
     } catch (Exception e) {
+        log.error("Error in getEnhancedProfile for username '{}': {}", username, e.getMessage(), e);
         return ResponseEntity.badRequest().build();
     }
 }

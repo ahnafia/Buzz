@@ -124,6 +124,7 @@ public class UserService {
                 request.lat(),
                 request.lon(),
                 request.city(),
+                request.addressText(),
                 request.businessName(),
                 request.businessCategory(),
                 request.locationVisible(),
@@ -275,10 +276,25 @@ public class UserService {
         return Math.max(lo, Math.min(hi, v));
     }
 
+    // Debug method to get all usernames
+    public List<String> getAllUsernames() {
+        return repo.getAllUsernames();
+    }
+
     // Add this method to UserService
 public EnhancedUserProfile getEnhancedPublicProfile(String username, UUID currentUserId) {
+    log.info("getEnhancedPublicProfile called with username: '{}', currentUserId: {}", username, currentUserId);
+    
     User user = repo.fetchUserByUsername(username);
-    if (user == null || !user.profilePublic()) {
+    log.info("fetchUserByUsername returned: {}", user != null ? "User found" : "User is null");
+    
+    if (user == null) {
+        log.warn("User '{}' not found in database", username);
+        return null;
+    }
+    
+    if (!user.profilePublic()) {
+        log.warn("User '{}' has private profile", username);
         return null;
     }
 

@@ -69,6 +69,7 @@ export const api = {
       const response = await fetch(`${API_BASE_URL}/users/${username}/profile`, {
         headers
       })
+      console.log(headers)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -184,6 +185,8 @@ export const api = {
       const currentUserId = getCurrentUserId()
       if (!currentUserId) throw new Error('No user ID available')
 
+      console.log('Deleting event:', eventId, 'with user ID:', currentUserId)
+
       const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
         method: 'DELETE',
         headers: {
@@ -192,8 +195,12 @@ export const api = {
         }
       })
 
+      console.log('Delete response status:', response.status)
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const errorText = await response.text()
+        console.error('Delete error response:', errorText)
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`)
       }
 
       return true

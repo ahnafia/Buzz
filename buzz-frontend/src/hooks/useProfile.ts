@@ -106,10 +106,13 @@ export const useBusinessEvents = () => {
 
   const deleteEvent = async (eventId: string): Promise<boolean> => {
     try {
-      await api.deleteEvent(eventId)
+      console.log('Attempting to delete event:', eventId)
+      const result = await api.deleteEvent(eventId)
+      console.log('Delete result:', result)
       setEvents(prev => prev.filter(event => event.id !== eventId))
       return true
     } catch (err) {
+      console.error('Delete event error:', err)
       throw err
     }
   }

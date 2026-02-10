@@ -21,14 +21,16 @@ public class LandmarkRepository {
             String description,
             double lat,
             double lon,
+            String city,
+            String addressText,
             String category
     ) {
         UUID landmarkId = UUID.randomUUID();
         String sql = """
-            INSERT INTO landmarks (id, user_id, name, description, location, lat, lon, category, last_visited_at)
-            VALUES (?, ?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, ?, NOW())
+            INSERT INTO landmarks (id, user_id, name, description, location, lat, lon, city, address_text, category, last_visited_at)
+            VALUES (?, ?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, ?, ?, ?, NOW())
         """;
-        jdbc.update(sql, landmarkId, userId, name, description, lon, lat, lat, lon, category);
+        jdbc.update(sql, landmarkId, userId, name, description, lon, lat, lat, lon, city, addressText, category);
         return landmarkId;
     }
 
@@ -36,7 +38,7 @@ public class LandmarkRepository {
         String sql = """
             SELECT id, user_id, name, description, 
                    st_y(location::geometry) as lat, st_x(location::geometry) as lon,
-                   category, visit_count, last_visited_at, created_at, updated_at
+                   city, address_text, category, visit_count, last_visited_at, created_at, updated_at
             FROM landmarks WHERE id = ?
         """;
         List<Landmark> results = jdbc.query(sql, this::mapLandmark, id);
@@ -47,7 +49,7 @@ public class LandmarkRepository {
         String sql = """
             SELECT id, user_id, name, description,
                    st_y(location::geometry) as lat, st_x(location::geometry) as lon,
-                   category, visit_count, last_visited_at, created_at, updated_at
+                   city, address_text, category, visit_count, last_visited_at, created_at, updated_at
             FROM landmarks WHERE user_id = ?
             ORDER BY last_visited_at DESC NULLS LAST
             LIMIT ?
@@ -59,6 +61,8 @@ public class LandmarkRepository {
             UUID landmarkId,
             String name,
             String description,
+            String city,
+            String addressText,
             String category
     ) {
         StringBuilder sql = new StringBuilder("UPDATE landmarks SET updated_at = NOW()");
@@ -71,6 +75,14 @@ public class LandmarkRepository {
         if (description != null) {
             sql.append(", description = ?");
             params.add(description);
+        }
+        if (city != null) {
+            sql.append(", city = ?");
+            params.add(city);
+        }
+        if (addressText != null) {
+            sql.append(", address_text = ?");
+            params.add(addressText);
         }
         if (category != null) {
             sql.append(", category = ?");
@@ -116,6 +128,8 @@ public class LandmarkRepository {
                 rs.getString("description"),
                 rs.getDouble("lat"),
                 rs.getDouble("lon"),
+                rs.getString("city"),
+                rs.getString("address_text"),
                 rs.getString("category"),
                 rs.getInt("visit_count"),
                 rs.getObject("last_visited_at", OffsetDateTime.class),

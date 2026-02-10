@@ -5,6 +5,8 @@ public record CreateFlagRequest(
         String description,
         double lat,
         double lon,
+        String city,
+        String addressText,  // Human-readable address for display
         String category,
         String imageUrl,
         Boolean isPublic

@@ -9,6 +9,7 @@ export interface UserProfile {
   lat?: number
   lon?: number
   city?: string
+  addressText?: string  // Human-readable address for display
   businessName?: string
   businessCategory?: string
   followerCount: number
@@ -44,43 +45,58 @@ export interface EventsResponse {
 export interface CreateEventRequest {
   title: string
   category: string
-  startTime: string
-  expiresAt: string
   lat: number
   lon: number
+  startTime: string
+  endTime?: string  // optional - if not provided, backend will use startTime + 24 hours
 }
 
 export interface UpdateEventRequest {
   title?: string
   category?: string
-  startTime?: string
-  expiresAt?: string
   lat?: number
   lon?: number
+  startTime?: string
+  endTime?: string
 }
 
 export interface Landmark {
   id: string
+  userId: string
   name: string
+  description?: string
   lat: number
   lon: number
   city?: string
+  addressText?: string  // Human-readable address for display
+  category: string
+  visitCount: number
+  lastVisitedAt?: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface Flag {
   id: string
+  userId: string
   title: string
   description?: string
   lat: number
   lon: number
   city?: string
+  addressText?: string  // Human-readable address for display
+  category: string
+  imageUrl?: string
+  isPublic: boolean
+  expiresAt?: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface FlagWithLikeCount {
   flag: Flag
   likeCount: number
+  isLikedByCurrentUser: boolean
 }
 
 export interface Friend {

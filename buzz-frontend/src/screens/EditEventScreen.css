@@ -1,0 +1,70 @@
+.edit-event-screen {
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.edit-event-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid #e1e5e9;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.edit-event-header .back-btn {
+  color: #FF9B56;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 8px 0;
+  transition: color 0.2s;
+}
+
+.edit-event-header .back-btn:hover {
+  color: #e8884a;
+}
+
+.edit-event-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.edit-event-body {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.loading-event,
+.error-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #666;
+  font-size: 16px;
+}
+
+.error-message {
+  color: #e74c3c;
+}
+
+@media (max-width: 768px) {
+  .edit-event-header {
+    padding: 12px 16px;
+  }
+
+  .edit-event-header h1 {
+    font-size: 20px;
+  }
+
+  .edit-event-body {
+    padding: 16px;
+  }
+}

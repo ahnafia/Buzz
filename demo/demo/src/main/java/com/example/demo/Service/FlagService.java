@@ -32,6 +32,8 @@ public class FlagService {
                 request.description(),
                 request.lat(),
                 request.lon(),
+                request.city(),
+                request.addressText(),
                 request.category(),
                 request.imageUrl(),
                 request.isPublic() != null ? request.isPublic() : true,
@@ -61,6 +63,8 @@ public class FlagService {
                 flagId,
                 request.title(),
                 request.description(),
+                request.city(),
+                request.addressText(),
                 request.category(),
                 request.imageUrl(),
                 request.isPublic()

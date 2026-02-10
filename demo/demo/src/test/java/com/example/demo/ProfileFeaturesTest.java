@@ -73,6 +73,8 @@ public class ProfileFeaturesTest {
                 "A beautiful park",
                 40.7829,
                 -73.9654,
+                "New York",
+                "Central Park, New York, NY",
                 "park"
         );
         
@@ -83,6 +85,8 @@ public class ProfileFeaturesTest {
                 "A beautiful park",
                 40.7829,
                 -73.9654,
+                "New York",
+                "Central Park, New York, NY",
                 "park",
                 0,
                 OffsetDateTime.now(),
@@ -96,6 +100,8 @@ public class ProfileFeaturesTest {
                 eq("A beautiful park"),
                 eq(40.7829),
                 eq(-73.9654),
+                eq("New York"),
+                eq("Central Park, New York, NY"),
                 eq("park")
         )).thenReturn(testLandmarkId);
         when(landmarkRepository.fetchLandmarkById(testLandmarkId)).thenReturn(expectedLandmark);
@@ -119,6 +125,8 @@ public class ProfileFeaturesTest {
                 "The Beatles reunion",
                 40.7128,
                 -74.0060,
+                "New York",
+                "Madison Square Garden, New York, NY",
                 "event",
                 "https://example.com/concert.jpg",
                 true
@@ -131,6 +139,8 @@ public class ProfileFeaturesTest {
                 "The Beatles reunion",
                 40.7128,
                 -74.0060,
+                "New York",
+                "Madison Square Garden, New York, NY",
                 "event",
                 "https://example.com/concert.jpg",
                 true,
@@ -145,6 +155,8 @@ public class ProfileFeaturesTest {
                 eq("The Beatles reunion"),
                 eq(40.7128),
                 eq(-74.0060),
+                eq("New York"),
+                eq("Madison Square Garden, New York, NY"),
                 eq("event"),
                 eq("https://example.com/concert.jpg"),
                 eq(true),

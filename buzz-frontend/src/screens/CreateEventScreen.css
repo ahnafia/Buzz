@@ -1,0 +1,65 @@
+.create-event-screen {
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.create-event-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid #e1e5e9;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.create-event-header .back-btn {
+  color: #FF9B56;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 8px 0;
+  transition: color 0.2s;
+}
+
+.create-event-header .back-btn:hover {
+  color: #e8884a;
+}
+
+.create-event-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.create-event-body {
+  padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.loading-location {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #666;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .create-event-header {
+    padding: 12px 16px;
+  }
+
+  .create-event-header h1 {
+    font-size: 20px;
+  }
+
+  .create-event-body {
+    padding: 16px;
+  }
+}

@@ -22,6 +22,8 @@ public class LandmarkService {
                 request.description(),
                 request.lat(),
                 request.lon(),
+                request.city(),
+                request.addressText(),
                 request.category()
         );
         return repo.fetchLandmarkById(landmarkId);
@@ -41,6 +43,8 @@ public class LandmarkService {
                 landmarkId,
                 request.name(),
                 request.description(),
+                request.city(),
+                request.addressText(),
                 request.category()
         );
 

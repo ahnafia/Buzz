@@ -7,6 +7,7 @@ public record UpdateUserRequest(
         Double lat,                 // optional - update location
         Double lon,                 // optional
         String city,                // optional
+        String addressText,         // optional - human-readable address
         String businessName,        // optional
         String businessCategory,    // optional
         Boolean locationVisible,    // optional - privacy setting

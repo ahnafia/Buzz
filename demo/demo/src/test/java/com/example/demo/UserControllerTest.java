@@ -53,6 +53,7 @@ class UserControllerTest {
                 40.7128,
                 -74.0060,
                 "New York",
+                "123 Main St, New York, NY",
                 null,
                 null,
                 true,
@@ -72,6 +73,7 @@ class UserControllerTest {
                 40.7128,
                 -74.0060,
                 "New York",
+                "123 Main St, New York, NY",
                 null,
                 null,
                 5,
@@ -137,6 +139,7 @@ class UserControllerTest {
                     40.7128,
                     -74.0060,
                     "New York",
+                    "456 Club Ave, New York, NY",
                     "Cool Club",
                     "Nightclub",
                     true,
@@ -259,7 +262,7 @@ class UserControllerTest {
                     "Updated Name",
                     "Updated bio",
                     "https://example.com/new-avatar.jpg",
-                    null, null, null, null, null, null, null
+                    null, null, null, null, null, null, null, null
             );
 
             User updatedUser = new User(
@@ -273,6 +276,7 @@ class UserControllerTest {
                     40.7128,
                     -74.0060,
                     "New York",
+                    "123 Main St, New York, NY",
                     null,
                     null,
                     true,
@@ -298,7 +302,7 @@ class UserControllerTest {
         @DisplayName("Should update privacy settings")
         void updateCurrentUser_PrivacySettings_ReturnsUpdatedUser() throws Exception {
             UpdateUserRequest request = new UpdateUserRequest(
-                    null, null, null, null, null, null, null, null,
+                    null, null, null, null, null, null, null, null, null,
                     false,  // locationVisible
                     false   // profilePublic
             );
@@ -314,6 +318,7 @@ class UserControllerTest {
                     40.7128,
                     -74.0060,
                     "New York",
+                    "123 Main St, New York, NY",
                     null,
                     null,
                     false,  // locationVisible
@@ -339,7 +344,7 @@ class UserControllerTest {
         @DisplayName("Should return 401 when not authenticated")
         void updateCurrentUser_NotAuthenticated_ReturnsUnauthorized() throws Exception {
             UpdateUserRequest request = new UpdateUserRequest(
-                    "New Name", null, null, null, null, null, null, null, null, null
+                    "New Name", null, null, null, null, null, null, null, null, null, null
             );
 
             mockMvc.perform(patch("/users/me")
@@ -508,6 +513,7 @@ class UserControllerTest {
                     40.7128,
                     -74.0060,
                     "New York",
+                    "456 Club Ave, New York, NY",
                     "Cool Club",
                     "Nightclub",
                     20,

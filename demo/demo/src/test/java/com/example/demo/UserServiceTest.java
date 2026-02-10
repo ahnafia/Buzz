@@ -46,6 +46,7 @@ class UserServiceTest {
                 40.7128,
                 -74.0060,
                 "New York",
+                "123 Main St, New York, NY",
                 null,
                 null,
                 true,
@@ -364,6 +365,7 @@ class UserServiceTest {
                     null,
                     null,
                     null,
+                    null,
                     true,
                     false,  // profilePublic = false
                     false,
@@ -392,6 +394,7 @@ class UserServiceTest {
                     40.7128,
                     -74.0060,
                     "New York",
+                    "123 Hidden St, New York, NY",
                     null,
                     null,
                     false,  // locationVisible = false
@@ -427,7 +430,7 @@ class UserServiceTest {
             UpdateUserRequest request = new UpdateUserRequest(
                     "New Name",
                     "New bio",
-                    null, null, null, null, null, null, null, null
+                    null, null, null, null, null, null, null, null, null
             );
 
             when(userRepository.fetchUserById(testUserId)).thenReturn(testUser);
@@ -435,7 +438,7 @@ class UserServiceTest {
                     eq(testUserId),
                     eq("New Name"),
                     eq("New bio"),
-                    isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
+                    isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
             )).thenReturn(true);
 
             User result = userService.updateUser(testUserId, request);
@@ -445,7 +448,7 @@ class UserServiceTest {
                     eq(testUserId),
                     eq("New Name"),
                     eq("New bio"),
-                    isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
+                    isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()
             );
         }
 
@@ -455,13 +458,13 @@ class UserServiceTest {
             when(userRepository.fetchUserById(any(UUID.class))).thenReturn(null);
 
             UpdateUserRequest request = new UpdateUserRequest(
-                    "New Name", null, null, null, null, null, null, null, null, null
+                    "New Name", null, null, null, null, null, null, null, null, null, null
             );
 
             User result = userService.updateUser(UUID.randomUUID(), request);
 
             assertThat(result).isNull();
-            verify(userRepository, never()).updateUser(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
+            verify(userRepository, never()).updateUser(any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any(), any());
         }
     }
 

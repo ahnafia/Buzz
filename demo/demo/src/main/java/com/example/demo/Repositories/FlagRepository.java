@@ -23,6 +23,8 @@ public class FlagRepository {
             String description,
             double lat,
             double lon,
+            String city,
+            String addressText,
             String category,
             String imageUrl,
             boolean isPublic,
@@ -31,12 +33,12 @@ public class FlagRepository {
         UUID flagId = UUID.randomUUID();
         String sql = """
             INSERT INTO flags (id, user_id, title, description, location, lat, lon, 
-                              category, image_url, is_public, expires_at)
+                              city, address_text, category, image_url, is_public, expires_at)
             VALUES (?, ?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, 
-                   ?, ?, ?, ?)
+                   ?, ?, ?, ?, ?, ?)
         """;
-        jdbc.update(sql, flagId, userId, title, description, lon, lat, lat, lon, category, 
-                   imageUrl, isPublic, expiresAt);
+        jdbc.update(sql, flagId, userId, title, description, lon, lat, lat, lon, city, 
+                   addressText, category, imageUrl, isPublic, expiresAt);
         return flagId;
     }
 
@@ -44,7 +46,7 @@ public class FlagRepository {
         String sql = """
             SELECT id, user_id, title, description,
                    st_y(location::geometry) as lat, st_x(location::geometry) as lon,
-                   category, image_url, is_public, expires_at, created_at, updated_at
+                   city, address_text, category, image_url, is_public, expires_at, created_at, updated_at
             FROM flags WHERE id = ? AND (expires_at IS NULL OR expires_at > NOW())
         """;
         List<Flag> results = jdbc.query(sql, this::mapFlag, id);
@@ -55,7 +57,7 @@ public class FlagRepository {
         String sql = """
             SELECT id, user_id, title, description,
                    st_y(location::geometry) as lat, st_x(location::geometry) as lon,
-                   category, image_url, is_public, expires_at, created_at, updated_at
+                   city, address_text, category, image_url, is_public, expires_at, created_at, updated_at
             FROM flags WHERE user_id = ? AND is_public = true 
                    AND (expires_at IS NULL OR expires_at > NOW())
             ORDER BY created_at DESC
@@ -73,7 +75,7 @@ public class FlagRepository {
         String sql = """
             SELECT id, user_id, title, description,
                    st_y(location::geometry) as lat, st_x(location::geometry) as lon,
-                   category, image_url, is_public, expires_at, created_at, updated_at
+                   city, address_text, category, image_url, is_public, expires_at, created_at, updated_at
             FROM flags WHERE is_public = true 
                    AND (expires_at IS NULL OR expires_at > NOW())
                    AND st_dwithin(location, 
@@ -88,6 +90,8 @@ public class FlagRepository {
             UUID flagId,
             String title,
             String description,
+            String city,
+            String addressText,
             String category,
             String imageUrl,
             Boolean isPublic
@@ -102,6 +106,14 @@ public class FlagRepository {
         if (description != null) {
             sql.append(", description = ?");
             params.add(description);
+        }
+        if (city != null) {
+            sql.append(", city = ?");
+            params.add(city);
+        }
+        if (addressText != null) {
+            sql.append(", address_text = ?");
+            params.add(addressText);
         }
         if (category != null) {
             sql.append(", category = ?");
@@ -143,6 +155,8 @@ public class FlagRepository {
                 rs.getString("description"),
                 rs.getDouble("lat"),
                 rs.getDouble("lon"),
+                rs.getString("city"),
+                rs.getString("address_text"),
                 rs.getString("category"),
                 rs.getString("image_url"),
                 rs.getBoolean("is_public"),

@@ -15,6 +15,7 @@ public record User(
         Double lat,
         Double lon,
         String city,
+        String addressText,  // Human-readable address for display
         // For business accounts (clubs, restaurants)
         String businessName,
         String businessCategory,
@@ -29,7 +30,7 @@ public record User(
     // Convenience constructor for basic user creation
     public User(UUID id, String username, String email, String displayName, UserType userType) {
         this(id, username, email, displayName, null, null, userType, 
-             null, null, null, null, null, true, true, false, 
+             null, null, null, null, null, null, true, true, false, 
              OffsetDateTime.now(), OffsetDateTime.now());
     }
 }

@@ -10,6 +10,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/events")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 public class EventController {
 
     private final EventService service;
@@ -87,18 +88,23 @@ public class EventController {
             @PathVariable String eventId,
             @RequestHeader(value = "X-User-Id", required = false, defaultValue = "anonymous") String owner
     ) {
+        System.out.println("DELETE /events/" + eventId + " - Owner: " + owner);
         try {
             UUID id = UUID.fromString(eventId);
             boolean deleted = service.deleteEvent(id, owner);
             
             if (!deleted) {
+                System.out.println("Event not found: " + eventId);
                 return ResponseEntity.notFound().build();
             }
             
+            System.out.println("Event deleted successfully: " + eventId);
             return ResponseEntity.noContent().build();
         } catch (SecurityException e) {
+            System.out.println("Security exception for event " + eventId + ": " + e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         } catch (IllegalArgumentException e) {
+            System.out.println("Invalid event ID: " + eventId);
             return ResponseEntity.badRequest().build();
         }
     }

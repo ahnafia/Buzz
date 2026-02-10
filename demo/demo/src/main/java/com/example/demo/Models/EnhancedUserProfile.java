@@ -14,6 +14,7 @@ public record EnhancedUserProfile(
         Double lat,
         Double lon,
         String city,
+        String addressText,  // Human-readable address for display
         String businessName,
         String businessCategory,
         // Stats
@@ -52,6 +53,7 @@ public record EnhancedUserProfile(
                 user.locationVisible() ? user.lat() : null,
                 user.locationVisible() ? user.lon() : null,
                 user.city(),
+                user.addressText(),
                 user.businessName(),
                 user.businessCategory(),
                 followerCount,

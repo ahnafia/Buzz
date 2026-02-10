@@ -10,6 +10,8 @@ public record Landmark(
         String description,
         double lat,
         double lon,
+        String city,
+        String addressText,  // Human-readable address for display
         String category,
         int visitCount,
         OffsetDateTime lastVisitedAt,

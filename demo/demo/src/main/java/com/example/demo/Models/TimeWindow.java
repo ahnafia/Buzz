@@ -1,30 +1,49 @@
 package com.example.demo.Models;
 
-import java.time.*;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 
 public record TimeWindow(OffsetDateTime start, OffsetDateTime end) {
-
-    public static TimeWindow from(TimeFilter filter, ZoneId zone) {
-        OffsetDateTime now = OffsetDateTime.now(zone);
-
+    
+    public static TimeWindow from(TimeFilter filter, ZoneId zoneId) {
+        OffsetDateTime now = OffsetDateTime.now(zoneId);
+        
         return switch (filter) {
-            case NOW -> new TimeWindow(now, now.plusHours(2));
-
-            case TONIGHT -> {
-                // "Tonight" = today 6pm → tomorrow 3am in the chosen zone
-                LocalDate today = LocalDate.now(zone);
-                ZonedDateTime startZ = today.atTime(18, 0).atZone(zone);
-                ZonedDateTime endZ = today.plusDays(1).atTime(3, 0).atZone(zone);
-
-                // If it's already past 3am tomorrow window doesn't make sense; fallback to next "tonight"
-                if (ZonedDateTime.now(zone).isAfter(endZ)) {
-                    startZ = today.plusDays(1).atTime(18, 0).atZone(zone);
-                    endZ = today.plusDays(2).atTime(3, 0).atZone(zone);
-                }
-                yield new TimeWindow(startZ.toOffsetDateTime(), endZ.toOffsetDateTime());
+            case NOW -> {
+                // Events happening right now (within the next hour)
+                yield new TimeWindow(
+                    now.minus(1, ChronoUnit.HOURS),
+                    now.plus(1, ChronoUnit.HOURS)
+                );
             }
-
-            case WEEK -> new TimeWindow(now, now.plusDays(7));
+            case TODAY -> {
+                // Events for today
+                OffsetDateTime startOfDay = now.truncatedTo(ChronoUnit.DAYS);
+                OffsetDateTime endOfDay = startOfDay.plus(1, ChronoUnit.DAYS);
+                yield new TimeWindow(startOfDay, endOfDay);
+            }
+            case THIS_WEEK -> {
+                // Events for this week
+                OffsetDateTime startOfWeek = now.truncatedTo(ChronoUnit.DAYS)
+                    .minus(now.getDayOfWeek().getValue() - 1, ChronoUnit.DAYS);
+                OffsetDateTime endOfWeek = startOfWeek.plus(7, ChronoUnit.DAYS);
+                yield new TimeWindow(startOfWeek, endOfWeek);
+            }
+            case THIS_MONTH -> {
+                // Events for this month
+                OffsetDateTime startOfMonth = now.truncatedTo(ChronoUnit.DAYS)
+                    .withDayOfMonth(1);
+                OffsetDateTime endOfMonth = startOfMonth.plus(1, ChronoUnit.MONTHS);
+                yield new TimeWindow(startOfMonth, endOfMonth);
+            }
+            case ALL -> {
+                // All events (very wide range)
+                yield new TimeWindow(
+                    now.minus(1, ChronoUnit.YEARS),
+                    now.plus(1, ChronoUnit.YEARS)
+                );
+            }
         };
     }
 }

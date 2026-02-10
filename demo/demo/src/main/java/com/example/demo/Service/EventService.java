@@ -2,6 +2,8 @@ package com.example.demo.Service;
 import com.example.demo.Models.*;
 import com.example.demo.Repositories.EventRepository;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -12,6 +14,7 @@ import java.util.UUID;
 @Service
 public class EventService {
 
+    private static final Logger log = LoggerFactory.getLogger(EventService.class);
     private static final int MAX_RADIUS_M = 40000; // ~25 mi
     private static final int MIN_RADIUS_M = 100;
     private static final int MAX_LIMIT = 500;
@@ -155,16 +158,24 @@ public class EventService {
     }
 
     public boolean deleteEvent(UUID eventId, String owner) {
+        log.debug("Attempting to delete event {} by owner {}", eventId, owner);
+        
         // Check ownership
         String eventOwner = repo.getOwner(eventId);
+        log.debug("Event {} owner from DB: {}", eventId, eventOwner);
+        
         if (eventOwner == null) {
+            log.warn("Event {} not found", eventId);
             return false; // Event not found
         }
         if (!eventOwner.equals(owner)) {
+            log.warn("Owner mismatch for event {}: DB owner={}, request owner={}", eventId, eventOwner, owner);
             throw new SecurityException("You can only delete events you own");
         }
 
-        return repo.deleteEvent(eventId);
+        boolean result = repo.deleteEvent(eventId);
+        log.debug("Delete event {} result: {}", eventId, result);
+        return result;
     }
 
     public EventsResponse getMyEvents(

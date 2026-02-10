@@ -16,7 +16,7 @@ const BusinessHeader = ({ profile, hasActiveEvents }: { profile: any, hasActiveE
           <span className="category-badge">{profile.businessCategory}</span>
         )}
       </div>
-      <div className="business-location">{profile.city || 'Location not set'}</div>
+      <div className="business-location">{profile.addressText || profile.city || 'Location not set'}</div>
       <div className="business-status">
         <span className="status-indicator">
           {hasActiveEvents ? 'Active events' : 'No active events'}
@@ -89,7 +89,7 @@ const BusinessSettings = ({ profile, isOpen, onToggle }: {
         </div>
         <div className="setting-field">
           <label>Location</label>
-          <input type="text" defaultValue={profile.city || ''} />
+          <input type="text" defaultValue={profile.addressText || profile.city || ''} />
         </div>
         <div className="setting-field">
           <label>Contact Email</label>
@@ -152,20 +152,22 @@ const ProfileScreen = () => {
   }, [profile])
 
   const handlePostEvent = () => {
-    // TODO: Navigate to event creation screen
-    console.log('Post new event')
+    navigate('/create-event')
   }
 
   const handleEditEvent = (eventId: string) => {
-    // TODO: Navigate to event edit screen
-    console.log('Edit event:', eventId)
+    navigate(`/edit-event/${eventId}`)
   }
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
+      console.log('ProfileScreen: Attempting to delete event:', eventId)
       await businessEvents.deleteEvent(eventId)
+      console.log('ProfileScreen: Event deleted successfully')
     } catch (error) {
-      console.error('Failed to delete event:', error)
+      console.error('ProfileScreen: Failed to delete event:', error)
+      // Show user-friendly error message
+      alert(`Failed to delete event: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -392,7 +394,7 @@ const ProfileScreen = () => {
             </div>
             <div className="profile-meta">
               <div className="profile-underline name-box">{profile.displayName}</div>
-              <div className="profile-underline city-box">{profile.city || 'Location not set'}</div>
+              <div className="profile-underline city-box">{profile.addressText || profile.city || 'Location not set'}</div>
               <div className="profile-underline friends-box">{friends?.users.length || 0} {friends?.users?.length === 1 ? 'Friend' : 'Friends'}</div>
             </div>
           </div>
@@ -457,7 +459,7 @@ const ProfileScreen = () => {
                         </span>
                         <div className="list-item-text">
                           <span className="list-item-title">{flag.title}</span>
-                          <span className="list-item-location">{flag.city || `${flag.lat}, ${flag.lon}`}</span>
+                          <span className="list-item-location">{flag.addressText || flag.city || 'Location not set'}</span>
                         </div>
                       </button>
                     ))
@@ -506,7 +508,7 @@ const ProfileScreen = () => {
                           <span className="list-item-name">{flagWithLikes.likeCount} likes</span>
                           <div className="list-item-details">
                             <span className="list-item-title">{flagWithLikes.flag.title}</span>
-                            <span className="list-item-location">{flagWithLikes.flag.city || `${flagWithLikes.flag.lat}, ${flagWithLikes.flag.lon}`}</span>
+                            <span className="list-item-location">{flagWithLikes.flag.addressText || flagWithLikes.flag.city || 'Location not set'}</span>
                           </div>
                         </div>
                       </button>

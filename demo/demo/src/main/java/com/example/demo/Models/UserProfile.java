@@ -17,6 +17,7 @@ public record UserProfile(
         Double lat,
         Double lon,
         String city,
+        String addressText,  // Human-readable address for display
         // Business info
         String businessName,
         String businessCategory,
@@ -39,6 +40,7 @@ public record UserProfile(
                 user.locationVisible() ? user.lat() : null,
                 user.locationVisible() ? user.lon() : null,
                 user.city(),
+                user.addressText(),
                 user.businessName(),
                 user.businessCategory(),
                 eventCount,
