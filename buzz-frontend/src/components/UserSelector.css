@@ -1,0 +1,65 @@
+.user-selector {
+  position: relative;
+  z-index: 1000;
+}
+
+.user-selector-button {
+  background: #FF9B56;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.user-selector-button:hover {
+  background: #e8884a;
+}
+
+.user-selector-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1001;
+}
+
+.user-selector-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.25rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.5rem 0;
+  min-width: 250px;
+  z-index: 1002;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.user-selector-item {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background: none;
+  border: none;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  color: #333;
+}
+
+.user-selector-item:hover {
+  background: #f5f0e8;
+}
+
+.user-selector-item.active {
+  background: #FFE2B7;
+  color: #FF9B56;
+  font-weight: 500;
+}
+
+.user-selector-item:focus {
+  outline: none;
+}

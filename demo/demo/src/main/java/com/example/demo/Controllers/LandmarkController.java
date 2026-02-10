@@ -10,6 +10,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/landmarks")
+@CrossOrigin(origins = "http://localhost:5173")
 public class LandmarkController {
     private final LandmarkService service;
 

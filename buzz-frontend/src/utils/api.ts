@@ -1,12 +1,20 @@
-// API utility functions - placeholder for backend integration
+// API utility functions - backend integration
+import type { UserProfile, UsersResponse } from '../types/api'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+
+// Helper function to get current user ID (you might want to implement proper auth later)
+const getCurrentUserId = (): string | null => {
+  // For now, return a mock user ID - in a real app this would come from auth
+  return localStorage.getItem('currentUserId')
+}
 
 export const api = {
   // Posts
   getPosts: async (location?: { lat: number; lng: number; radius?: number }) => {
     // TODO: Implement API call using API_BASE_URL
     console.log('Getting posts for location:', location, 'base:', API_BASE_URL)
+    // Placeholder data
     return []
   },
 
@@ -23,10 +31,81 @@ export const api = {
     return null
   },
 
+  // Profile API calls
+  getCurrentUserProfile: async (): Promise<UserProfile | null> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      if (!currentUserId) return null
+
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
+        headers: {
+          'X-User-Id': currentUserId,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching current user profile:', error)
+      return null
+    }
+  },
+
+  getEnhancedProfile: async (username: string): Promise<UserProfile | null> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      }
+      
+      if (currentUserId) {
+        headers['X-User-Id'] = currentUserId
+      }
+
+      const response = await fetch(`${API_BASE_URL}/users/${username}/profile`, {
+        headers
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching enhanced profile:', error)
+      return null
+    }
+  },
+
+  getFriends: async (username: string, cursor?: string, limit: number = 20): Promise<UsersResponse | null> => {
+    try {
+      const params = new URLSearchParams({ limit: limit.toString() })
+      if (cursor) params.append('cursor', cursor)
+
+      const response = await fetch(`${API_BASE_URL}/users/${username}/friends?${params}`)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching friends:', error)
+      return null
+    }
+  },
+
   // Places
   searchPlaces: async (query: string, location?: { lat: number; lng: number }) => {
     // TODO: Implement API call
     console.log('Searching places:', query, location)
     return []
-  }
+  },
 }
+
+// Re-export types for convenience
+export type { UserProfile, UsersResponse, Landmark, Flag, FlagWithLikeCount, Friend } from '../types/api'

@@ -11,6 +11,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/flags")
+@CrossOrigin(origins = "http://localhost:5173")
 public class FlagController {
     private final FlagService service;
 

@@ -5,6 +5,7 @@ import LoadingScreen from './screens/LoadingScreen'
 import MainMapScreen from './screens/MainMapScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import { useAppState } from './hooks/useAppState'
+import { UserProvider } from './contexts/UserContext'
 
 function App() {
   const { currentScreen, finishLoading } = useAppState()
@@ -19,19 +20,21 @@ function App() {
   }, [finishLoading])
 
   return (
-    <Routes>
-      <Route path="/Profile" element={<ProfileScreen />} />
-      <Route
-        path="/*"
-        element={
-          currentScreen === 'loading' ? (
-            <LoadingScreen />
-          ) : (
-            <MainMapScreen />
-          )
-        }
-      />
-    </Routes>
+    <UserProvider>
+      <Routes>
+        <Route path="/Profile" element={<ProfileScreen />} />
+        <Route
+          path="/*"
+          element={
+            currentScreen === 'loading' ? (
+              <LoadingScreen />
+            ) : (
+              <MainMapScreen />
+            )
+          }
+        />
+      </Routes>
+    </UserProvider>
   )
 }
 

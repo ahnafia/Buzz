@@ -21,6 +21,12 @@
   flex-shrink: 0;
 }
 
+.profile-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .back-btn, .settings-btn {
   background: none;
   border: none;
@@ -398,4 +404,11 @@
 .list-item-avatar svg {
   width: 70%;
   height: 70%;
+}
+
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
 }

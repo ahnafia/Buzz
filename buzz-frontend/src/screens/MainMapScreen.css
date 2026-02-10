@@ -5,6 +5,15 @@
   display: flex;
   flex-direction: column;
   background: #f0f0f0;
+  position: relative;
+}
+
+/* Header for user selector */
+.main-map-header {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
 }
 
 /* Header - compact for landscape */
