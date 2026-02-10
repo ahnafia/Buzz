@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api } from '../utils/api'
-import type { UserProfile, UsersResponse } from '../types/api'
+import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest } from '../types/api'
 
 export const useProfile = (username?: string) => {
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -62,4 +62,69 @@ export const useFriends = (username: string) => {
   }, [username])
 
   return { friends, loading, error }
+}
+
+export const useBusinessEvents = () => {
+  const [events, setEvents] = useState<Event[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const eventsData = await api.getMyEvents('active')
+      setEvents(eventsData?.events || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch events')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const createEvent = async (eventData: CreateEventRequest): Promise<Event> => {
+    try {
+      const newEvent = await api.createEvent(eventData)
+      setEvents(prev => [newEvent, ...prev])
+      return newEvent
+    } catch (err) {
+      throw err
+    }
+  }
+
+  const updateEvent = async (eventId: string, eventData: UpdateEventRequest): Promise<Event> => {
+    try {
+      const updatedEvent = await api.updateEvent(eventId, eventData)
+      setEvents(prev => prev.map(event => 
+        event.id === eventId ? updatedEvent : event
+      ))
+      return updatedEvent
+    } catch (err) {
+      throw err
+    }
+  }
+
+  const deleteEvent = async (eventId: string): Promise<boolean> => {
+    try {
+      await api.deleteEvent(eventId)
+      setEvents(prev => prev.filter(event => event.id !== eventId))
+      return true
+    } catch (err) {
+      throw err
+    }
+  }
+
+  useEffect(() => {
+    fetchEvents()
+  }, [])
+
+  return { 
+    events, 
+    loading, 
+    error, 
+    refetch: fetchEvents,
+    createEvent,
+    updateEvent,
+    deleteEvent
+  }
 }

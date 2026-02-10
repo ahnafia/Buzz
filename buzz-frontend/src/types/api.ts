@@ -5,7 +5,7 @@ export interface UserProfile {
   displayName: string
   bio?: string
   profileImageUrl?: string
-  userType: 'INDIVIDUAL' | 'BUSINESS'
+  userType: 'PERSONAL' | 'BUSINESS' | 'PROMOTER' | 'ARTIST'
   lat?: number
   lon?: number
   city?: string
@@ -22,6 +22,41 @@ export interface UserProfile {
   landmarks: Landmark[]
   recentFlags: Flag[]
   flagsWithLikeCounts: FlagWithLikeCount[]
+}
+
+export interface Event {
+  id: string
+  title: string
+  category: string
+  startTime: string
+  expiresAt: string
+  owner: string
+  lat: number
+  lon: number
+}
+
+export interface EventsResponse {
+  events: Event[]
+  nextCursor?: string
+  hasMore: boolean
+}
+
+export interface CreateEventRequest {
+  title: string
+  category: string
+  startTime: string
+  expiresAt: string
+  lat: number
+  lon: number
+}
+
+export interface UpdateEventRequest {
+  title?: string
+  category?: string
+  startTime?: string
+  expiresAt?: string
+  lat?: number
+  lon?: number
 }
 
 export interface Landmark {

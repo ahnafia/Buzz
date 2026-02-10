@@ -412,3 +412,354 @@
   color: #666;
   font-style: italic;
 }
+/* Business Profile Styles */
+.business-profile .profile-body {
+  display: block;
+}
+
+.business-profile-body {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.business-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.5rem;
+  background: #FFFBF5;
+  border: 2px solid #FF9B56;
+  border-radius: 12px;
+}
+
+.business-info {
+  flex: 1;
+}
+
+.business-name-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.business-name {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #FF9B56;
+}
+
+.category-badge {
+  background: #FF9B56;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.business-location {
+  color: #666;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.business-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-indicator {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.status-indicator::before {
+  content: "●";
+  margin-right: 0.5rem;
+}
+
+.business-header .status-indicator::before {
+  color: #ccc;
+}
+
+.business-header[data-has-events="true"] .status-indicator::before {
+  color: #4CAF50;
+}
+
+.business-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #FF9B56;
+  flex-shrink: 0;
+}
+
+.business-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-event-btn {
+  background: #FF9B56;
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.post-event-btn:hover {
+  background: #e8894d;
+}
+
+.events-section h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1.3rem;
+  color: #333;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-card {
+  background: #FFFBF5;
+  border: 1px solid #FFE2B7;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.event-info {
+  flex: 1;
+}
+
+.event-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.event-datetime {
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.event-description {
+  margin: 0 0 0.75rem 0;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status-badge.live {
+  background: #4CAF50;
+  color: white;
+}
+
+.status-badge.upcoming {
+  background: #2196F3;
+  color: white;
+}
+
+.status-badge.expired {
+  background: #9E9E9E;
+  color: white;
+}
+
+.event-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-left: 1rem;
+}
+
+.action-btn {
+  background: none;
+  border: 1px solid #FF9B56;
+  color: #FF9B56;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.action-btn:hover {
+  background: #FF9B56;
+  color: white;
+}
+
+.action-btn.delete-btn:hover {
+  background: #f44336;
+  border-color: #f44336;
+}
+
+.empty-events {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+}
+
+.map-preview {
+  background: #FFFBF5;
+  border: 1px solid #FFE2B7;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.map-preview h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.map-placeholder {
+  background: #f5f5f5;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+}
+
+.map-placeholder p {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+}
+
+.map-placeholder small {
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.business-settings {
+  background: #FFFBF5;
+  border: 1px solid #FFE2B7;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.settings-toggle {
+  width: 100%;
+  background: #FFE2B7;
+  border: none;
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-toggle:hover {
+  background: #ffd9a3;
+}
+
+.settings-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.setting-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.setting-field label {
+  font-weight: 500;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.setting-field input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.setting-field input:focus {
+  outline: none;
+  border-color: #FF9B56;
+}
+
+.save-settings-btn {
+  background: #FF9B56;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  align-self: flex-start;
+}
+
+.save-settings-btn:hover {
+  background: #e8894d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .business-profile-body {
+    padding: 1rem;
+  }
+  
+  .business-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .business-logo {
+    align-self: center;
+  }
+  
+  .event-card {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .event-actions {
+    flex-direction: row;
+    margin-left: 0;
+  }
+}

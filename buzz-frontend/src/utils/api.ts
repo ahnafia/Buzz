@@ -1,5 +1,5 @@
 // API utility functions - backend integration
-import type { UserProfile, UsersResponse } from '../types/api'
+import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -99,6 +99,110 @@ export const api = {
     }
   },
 
+  // Events
+  getMyEvents: async (status: string = 'active', cursor?: string, limit: number = 20): Promise<EventsResponse | null> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      if (!currentUserId) return null
+
+      const params = new URLSearchParams({ 
+        status,
+        limit: limit.toString() 
+      })
+      if (cursor) params.append('cursor', cursor)
+
+      const response = await fetch(`${API_BASE_URL}/events/mine?${params}`, {
+        headers: {
+          'X-User-Id': currentUserId,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching my events:', error)
+      return null
+    }
+  },
+
+  createEvent: async (eventData: CreateEventRequest): Promise<Event> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      if (!currentUserId) throw new Error('No user ID available')
+
+      const response = await fetch(`${API_BASE_URL}/events`, {
+        method: 'POST',
+        headers: {
+          'X-User-Id': currentUserId,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error creating event:', error)
+      throw error
+    }
+  },
+
+  updateEvent: async (eventId: string, eventData: UpdateEventRequest): Promise<Event> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      if (!currentUserId) throw new Error('No user ID available')
+
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+        method: 'PATCH',
+        headers: {
+          'X-User-Id': currentUserId,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(eventData)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error updating event:', error)
+      throw error
+    }
+  },
+
+  deleteEvent: async (eventId: string): Promise<boolean> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      if (!currentUserId) throw new Error('No user ID available')
+
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          'X-User-Id': currentUserId,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      throw error
+    }
+  },
+
   // Places
   searchPlaces: async (query: string, location?: { lat: number; lng: number }) => {
     // TODO: Implement API call
@@ -108,4 +212,15 @@ export const api = {
 }
 
 // Re-export types for convenience
-export type { UserProfile, UsersResponse, Landmark, Flag, FlagWithLikeCount, Friend } from '../types/api'
+export type { 
+  UserProfile, 
+  UsersResponse, 
+  Landmark, 
+  Flag, 
+  FlagWithLikeCount, 
+  Friend,
+  Event,
+  EventsResponse,
+  CreateEventRequest,
+  UpdateEventRequest
+} from '../types/api'
