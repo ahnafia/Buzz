@@ -17,6 +17,113 @@
   padding: 2px 6px;
 }
 
+/* Make label/road text slightly lighter gray than default */
+.interactive-map .leaflet-labels-pane {
+  filter: brightness(1.1);
+  opacity: 0.85;
+}
+
+/* Clickable map pins – orange teardrop with circular logo (white + orange letter) at head */
+.buzz-pin-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.buzz-pin-dot {
+  position: relative;
+  display: block;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  background: #FF9B56;
+  border: 2px solid #FFFBF5;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 4px 14px rgba(255, 155, 86, 0.45);
+}
+
+.buzz-pin-logo {
+  position: absolute;
+  top: 3px;
+  left: 50%;
+  transform: translate(-50%, 0) rotate(45deg);
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.buzz-pin-letter {
+  font-size: 11px;
+  font-weight: 700;
+  color: #FF9B56;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.buzz-pin-icon .leaflet-marker-icon {
+  border: none;
+}
+
+/* Marker popup – modern app card */
+.buzz-marker-popup.leaflet-popup-content-wrapper {
+  padding: 0;
+  border-radius: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 155, 86, 0.12);
+  overflow: hidden;
+}
+
+.buzz-marker-popup .leaflet-popup-close-button {
+  display: none;
+}
+
+.buzz-marker-popup .leaflet-popup-tip {
+  border-radius: 2px;
+}
+
+.buzz-marker-popup .leaflet-popup-content {
+  margin: 0;
+  min-width: 0;
+  max-width: 160px;
+}
+
+.buzz-popup-card {
+  padding: 10px 14px;
+  background: #FFFBF5;
+  font-family: inherit;
+  text-align: center;
+  border-radius: 24px;
+}
+
+.buzz-popup-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #FF9B56;
+  letter-spacing: -0.02em;
+}
+
+.buzz-popup-desc {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #5c5c5c;
+}
+
+.buzz-popup-meta {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #FF9B56;
+  background: rgba(255, 155, 86, 0.12);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
 /* Small Buzz Logo - Top Left */
 .buzz-logo-small {
   position: absolute;
@@ -88,9 +195,35 @@
   max-width: 400px;
 }
 
+.map-search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.map-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.map-search-icon-svg {
+  width: 16px;
+  height: 16px;
+  stroke: #FF9B56;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .map-search-bar {
   width: 100%;
-  padding: 12px 20px;
+  padding: 12px 20px 12px 40px; /* left padding to make room for icon */
   border: none;
   border-radius: 25px;
   font-size: 16px;
@@ -257,4 +390,178 @@
 .close-btn:hover {
   background: rgba(255, 155, 86, 0.1);
   transform: translateY(-1px);
+}
+
+/* Persistent orange button (caret) – always at bottom right, same width as sidebar */
+.pin-sidebar-trigger.pin-sidebar-footer-btn {
+  position: absolute;
+  bottom: 30px;
+  right: 16px;
+  width: 340px;
+  max-width: calc(90vw - 32px);
+  z-index: 902;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  background: #FF9B56;
+  color: #FFFBF5;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.pin-sidebar-trigger:hover {
+  background: #e88a45;
+}
+
+.pin-sidebar-trigger-caret {
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: bold;
+}
+
+/* Collapsible right sidebar – slides up from the orange button */
+.pin-detail-sidebar {
+  position: absolute;
+  top: 80px;
+  right: 16px;
+  bottom: 72px;
+  width: 340px;
+  max-width: calc(90vw - 32px);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 155, 86, 0.08);
+  border-radius: 20px;
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 0.25s ease-out;
+}
+
+.pin-detail-sidebar--open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pin-detail-sidebar--closed {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pin-detail-sidebar--collapsed {
+  width: 52px;
+  min-width: 52px;
+}
+
+.pin-detail-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.pin-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 18px 16px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 155, 86, 0.15);
+}
+
+.pin-detail-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #FF9B56;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pin-detail-sidebar--collapsed .pin-detail-title {
+  display: none;
+}
+
+.pin-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.pin-detail-card {
+  padding: 4px 8px 6px;
+  border-radius: 10px;
+  background: rgba(255, 226, 183, 0.35);
+  margin-bottom: 0;
+  flex: 1;
+}
+
+.pin-detail-card--selected {
+  box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.6);
+}
+
+.pin-detail-card-title {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2d2d2d;
+}
+
+.pin-detail-desc {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #2d2d2d;
+}
+
+.pin-detail-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FF9B56;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  margin-bottom: 10px;
+}
+
+.pin-detail-block {
+  margin-bottom: 8px;
+}
+
+.pin-detail-block:last-child {
+  margin-bottom: 0;
+}
+
+.pin-detail-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 155, 86, 0.9);
+  margin-bottom: 1px;
+}
+
+.pin-detail-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #2d2d2d;
 }
