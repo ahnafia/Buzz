@@ -18,6 +18,15 @@
   background: #e8884a;
 }
 
+.user-selector-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.user-selector-button:disabled:hover {
+  background: #ccc;
+}
+
 .user-selector-backdrop {
   position: fixed;
   inset: 0;
@@ -58,6 +67,12 @@
   background: #FFE2B7;
   color: #FF9B56;
   font-weight: 500;
+}
+
+.user-selector-item.disabled {
+  color: #999;
+  cursor: not-allowed;
+  font-style: italic;
 }
 
 .user-selector-item:focus {

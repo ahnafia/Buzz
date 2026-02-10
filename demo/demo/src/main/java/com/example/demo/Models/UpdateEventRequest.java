@@ -8,6 +8,7 @@ public record UpdateEventRequest(
         Double lat,             // optional
         Double lon,             // optional
         OffsetDateTime startTime, // optional
-        OffsetDateTime endTime   // optional
+        OffsetDateTime endTime,   // optional
+        String description      // optional
 ) {
 }

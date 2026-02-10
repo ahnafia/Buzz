@@ -20,7 +20,8 @@
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {
   width: 100%;
   padding: 12px;
   border: 2px solid #e1e5e9;
@@ -28,17 +29,25 @@
   font-size: 16px;
   transition: border-color 0.2s;
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 .form-group input:focus,
-.form-group select:focus {
+.form-group select:focus,
+.form-group textarea:focus {
   outline: none;
   border-color: #FF9B56;
 }
 
 .form-group input.error,
-.form-group select.error {
+.form-group select.error,
+.form-group textarea.error {
   border-color: #e74c3c;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 .form-row {
@@ -137,6 +146,129 @@
 
   .cancel-btn,
   .submit-btn {
+    width: 100%;
+  }
+}
+
+/* Locati
+on Picker Styles */
+.location-section {
+  margin-bottom: 20px;
+}
+
+.location-picker-btn {
+  background: #FF9B56;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background-color 0.2s;
+}
+
+.location-picker-btn:hover:not(:disabled) {
+  background: #e8884a;
+}
+
+.location-picker-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Location Picker Modal */
+.location-picker-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 20px;
+}
+
+.location-picker-content {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.location-picker-header {
+  padding: 20px;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.location-picker-header h3 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.location-picker-header p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.location-picker-map {
+  flex: 1;
+  min-height: 400px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.location-picker-actions {
+  padding: 20px;
+  border-top: 1px solid #e1e5e9;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.confirm-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.confirm-btn:hover {
+  background: #45a049;
+}
+
+@media (max-width: 600px) {
+  .location-picker-modal {
+    padding: 10px;
+  }
+
+  .location-picker-content {
+    max-height: 95vh;
+  }
+
+  .location-picker-map {
+    min-height: 300px;
+  }
+
+  .location-picker-actions {
+    flex-direction: column;
+  }
+
+  .cancel-btn,
+  .confirm-btn {
     width: 100%;
   }
 }

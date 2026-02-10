@@ -42,6 +42,12 @@
   box-shadow: 0 4px 14px rgba(255, 155, 86, 0.45);
 }
 
+/* Event pins have a different color */
+.buzz-pin-dot--event {
+  background: #4CAF50;
+  box-shadow: 0 4px 14px rgba(76, 175, 80, 0.45);
+}
+
 .buzz-pin-logo {
   position: absolute;
   top: 3px;
@@ -63,6 +69,11 @@
   color: #FF9B56;
   line-height: 1;
   text-transform: uppercase;
+}
+
+/* Event pins have green letters */
+.buzz-pin-icon--event .buzz-pin-letter {
+  color: #4CAF50;
 }
 
 .buzz-pin-icon .leaflet-marker-icon {
@@ -564,4 +575,57 @@
   font-size: 14px;
   line-height: 1.4;
   color: #2d2d2d;
+}/
+* Location Picker Styles */
+.location-picker-indicator {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 155, 86, 0.95);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.selected-coordinates {
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: 0.9;
+}
+
+.location-picker-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.location-picker-dot {
+  width: 20px;
+  height: 20px;
+  background: #FF4444;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(255, 68, 68, 0.4);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }

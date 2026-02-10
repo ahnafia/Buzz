@@ -113,7 +113,8 @@ public class EventService {
                 request.lon(),
                 request.startTime(),
                 expiresAt,
-                owner
+                owner,
+                request.description()
         );
 
         return repo.fetchEventById(eventId);
@@ -151,7 +152,8 @@ public class EventService {
                 request.lat(),
                 request.lon(),
                 request.startTime(),
-                newExpiresAt
+                newExpiresAt,
+                request.description()
         );
 
         return updated ? repo.fetchEventById(eventId) : null;

@@ -11,6 +11,7 @@ public record EventPin(
         OffsetDateTime expiresAt,
         String owner,
         double lat,
-        double lon
+        double lon,
+        String description
 ) {
 }

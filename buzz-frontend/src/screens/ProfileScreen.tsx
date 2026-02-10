@@ -3,6 +3,8 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useProfile, useFriends, useBusinessEvents } from '../hooks/useProfile'
 import { useUser } from '../contexts/UserContext'
 import UserSelector from '../components/UserSelector'
+import BusinessMapView from '../components/BusinessMapView'
+import '../components/BusinessMapView.css'
 import type { Event } from '../types/api'
 import './ProfileScreen.css'
 
@@ -56,7 +58,10 @@ const EventCard = ({ event, onEdit, onDelete, onCopyLink }: {
         <div className="event-datetime">
           {new Date(event.startTime).toLocaleDateString()} at {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
-        <p className="event-description">{event.category}</p>
+        <p className="event-category">{event.category}</p>
+        {event.description && (
+          <p className="event-description">{event.description}</p>
+        )}
         <span className={`status-badge ${status.class}`}>{status.text}</span>
       </div>
       <div className="event-actions">
@@ -300,10 +305,10 @@ const ProfileScreen = () => {
 
           <div className="map-preview">
             <h3>Event Locations</h3>
-            <div className="map-placeholder">
-              <p>Map preview showing venue location and event pins</p>
-              <small>Tap pins to view public event details</small>
-            </div>
+            <BusinessMapView 
+              events={businessEvents.events}
+              businessLocation={profile.lat && profile.lon ? { lat: profile.lat, lng: profile.lon } : undefined}
+            />
           </div>
 
           <BusinessSettings 

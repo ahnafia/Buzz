@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import LocationPickerMap, { type LocationPickerMapHandle } from './LocationPickerMap'
 import type { Event, CreateEventRequest, UpdateEventRequest } from '../types/api'
 import './EventForm.css'
+import './LocationPickerMap.css'
 
 interface EventFormProps {
   event?: Event
@@ -14,6 +16,7 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
   const [formData, setFormData] = useState({
     title: event?.title || '',
     category: event?.category || '',
+    description: event?.description || '',
     startTime: event?.startTime ? new Date(event.startTime).toISOString().slice(0, 16) : '',
     endTime: event?.expiresAt ? new Date(event.expiresAt).toISOString().slice(0, 16) : '',
     lat: event?.lat || location?.lat || 0,
@@ -21,6 +24,8 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showLocationPicker, setShowLocationPicker] = useState(false)
+  const mapRef = useRef<LocationPickerMapHandle>(null)
 
   // Auto-set end time when start time changes (24 hours later)
   useEffect(() => {
@@ -77,6 +82,7 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
       const eventData = {
         title: formData.title.trim(),
         category: formData.category.trim(),
+        description: formData.description.trim() || undefined,
         startTime: new Date(formData.startTime).toISOString(),
         endTime: new Date(formData.endTime).toISOString(),
         lat: formData.lat,
@@ -95,6 +101,35 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }))
     }
+  }
+
+  const handleLocationPicker = () => {
+    console.log('EventForm: Opening location picker modal')
+    setShowLocationPicker(true)
+  }
+
+  const handleLocationSelect = (location: { lat: number; lng: number }) => {
+    setFormData(prev => ({
+      ...prev,
+      lat: location.lat,
+      lon: location.lng
+    }))
+  }
+
+  const handleLocationConfirm = () => {
+    const selectedLocation = mapRef.current?.getSelectedLocation()
+    if (selectedLocation) {
+      setFormData(prev => ({
+        ...prev,
+        lat: selectedLocation.lat,
+        lon: selectedLocation.lng
+      }))
+    }
+    setShowLocationPicker(false)
+  }
+
+  const handleLocationCancel = () => {
+    setShowLocationPicker(false)
   }
 
   return (
@@ -136,6 +171,18 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
         {errors.category && <span className="error-message">{errors.category}</span>}
       </div>
 
+      <div className="form-group">
+        <label htmlFor="description">Description</label>
+        <textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => handleInputChange('description', e.target.value)}
+          placeholder="Describe your event (optional)"
+          rows={3}
+          disabled={isLoading}
+        />
+      </div>
+
       <div className="form-row">
         <div className="form-group">
           <label htmlFor="startTime">Start Time *</label>
@@ -165,10 +212,19 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
       </div>
 
       <div className="form-group">
-        <label>Location</label>
-        <div className="location-info">
-          <p>Current location: {formData.lat.toFixed(6)}, {formData.lon.toFixed(6)}</p>
-          <small>Location will be set automatically based on your current position</small>
+        <label>Event Location *</label>
+        <div className="location-section">
+          <div className="location-info">
+            <p>📍 {formData.lat.toFixed(6)}, {formData.lon.toFixed(6)}</p>
+            <button
+              type="button"
+              onClick={handleLocationPicker}
+              className="location-picker-btn"
+              disabled={isLoading}
+            >
+              📍 Choose Location on Map
+            </button>
+          </div>
         </div>
       </div>
 
@@ -189,6 +245,42 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
           {isLoading ? 'Saving...' : event ? 'Update Event' : 'Create Event'}
         </button>
       </div>
+
+      {/* Location Picker Modal */}
+      {showLocationPicker && (
+        <div className="location-picker-modal">
+          <div className="location-picker-content">
+            <div className="location-picker-header">
+              <h3>Choose Event Location</h3>
+              <p>Tap on the map to select where your event will take place</p>
+              <p style={{ color: 'red', fontSize: '12px' }}>DEBUG: Modal is open</p>
+            </div>
+            <div className="location-picker-map">
+              <LocationPickerMap 
+                ref={mapRef}
+                initialLocation={{ lat: formData.lat, lng: formData.lon }}
+                onLocationSelect={handleLocationSelect}
+              />
+            </div>
+            <div className="location-picker-actions">
+              <button
+                type="button"
+                onClick={handleLocationCancel}
+                className="cancel-btn"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLocationConfirm}
+                className="confirm-btn"
+              >
+                Confirm Location
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }

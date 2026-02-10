@@ -482,4 +482,19 @@ public int countFriends(UUID userId) {
     return count != null ? count : 0;
 }
 
+public List<User> fetchAllUsers() {
+    String sql = "SELECT " +
+            "id, username, email, display_name, bio, profile_image_url, " +
+            "user_type, " +
+            "business_name, business_category, " +
+            "city, address_text, " +
+            "st_y(location::geometry) as lat, st_x(location::geometry) as lon, " +
+            "location_visible, profile_public, verified, " +
+            "created_at, last_active_at " +
+            "FROM users " +
+            "ORDER BY display_name";
+    
+    return jdbc.query(sql, this::mapUser);
+}
+
 }

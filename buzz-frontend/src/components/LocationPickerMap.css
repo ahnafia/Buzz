@@ -1,0 +1,59 @@
+.location-picker-map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+.location-picker-leaflet-map {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border-radius: 8px;
+  background: #f0f0f0; /* Fallback background to see if container is there */
+}
+
+.selected-location-info {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: rgba(255, 155, 86, 0.95);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+}
+
+/* Location picker marker styles */
+.location-picker-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.location-picker-dot {
+  width: 20px;
+  height: 20px;
+  background: #FF4444;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(255, 68, 68, 0.4);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}

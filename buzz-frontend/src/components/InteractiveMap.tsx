@@ -3,10 +3,16 @@ import { Link } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './InteractiveMap.css'
+import { api } from '../utils/api'
+import type { Event } from '../types/api'
 
 export type InteractiveMapHandle = {
   zoomIn: () => void
   zoomOut: () => void
+  refreshEvents: () => void
+  enableLocationPicker: () => void
+  disableLocationPicker: () => void
+  getSelectedLocation: () => { lat: number; lng: number } | null
 }
 
 type PinData = {
@@ -22,54 +28,55 @@ type PinData = {
   address?: string
   hours?: string
   tips?: string
+  type: 'landmark' | 'event'
+  category?: string
+  startTime?: string
+  expiresAt?: string
 }
 
-/** Sample pins for the map – replace with real data later */
-const SAMPLE_PINS: PinData[] = [
-  {
-    id: 'penn-state',
-    lat: 40.7934,
-    lng: -77.8616,
-    title: 'Penn State',
-    description: 'University Park campus · Be here now.',
-    distanceFeet: 350,
-    fullDescription: 'The main campus of Penn State University. A hub for students and visitors with libraries, dining, and events year-round.',
-    address: 'University Park, State College, PA',
-    hours: 'Campus open 24/7',
-    tips: 'Check the events calendar for games and performances.'
-  },
-  {
-    id: 'coffee-shop',
-    lat: 40.7952,
-    lng: -77.8598,
-    title: 'Coffee Shop',
-    description: 'Espresso, pastries & free Wi‑Fi.',
-    distanceFeet: 980,
-    fullDescription: 'A cozy spot for coffee and light bites. Popular with students for studying and casual meetups.',
-    address: '123 College Ave',
-    hours: 'Mon–Fri 7am–8pm, Sat–Sun 8am–6pm',
-    tips: 'Try the house blend and the almond croissant.'
-  },
-  {
-    id: 'sunset-park',
-    lat: 40.7901,
-    lng: -77.8642,
-    title: 'Sunset Park',
-    description: 'Great views and picnic spots.',
-    distanceFeet: 1640,
-    fullDescription: 'A small park with open lawns and a clear view of the western sky. Ideal for picnics and evening walks.',
-    address: 'Corner of Park St & Sunset Dr',
-    hours: 'Dawn to dusk',
-    tips: 'Best sunset views from the north bench.'
+
+
+/** Convert Event to PinData */
+function eventToPinData(event: Event, userLat: number, userLon: number): PinData {
+  // Calculate approximate distance in feet (rough calculation)
+  const latDiff = event.lat - userLat
+  const lonDiff = event.lon - userLon
+  const distanceKm = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) * 111 // rough km conversion
+  const distanceFeet = distanceKm * 3280.84 // km to feet
+
+  const startDate = new Date(event.startTime)
+  const expiresDate = new Date(event.expiresAt)
+  const now = new Date()
+  
+  let status = 'Upcoming'
+  if (now > expiresDate) status = 'Expired'
+  else if (now >= startDate) status = 'Live'
+
+  return {
+    id: event.id,
+    lat: event.lat,
+    lng: event.lon,
+    title: event.title,
+    description: event.description || event.category,
+    distanceFeet: Math.round(distanceFeet),
+    fullDescription: event.description || `${event.category} event`,
+    category: event.category,
+    startTime: event.startTime,
+    expiresAt: event.expiresAt,
+    hours: `${startDate.toLocaleDateString()} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${expiresDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+    tips: `Status: ${status}`,
+    type: 'event'
   }
-]
+}
 
 /** Pin icon with circular logo (white + orange first letter) at head; orange visible around it */
 function pinIconForPin(pin: PinData) {
   const letter = pin.title.charAt(0).toUpperCase()
+  const isEvent = pin.type === 'event'
+  
   return L.divIcon({
-    className: 'buzz-pin-icon',
-    html: `<span class="buzz-pin-dot"><span class="buzz-pin-logo"><span class="buzz-pin-letter">${letter}</span></span></span>`,
+    className: `buzz-pin-icon ${isEvent ? 'buzz-pin-icon--event' : 'buzz-pin-icon--landmark'}`,
+    html: `<span class="buzz-pin-dot ${isEvent ? 'buzz-pin-dot--event' : ''}"><span class="buzz-pin-logo"><span class="buzz-pin-letter">${letter}</span></span></span>`,
     iconSize: [36, 36],
     iconAnchor: [18, 12]
   })
@@ -99,8 +106,15 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   const [selectedPin, setSelectedPin] = useState<PinData | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [events, setEvents] = useState<Event[]>([])
+  const [allPins, setAllPins] = useState<PinData[]>([])
+  const [isLocationPickerMode, setIsLocationPickerMode] = useState(false)
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null)
 
-  const sortedPins: PinData[] = [...SAMPLE_PINS].sort((a, b) =>
+  // Default map center (Penn State)
+  const mapCenter = { lat: 40.7934, lng: -77.8616 }
+
+  const sortedPins: PinData[] = [...allPins].sort((a, b) =>
     a.title.localeCompare(b.title),
   )
 
@@ -110,8 +124,66 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     },
     zoomOut() {
       map.current?.zoomOut()
+    },
+    refreshEvents() {
+      fetchEvents()
+    },
+    enableLocationPicker() {
+      setIsLocationPickerMode(true)
+      setSelectedLocation(null)
+    },
+    disableLocationPicker() {
+      setIsLocationPickerMode(false)
+      setSelectedLocation(null)
+    },
+    getSelectedLocation() {
+      return selectedLocation
     }
-  }), [])
+  }), [selectedLocation])
+
+  // Fetch events from API
+  const fetchEvents = async () => {
+    try {
+      console.log('InteractiveMap: Fetching events from API...')
+      const eventPins = await api.getEventPins(mapCenter.lat, mapCenter.lng, 10) // 10 mile radius
+      console.log('InteractiveMap: Received event pins:', eventPins)
+      
+      if (eventPins) {
+        // Convert EventPin objects to Event objects for state
+        const events = eventPins.map(pin => ({
+          id: pin.id,
+          title: pin.title,
+          category: pin.category,
+          startTime: pin.startTime,
+          expiresAt: pin.expiresAt,
+          owner: pin.owner,
+          lat: pin.lat,
+          lon: pin.lon,
+          description: pin.description
+        }))
+        console.log('InteractiveMap: Converted events:', events)
+        setEvents(events)
+        
+        // Convert events to pins and set them directly
+        const eventPinData = events.map(event => 
+          eventToPinData(event, mapCenter.lat, mapCenter.lng)
+        )
+        console.log('InteractiveMap: Created pin data:', eventPinData)
+        setAllPins(eventPinData)
+      } else {
+        console.log('InteractiveMap: No event pins received')
+        setAllPins([])
+      }
+    } catch (error) {
+      console.error('InteractiveMap: Error fetching events:', error)
+      setAllPins([])
+    }
+  }
+
+  // Load events on component mount
+  useEffect(() => {
+    fetchEvents()
+  }, [])
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return
@@ -126,7 +198,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       markerZoomAnimation: true,
       wheelDebounceTime: 40,
       wheelPxPerZoomLevel: 80
-    }).setView([40.7934, -77.8616], 13)
+    }).setView([mapCenter.lat, mapCenter.lng], 13)
 
     // Carto Voyager (light, colorful) base – blue water, green parks/grass
     L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png', {
@@ -150,9 +222,34 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       minZoom: 13
     }).addTo(map.current)
 
-    // Clickable markers with card-style popups; clicking also opens the right sidebar
+    // Add click handler for location picking
+    map.current.on('click', (e) => {
+      if (isLocationPickerMode) {
+        setSelectedLocation({ lat: e.latlng.lat, lng: e.latlng.lng })
+      }
+    })
+
+    return () => {
+      markersRef.current.forEach((m) => m.remove())
+      markersRef.current = []
+      if (map.current) {
+        map.current.remove()
+        map.current = null
+      }
+    }
+  }, [])
+
+  // Update markers when pins change
+  useEffect(() => {
+    if (!map.current) return
+
+    // Clear existing markers
+    markersRef.current.forEach((m) => m.remove())
+    markersRef.current = []
+
+    // Add new markers for all pins
     const markers: L.Marker[] = []
-    for (const pin of SAMPLE_PINS) {
+    for (const pin of allPins) {
       const marker = L.marker([pin.lat, pin.lng], { icon: pinIconForPin(pin) })
         .bindPopup(buildPopupHtml(pin), {
           className: 'buzz-marker-popup',
@@ -167,16 +264,33 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       markers.push(marker)
     }
     markersRef.current = markers
+  }, [allPins])
 
-    return () => {
-      markersRef.current.forEach((m) => m.remove())
-      markersRef.current = []
-      if (map.current) {
-        map.current.remove()
-        map.current = null
-      }
+  // Handle location picker marker
+  const locationMarkerRef = useRef<L.Marker | null>(null)
+  useEffect(() => {
+    if (!map.current) return
+
+    // Remove existing location marker
+    if (locationMarkerRef.current) {
+      locationMarkerRef.current.remove()
+      locationMarkerRef.current = null
     }
-  }, [])
+
+    // Add new location marker if location is selected
+    if (selectedLocation && isLocationPickerMode) {
+      const locationIcon = L.divIcon({
+        className: 'location-picker-marker',
+        html: '<div class="location-picker-dot"></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      })
+
+      locationMarkerRef.current = L.marker([selectedLocation.lat, selectedLocation.lng], { 
+        icon: locationIcon 
+      }).addTo(map.current)
+    }
+  }, [selectedLocation, isLocationPickerMode])
 
   const handleCreateFlag = () => {
     setShowCreatePopup(false)
@@ -186,14 +300,28 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
 
   const handleCreateEvent = () => {
     setShowCreatePopup(false)
-    // TODO: Implement event creation
-    console.log('Creating event...')
+    // Navigate to create event screen
+    window.location.href = '/create-event'
   }
 
   return (
     <div className="map-container">
       {/* Map - full screen */}
       <div ref={mapContainer} className="interactive-map" />
+
+      {/* Location Picker Indicator */}
+      {isLocationPickerMode && (
+        <div className="location-picker-indicator">
+          <div className="location-picker-message">
+            📍 Tap on the map to select a location
+            {selectedLocation && (
+              <div className="selected-coordinates">
+                Selected: {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Small Buzz Logo - Top Left */}
       <div className="buzz-logo-small">
@@ -273,6 +401,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
                   <span className="pin-detail-meta">
                     {formatDistance(selectedPin.distanceFeet)}
                   </span>
+                  {selectedPin.type === 'event' && selectedPin.category && (
+                    <div className="pin-detail-block">
+                      <span className="pin-detail-label">Category</span>
+                      <p className="pin-detail-text">{selectedPin.category}</p>
+                    </div>
+                  )}
                   {selectedPin.address && (
                     <div className="pin-detail-block">
                       <span className="pin-detail-label">Address</span>
@@ -281,13 +415,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
                   )}
                   {selectedPin.hours && (
                     <div className="pin-detail-block">
-                      <span className="pin-detail-label">Hours</span>
+                      <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Time' : 'Hours'}</span>
                       <p className="pin-detail-text">{selectedPin.hours}</p>
                     </div>
                   )}
                   {selectedPin.tips && (
                     <div className="pin-detail-block">
-                      <span className="pin-detail-label">Tips</span>
+                      <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Status' : 'Tips'}</span>
                       <p className="pin-detail-text">{selectedPin.tips}</p>
                     </div>
                   )}

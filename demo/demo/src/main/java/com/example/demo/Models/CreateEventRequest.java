@@ -8,6 +8,7 @@ public record CreateEventRequest(
         double lat,
         double lon,
         OffsetDateTime startTime,
-        OffsetDateTime endTime  // optional
+        OffsetDateTime endTime,  // optional
+        String description       // optional
 ) {
 }

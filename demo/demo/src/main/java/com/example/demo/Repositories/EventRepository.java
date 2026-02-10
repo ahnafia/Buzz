@@ -24,94 +24,91 @@ public class EventRepository {
         this.dataSource = dataSource;
     }
 
-    public List<EventPin> fetchPins(
-            double lon,
-            double lat,
-            int radiusM,
-            OffsetDateTime timeStart,
-            OffsetDateTime timeEnd,
-            List<String> categories,
-            int limit
-    ) {
-        String sqlTemplate = """
-      select
-        id,
-        title,
-        category,
-        start_time,
-        expires_at,
-        owner,
-        st_y(location::geometry) as lat,
-        st_x(location::geometry) as lon
-      from events
-      where expires_at > now()
-        and st_dwithin(
+public List<EventPin> fetchPins(
+        double lon,
+        double lat,
+        int radiusM,
+        OffsetDateTime timeStart,
+        OffsetDateTime timeEnd,
+        List<String> categories,
+        int limit
+) {
+    // Distance-only filter (no time window, no expiry).
+    // Keep other params for interface compatibility, but they are unused.
+
+    String sqlTemplate = """
+        select
+          id,
+          title,
+          category,
+          start_time,
+          coalesce(expires_at, end_time) as expires_at,
+          owner,
+          st_y(location::geometry) as lat,
+          st_x(location::geometry) as lon,
+          description
+        from events
+        where st_dwithin(
           location,
           st_setsrid(st_makepoint(?, ?), 4326)::geography,
           ?
         )
-        and start_time <= ?
-        and expires_at >= ?
         %s
-      order by start_time asc
-      limit ?;
-    """;
+        order by start_time asc
+        limit ?;
+        """;
 
-        boolean noCategoryFilter = (categories == null || categories.isEmpty());
-        Array catArray = null;
+    boolean noCategoryFilter = (categories == null || categories.isEmpty());
 
-        // Build SQL conditionally based on whether we have category filter
-        String categoryCondition;
-        Object[] queryParams;
-        
-        if (noCategoryFilter) {
-            // No category filter - skip the category condition entirely
-            categoryCondition = "";
-            queryParams = new Object[]{
+    String categoryCondition = "";
+    Object[] queryParams;
+
+    if (noCategoryFilter) {
+        queryParams = new Object[]{
                 lon, lat, radiusM,
-                timeEnd, timeStart,
                 limit
-            };
-        } else {
-            // Has category filter - include it
-            try (Connection c = dataSource.getConnection()) {
-                catArray = c.createArrayOf("text", categories.toArray());
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to create SQL array for categories", e);
-            }
-            categoryCondition = "and category = any(?)";
-            queryParams = new Object[]{
-                lon, lat, radiusM,
-                timeEnd, timeStart,
-                catArray,
-                limit
-            };
+        };
+    } else {
+        Array catArray;
+        try (Connection c = dataSource.getConnection()) {
+            catArray = c.createArrayOf("text", categories.toArray());
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create SQL array for categories", e);
         }
 
-        String finalSql = String.format(sqlTemplate, categoryCondition);
-
-        log.debug("Query params: lon={}, lat={}, radiusM={}, timeStart={}, timeEnd={}, noCategoryFilter={}, limit={}",
-                lon, lat, radiusM, timeStart, timeEnd, noCategoryFilter, limit);
-
-        List<EventPin> results = jdbc.query(
-                finalSql,
-                (rs, rowNum) -> new EventPin(
-                        UUID.fromString(rs.getString("id")),
-                        rs.getString("title"),
-                        rs.getString("category"),
-                        rs.getObject("start_time", OffsetDateTime.class),
-                        rs.getObject("expires_at", OffsetDateTime.class),
-                        rs.getString("owner"),
-                        rs.getDouble("lat"),
-                        rs.getDouble("lon")
-                ),
-                queryParams
-        );
-
-        log.debug("Query returned {} results", results.size());
-        
-        return results;
+        categoryCondition = "and category = any(?)";
+        queryParams = new Object[]{
+                lon, lat, radiusM,
+                catArray,
+                limit
+        };
     }
+
+    String finalSql = String.format(sqlTemplate, categoryCondition);
+
+    log.warn("[fetchPins:DIST_ONLY] lon={}, lat={}, radiusM={}, categories={}, limit={}",
+            lon, lat, radiusM, categories, limit);
+
+    return jdbc.query(
+            finalSql,
+            (rs, rowNum) -> new EventPin(
+                    UUID.fromString(rs.getString("id")),
+                    rs.getString("title"),
+                    rs.getString("category"),
+                    rs.getObject("start_time", OffsetDateTime.class),
+                    rs.getObject("expires_at", OffsetDateTime.class),
+                    rs.getString("owner"),
+                    rs.getDouble("lat"),
+                    rs.getDouble("lon"),
+                    rs.getString("description")
+            ),
+            queryParams
+    );
+}
+
+
+
+
 
     public EventPin fetchEventById(UUID id) {
         String sql = """
@@ -123,7 +120,8 @@ public class EventRepository {
               expires_at,
               owner,
               st_y(location::geometry) as lat,
-              st_x(location::geometry) as lon
+              st_x(location::geometry) as lon,
+              description
             from events
             where id = ?
             limit 1;
@@ -139,7 +137,8 @@ public class EventRepository {
                         rs.getObject("expires_at", OffsetDateTime.class),
                         rs.getString("owner"),
                         rs.getDouble("lat"),
-                        rs.getDouble("lon")
+                        rs.getDouble("lon"),
+                        rs.getString("description")
                 ),
                 id
         );
@@ -157,7 +156,8 @@ public class EventRepository {
               expires_at,
               owner,
               st_y(location::geometry) as lat,
-              st_x(location::geometry) as lon
+              st_x(location::geometry) as lon,
+              description
             from events
             where owner = ?
             order by start_time asc
@@ -174,7 +174,8 @@ public class EventRepository {
                         rs.getObject("expires_at", OffsetDateTime.class),
                         rs.getString("owner"),
                         rs.getDouble("lat"),
-                        rs.getDouble("lon")
+                        rs.getDouble("lon"),
+                        rs.getString("description")
                 ),
                 owner, limit
         );
@@ -215,7 +216,8 @@ public class EventRepository {
               expires_at,
               owner,
               st_y(location::geometry) as lat,
-              st_x(location::geometry) as lon
+              st_x(location::geometry) as lon,
+              description
             from events
             where expires_at > now()
               and st_dwithin(
@@ -262,7 +264,8 @@ public class EventRepository {
                         rs.getObject("expires_at", OffsetDateTime.class),
                         rs.getString("owner"),
                         rs.getDouble("lat"),
-                        rs.getDouble("lon")
+                        rs.getDouble("lon"),
+                        rs.getString("description")
                 ),
                 params.toArray()
         );
@@ -277,15 +280,16 @@ public class EventRepository {
             double lon,
             OffsetDateTime startTime,
             OffsetDateTime expiresAt,
-            String owner
+            String owner,
+            String description
     ) {
         UUID eventId = UUID.randomUUID();
         String sql = """
-            insert into events (id, title, category, location, start_time, expires_at, owner)
-            values (?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, ?)
+            insert into events (id, title, category, location, start_time, expires_at, owner, description)
+            values (?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, ?, ?)
         """;
 
-        jdbc.update(sql, eventId, title, category, lon, lat, startTime, expiresAt, owner);
+        jdbc.update(sql, eventId, title, category, lon, lat, startTime, expiresAt, owner, description);
         return eventId;
     }
 
@@ -296,7 +300,8 @@ public class EventRepository {
             Double lat,
             Double lon,
             OffsetDateTime startTime,
-            OffsetDateTime expiresAt
+            OffsetDateTime expiresAt,
+            String description
     ) {
         // Build dynamic update query
         StringBuilder sql = new StringBuilder("update events set ");
@@ -329,6 +334,11 @@ public class EventRepository {
             params.add(expiresAt);
             hasUpdate = true;
         }
+        if (description != null) {
+            sql.append("description = ?, ");
+            params.add(description);
+            hasUpdate = true;
+        }
 
         if (!hasUpdate) {
             return false;
@@ -344,8 +354,8 @@ public class EventRepository {
     }
 
     public boolean deleteEvent(UUID eventId) {
-        // Soft delete: set expires_at to now()
-        String sql = "update events set expires_at = now() where id = ?";
+        // Hard delete: permanently remove the event from the database
+        String sql = "delete from events where id = ?";
         int rows = jdbc.update(sql, eventId);
         return rows > 0;
     }
@@ -360,7 +370,8 @@ public class EventRepository {
               expires_at,
               owner,
               st_y(location::geometry) as lat,
-              st_x(location::geometry) as lon
+              st_x(location::geometry) as lon,
+              description
             from events
             where id = ? and expires_at > now()
             limit 1;
@@ -376,7 +387,8 @@ public class EventRepository {
                         rs.getObject("expires_at", OffsetDateTime.class),
                         rs.getString("owner"),
                         rs.getDouble("lat"),
-                        rs.getDouble("lon")
+                        rs.getDouble("lon"),
+                        rs.getString("description")
                 ),
                 id
         );
@@ -399,7 +411,8 @@ public class EventRepository {
               expires_at,
               owner,
               st_y(location::geometry) as lat,
-              st_x(location::geometry) as lon
+              st_x(location::geometry) as lon,
+              description
             from events
             where owner = ?
         """);
@@ -443,7 +456,8 @@ public class EventRepository {
                         rs.getObject("expires_at", OffsetDateTime.class),
                         rs.getString("owner"),
                         rs.getDouble("lat"),
-                        rs.getDouble("lon")
+                        rs.getDouble("lon"),
+                        rs.getString("description")
                 ),
                 params.toArray()
         );

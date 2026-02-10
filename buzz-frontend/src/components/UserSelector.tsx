@@ -1,48 +1,86 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useUser } from '../contexts/UserContext'
+import { api } from '../utils/api'
 import './UserSelector.css'
 
-const TEST_USERS = [
-    { id: '11111111-1111-1111-1111-111111111111', username: 'ahnaf', displayName: 'Ahnaf' },
-    { id: '22222222-2222-2222-2222-222222222222', username: 'sarah', displayName: 'Sarah' },
-    { id: '33333333-3333-3333-3333-333333333333', username: 'mike', displayName: 'Mike' },
-    { id: '44444444-4444-4444-4444-444444444444', username: 'alphabeta', displayName: 'Alpha Beta' },
-    { id: 'bobs_coffee', username: 'bobs_coffee', displayName: 'Bobs Coffee Shop (Business)' }
-]
+type User = {
+    id: string
+    username: string
+    displayName: string
+    userType: string
+    businessName?: string
+}
 
 const UserSelector = () => {
     const { currentUserId, setCurrentUserId, currentUsername, setCurrentUsername } = useUser()
     const [isOpen, setIsOpen] = useState(false)
+    const [users, setUsers] = useState<User[]>([])
+    const [loading, setLoading] = useState(false)
 
-    const handleUserSelect = (user: typeof TEST_USERS[0]) => {
+    // Fetch users when component mounts
+    useEffect(() => {
+        const fetchUsers = async () => {
+            setLoading(true)
+            try {
+                const allUsers = await api.getAllUsers()
+                setUsers(allUsers || [])
+            } catch (error) {
+                console.error('Error fetching users:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchUsers()
+    }, [])
+
+    const handleUserSelect = (user: User) => {
         setCurrentUserId(user.id)
         setCurrentUsername(user.username)
         setIsOpen(false)
     }
-    const currentUser = TEST_USERS.find(u => u.username === currentUsername)
+
+    const currentUser = users.find(u => u.username === currentUsername)
+
+    const getUserDisplayName = (user: User) => {
+        if (user.userType === 'BUSINESS' && user.businessName) {
+            return `${user.businessName} (Business)`
+        }
+        return user.displayName
+    }
 
     return (
         <div className="user-selector">
             <button
                 className="user-selector-button"
                 onClick={() => setIsOpen(!isOpen)}
+                disabled={loading}
             >
-                {currentUser ? `Logged in as: ${currentUser.displayName}` : 'Select Test User'}
+                {loading 
+                    ? 'Loading users...' 
+                    : currentUser 
+                        ? `Logged in as: ${getUserDisplayName(currentUser)}` 
+                        : 'Select User'
+                }
             </button>
 
-            {isOpen && (
+            {isOpen && !loading && (
                 <>
                     <div className="user-selector-backdrop" onClick={() => setIsOpen(false)} />
                     <div className="user-selector-menu">
-                        {TEST_USERS.map((user) => (
-                            <button
-                                key={user.id}
-                                className={`user-selector-item ${currentUsername === user.username ? 'active' : ''}`}
-                                onClick={() => handleUserSelect(user)}
-                            >
-                                {user.displayName} (@{user.username})
-                            </button>
-                        ))}
+                        {users.length === 0 ? (
+                            <div className="user-selector-item disabled">No users found</div>
+                        ) : (
+                            users.map((user) => (
+                                <button
+                                    key={user.id}
+                                    className={`user-selector-item ${currentUsername === user.username ? 'active' : ''}`}
+                                    onClick={() => handleUserSelect(user)}
+                                >
+                                    {getUserDisplayName(user)} (@{user.username})
+                                </button>
+                            ))
+                        )}
                     </div>
                 </>
             )}

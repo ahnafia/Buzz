@@ -34,6 +34,7 @@ export interface Event {
   owner: string
   lat: number
   lon: number
+  description?: string
 }
 
 export interface EventsResponse {
@@ -49,6 +50,7 @@ export interface CreateEventRequest {
   lon: number
   startTime: string
   endTime?: string  // optional - if not provided, backend will use startTime + 24 hours
+  description?: string
 }
 
 export interface UpdateEventRequest {
@@ -58,6 +60,7 @@ export interface UpdateEventRequest {
   lon?: number
   startTime?: string
   endTime?: string
+  description?: string
 }
 
 export interface Landmark {

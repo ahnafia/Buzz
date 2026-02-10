@@ -31,6 +31,25 @@ export const api = {
     return null
   },
 
+  getAllUsers: async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/all`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching all users:', error)
+      return []
+    }
+  },
+
   // Profile API calls
   getCurrentUserProfile: async (): Promise<UserProfile | null> => {
     try {
@@ -101,6 +120,75 @@ export const api = {
   },
 
   // Events
+  getEvents: async (lat: number, lon: number, radiusMiles: number = 5.0, timeWindow?: string, categories?: string[], cursor?: string, limit: number = 20): Promise<EventsResponse | null> => {
+    try {
+      const params = new URLSearchParams({
+        lat: lat.toString(),
+        lon: lon.toString(),
+        radiusMiles: radiusMiles.toString(),
+        limit: limit.toString()
+      })
+      
+      if (timeWindow) params.append('timeWindow', timeWindow)
+      if (categories && categories.length > 0) {
+        categories.forEach(cat => params.append('category', cat))
+      }
+      if (cursor) params.append('cursor', cursor)
+
+      const response = await fetch(`${API_BASE_URL}/events?${params}`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching events:', error)
+      return null
+    }
+  },
+
+  getEventPins: async (lat: number, lon: number, radiusMiles: number = 5.0, timeWindow?: string, categories?: string[], limit: number = 20): Promise<Event[] | null> => {
+    try {
+      // Set date range: now to now + 7 days
+      const now = new Date()
+      const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+      
+      const params = new URLSearchParams({
+        lat: lat.toString(),
+        lon: lon.toString(),
+        radiusMiles: radiusMiles.toString(),
+        limit: limit.toString(),
+        start: now.toISOString(),
+        end: endDate.toISOString()
+      })
+      
+      if (timeWindow) params.append('timeWindow', timeWindow)
+      if (categories && categories.length > 0) {
+        categories.forEach(cat => params.append('category', cat))
+      }
+
+      const response = await fetch(`${API_BASE_URL}/events/pins?${params}`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching event pins:', error)
+      return null
+    }
+  },
+
   getMyEvents: async (status: string = 'active', cursor?: string, limit: number = 20): Promise<EventsResponse | null> => {
     try {
       const currentUserId = getCurrentUserId()

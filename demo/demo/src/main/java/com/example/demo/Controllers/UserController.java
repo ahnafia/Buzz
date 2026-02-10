@@ -195,23 +195,17 @@ public class UserController {
     }
 
     /**
-     * Debug endpoint - list all users (remove in production)
+     * Get all users (for development/testing - remove in production)
      */
-    @GetMapping("/debug/all")
-    public ResponseEntity<?> getAllUsers() {
+    @GetMapping("/all")
+    public ResponseEntity<List<User>> getAllUsers() {
         try {
-            log.info("Debug endpoint called - listing all users");
-            
-            // Let's try to get basic info about users table
-            List<String> usernames = service.getAllUsernames();
-            return ResponseEntity.ok(Map.of(
-                "message", "Found users", 
-                "usernames", usernames,
-                "count", usernames.size()
-            ));
+            log.info("Getting all users for user selection");
+            List<User> users = service.getAllUsers();
+            return ResponseEntity.ok(users);
         } catch (Exception e) {
-            log.error("Error in debug endpoint: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+            log.error("Error getting all users: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
         }
     }
 

@@ -358,4 +358,8 @@ public int getFriendCount(UUID userId) {
     return repo.countFriends(userId);
 }
 
+public List<User> getAllUsers() {
+    return repo.fetchAllUsers();
+}
+
 }

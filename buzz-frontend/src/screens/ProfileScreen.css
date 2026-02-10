@@ -633,6 +633,49 @@
   font-style: italic;
 }
 
+.event-card {
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.event-info {
+  flex: 1;
+}
+
+.event-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.event-datetime {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.event-category {
+  font-size: 0.8rem;
+  color: #FF9B56;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+}
+
+.event-description {
+  font-size: 0.9rem;
+  color: #555;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.4;
+}
+
 .map-preview {
   background: #FFFBF5;
   border: 1px solid #FFE2B7;

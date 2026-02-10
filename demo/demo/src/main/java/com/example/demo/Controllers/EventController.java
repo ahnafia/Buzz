@@ -32,6 +32,20 @@ public class EventController {
         return service.getEvents(lat, lon, radiusMiles, timeWindow, category, cursor, limit);
     }
 
+    @GetMapping("/pins")
+    public List<EventPin> getEventPins(
+            @RequestParam double lat,
+            @RequestParam double lon,
+            @RequestParam(defaultValue = "5.0") double radiusMiles,
+            @RequestParam(required = false) String timeWindow,
+            @RequestParam(required = false) List<String> category,
+            @RequestParam(defaultValue = "20") int limit
+    ) {
+        // Convert miles to meters (1 mile = 1609.34 meters)
+        int radiusM = (int) (radiusMiles * 1609.34);
+        return service.getPins(lat, lon, radiusM, timeWindow, category, limit);
+    }
+
     @GetMapping("/{eventId}")
     public ResponseEntity<EventPin> getEventById(@PathVariable String eventId) {
         try {
