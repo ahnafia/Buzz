@@ -154,7 +154,7 @@ const ProfileScreen = () => {
             <div className="profile-meta">
               <div className="profile-underline name-box">{profile.displayName}</div>
               <div className="profile-underline city-box">{profile.city || 'Location not set'}</div>
-              <div className="profile-underline friends-box">{friends?.users.length || 0} Friends</div>
+              <div className="profile-underline friends-box">{friends?.users.length || 0} {friends?.users?.length === 1 ? 'Friend' : 'Friends'}</div>
             </div>
           </div>
 
@@ -187,7 +187,7 @@ const ProfileScreen = () => {
                 className={`tab-btn ${activeTab === 'friends' ? 'active' : ''}`}
                 onClick={(e) => { e.stopPropagation(); setActiveTab('friends'); setPressedItem(null); }}
               >
-                Friends ({friends?.users.length || 0})
+                {friends?.users?.length === 1 ? 'Friend' : 'Friends'} ({friends?.users.length || 0})
               </button>
               <button
                 className={`tab-btn ${activeTab === 'likes' ? 'active' : ''}`}
