@@ -2,7 +2,7 @@
 .profile-screen {
   min-height: 100vh;
   min-width: 100vw;
-  background: #FFFBF5;
+  background: #FFF7eb;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.5rem;
-  background: rgba(255, 226, 183, 0.95);
+  background: #FFF7eb;
   border-bottom: 3px solid rgba(255, 155, 86, 0.45);
   position: sticky;
   top: 0;
@@ -324,7 +324,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1rem 0.75rem 4.5rem;
-  background: #FFFBF5;
+  background: #FFF7eb;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -431,7 +431,7 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 1.5rem;
-  background: #FFFBF5;
+  background: #FFF7eb;
   border: 2px solid #FF9B56;
   border-radius: 12px;
 }
@@ -542,7 +542,7 @@
 
 .event-card {
   background: #FFFBF5;
-  border: 1px solid #FFE2B7;
+  border: 1px solid #FFF7eb;
   border-radius: 8px;
   padding: 1.5rem;
   display: flex;
