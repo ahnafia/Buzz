@@ -6,6 +6,8 @@ import MainMapScreen from './screens/MainMapScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import CreateEventScreen from './screens/CreateEventScreen'
 import EditEventScreen from './screens/EditEventScreen'
+import InfoScreen from './screens/InfoScreen'
+import LoginScreen from './screens/LoginScreen'
 import { useAppState } from './hooks/useAppState'
 import { UserProvider } from './contexts/UserContext'
 
@@ -27,6 +29,8 @@ function App() {
         <Route path="/Profile" element={<ProfileScreen />} />
         <Route path="/create-event" element={<CreateEventScreen />} />
         <Route path="/edit-event/:eventId" element={<EditEventScreen />} />
+        <Route path="/info" element={<InfoScreen />} />
+        <Route path="/login" element={<LoginScreen />} />
         <Route
           path="/*"
           element={

@@ -1,0 +1,137 @@
+.info-screen {
+  min-height: 100vh;
+  min-width: 100vw;
+  background: #fff7eb;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3rem 1rem;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.info-logo {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  width: 80px;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.info-content {
+  width: 100%;
+  max-width: 400px;
+}
+
+.info-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #FF9B56;
+  text-align: center;
+}
+
+.info-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.info-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.info-input,
+.info-select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #FF9B56;
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #FFFBF5;
+  color: #333;
+}
+
+.info-input::placeholder {
+  color: #999;
+}
+
+.info-input:focus,
+.info-select:focus {
+  outline: none;
+  border-color: #e8894d;
+  box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.25);
+}
+
+.info-select {
+  cursor: pointer;
+  appearance: auto;
+}
+
+.info-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #333;
+  margin-top: 0.25rem;
+}
+
+.info-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #999;
+  border-radius: 4px;
+  background: #e8e8e8;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.info-checkbox:checked {
+  background: #FF9B56;
+  border-color: #FF9B56;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: contain;
+}
+
+.info-checkbox:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.3);
+}
+
+.info-checkbox-text {
+  user-select: none;
+}
+
+.info-join-btn {
+  margin-top: 2rem;
+  width: 100%;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #FF9B56;
+  color: white;
+  transition: background 0.2s;
+}
+
+.info-join-btn:hover {
+  background: #e8894d;
+}
+
+.info-join-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.5);
+}
