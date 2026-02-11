@@ -40,12 +40,18 @@
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   box-shadow: 0 4px 14px rgba(255, 155, 86, 0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.buzz-pin-icon:hover .buzz-pin-dot {
+  transform: rotate(-45deg) scale(1.28);
+  box-shadow: 0 6px 18px rgba(255, 155, 86, 0.5);
 }
 
 /* Event pins have a different color */
 .buzz-pin-dot--event {
-  background: #4CAF50;
-  box-shadow: 0 4px 14px rgba(76, 175, 80, 0.45);
+  background: #FF9B56;
+  box-shadow: 0 4px 14px rgba(255, 155, 86, 0.45);
 }
 
 .buzz-pin-logo {
@@ -71,9 +77,9 @@
   text-transform: uppercase;
 }
 
-/* Event pins have green letters */
+/* Event pins use orange letters to match bulb */
 .buzz-pin-icon--event .buzz-pin-letter {
-  color: #4CAF50;
+  color: #FF9B56;
 }
 
 .buzz-pin-icon .leaflet-marker-icon {
@@ -246,6 +252,74 @@
   color: #FF9B56;
 }
 
+.map-search-wrapper--has-clear .map-search-bar {
+  padding-right: 44px;
+}
+
+/* Inline completion: show rest of word in lighter color; input text transparent so overlay visible */
+.map-search-bar--has-completion {
+  color: transparent;
+  caret-color: #FF9B56;
+}
+
+.map-search-completion-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  padding: 12px 44px 12px 40px;
+  font-size: 16px;
+  line-height: 1.5;
+  white-space: pre;
+  z-index: 1;
+}
+
+.map-search-completion-typed {
+  color: #FF9B56;
+}
+
+.map-search-completion-suffix {
+  color: rgba(255, 155, 86, 0.45);
+}
+
+.map-search-clear-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #FF9B56;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.15s ease, color 0.15s ease;
+  z-index: 2;
+}
+
+.map-search-clear-btn:hover {
+  background: rgba(255, 155, 86, 0.2);
+  color: #e85a2a;
+}
+
+.map-search-clear-icon {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  fill: none;
+}
+
 .map-search-bar::placeholder {
   color: rgba(255, 155, 86, 0.6);
 }
@@ -253,6 +327,46 @@
 .map-search-bar:focus {
   box-shadow: 0 4px 25px rgba(255, 155, 86, 0.3);
   background: rgba(255, 251, 245, 1);
+}
+
+/* Category suggestions dropdown */
+.map-search-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 6px 0 0;
+  padding: 6px 0;
+  list-style: none;
+  background: rgba(255, 251, 245, 0.98);
+  border-radius: 16px;
+  box-shadow: 0 8px 28px rgba(255, 155, 86, 0.25), 0 0 0 1px rgba(255, 155, 86, 0.1);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 1001;
+}
+
+.map-search-suggestion-item {
+  display: block;
+  width: 100%;
+  padding: 10px 20px 10px 40px;
+  border: none;
+  background: none;
+  font-size: 15px;
+  color: #333;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.map-search-suggestion-item:hover,
+.map-search-suggestion-item:focus {
+  background: rgba(255, 155, 86, 0.15);
+  outline: none;
+}
+
+.map-search-suggestion-item--highlighted {
+  background: rgba(255, 155, 86, 0.25);
 }
 
 /* Floating Bottom Menu */
@@ -575,7 +689,8 @@
   font-size: 14px;
   line-height: 1.4;
   color: #2d2d2d;
-}/
+}
+
 * Location Picker Styles */
 .location-picker-indicator {
   position: absolute;
