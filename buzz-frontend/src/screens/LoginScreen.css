@@ -159,3 +159,70 @@
 .login-menu-submit {
   margin-top: 0.5rem;
 }
+/* Error and success messages */
+.error-message {
+  background: #fee;
+  color: #c33;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #fcc;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.success-message {
+  background: #efe;
+  color: #363;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #cfc;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Additional buttons */
+.forgot-password-btn {
+  background: none;
+  border: none;
+  color: #FF9B56;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  text-decoration: underline;
+  margin-top: 0.5rem;
+}
+
+.forgot-password-btn:hover {
+  color: #e8894d;
+}
+
+.forgot-password-btn:disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.switch-mode-btn {
+  background: none;
+  border: 1px solid #FF9B56;
+  color: #FF9B56;
+  padding: 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+  transition: all 0.2s;
+}
+
+.switch-mode-btn:hover {
+  background: #FF9B56;
+  color: white;
+}
+
+.login-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.login-btn:disabled:hover {
+  background: #ccc;
+}

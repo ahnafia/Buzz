@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useProfile, useFriends, useBusinessEvents } from '../hooks/useProfile'
 import { useUser } from '../contexts/UserContext'
+import { useAuth } from '../contexts/AuthContext'
 import UserSelector from '../components/UserSelector'
 import BusinessMapView from '../components/BusinessMapView'
 import '../components/BusinessMapView.css'
@@ -128,6 +129,7 @@ const ProfileScreen = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { currentUsername } = useUser()
+  const { signOut } = useAuth()
   const username = searchParams.get('username') || currentUsername // Get username from URL params or use current user
 
   // Redirect to main screen if no user is available
@@ -180,6 +182,20 @@ const ProfileScreen = () => {
     const link = `${window.location.origin}/events/${eventId}`
     navigator.clipboard.writeText(link)
     console.log('Copied link:', link)
+  }
+
+  const handleSettingsClick = async (option: string) => {
+    setSettingsOpen(false)
+    
+    if (option === 'Log out') {
+      try {
+        await signOut()
+        navigate('/login')
+      } catch (error) {
+        console.error('Error signing out:', error)
+      }
+    }
+    // Handle other settings options here
   }
 
   // Don't render anything if no username (will redirect)
@@ -263,7 +279,7 @@ const ProfileScreen = () => {
                         key={option}
                         type="button"
                         className="settings-menu-item"
-                        onClick={() => setSettingsOpen(false)}
+                        onClick={() => handleSettingsClick(option)}
                       >
                         {option}
                       </button>
@@ -367,7 +383,7 @@ const ProfileScreen = () => {
                       key={option}
                       type="button"
                       className="settings-menu-item"
-                      onClick={() => setSettingsOpen(false)}
+                      onClick={() => handleSettingsClick(option)}
                     >
                       {option}
                     </button>

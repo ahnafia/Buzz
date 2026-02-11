@@ -195,6 +195,37 @@ public class UserController {
     }
 
     /**
+     * Check if username is available
+     */
+    @GetMapping("/check-username/{username}")
+    public ResponseEntity<Map<String, Boolean>> checkUsernameAvailability(@PathVariable String username) {
+        try {
+            boolean available = !service.isUsernameExists(username);
+            return ResponseEntity.ok(Map.of("available", available));
+        } catch (Exception e) {
+            log.error("Error checking username availability: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
+     * Get user by email (for authentication sync)
+     */
+    @GetMapping("/by-email/{email}")
+    public ResponseEntity<User> getUserByEmail(@PathVariable String email) {
+        try {
+            User user = service.getUserByEmail(email);
+            if (user == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(user);
+        } catch (Exception e) {
+            log.error("Error getting user by email: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    /**
      * Get all users (for development/testing - remove in production)
      */
     @GetMapping("/all")

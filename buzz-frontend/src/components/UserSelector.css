@@ -77,4 +77,43 @@
 
 .user-selector-item:focus {
   outline: none;
+}/* Authen
+ticated user styles */
+.user-selector-button.authenticated {
+  background: #4CAF50;
+  border: 2px solid #45a049;
+}
+
+.user-selector-button.authenticated:hover {
+  background: #45a049;
+}
+
+.user-selector-section {
+  margin-bottom: 0.5rem;
+}
+
+.user-selector-section:last-child {
+  margin-bottom: 0;
+}
+
+.user-selector-section-title {
+  padding: 0.5rem 1rem 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 0.25rem;
+}
+
+.user-selector-item.authenticated-user {
+  background: #e8f5e8;
+  color: #2e7d32;
+  font-weight: 600;
+  cursor: default;
+}
+
+.user-selector-item.authenticated-user:hover {
+  background: #e8f5e8;
 }

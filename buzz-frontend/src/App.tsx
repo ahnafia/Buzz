@@ -8,11 +8,14 @@ import CreateEventScreen from './screens/CreateEventScreen'
 import EditEventScreen from './screens/EditEventScreen'
 import InfoScreen from './screens/InfoScreen'
 import LoginScreen from './screens/LoginScreen'
+import ProtectedRoute from './components/ProtectedRoute'
 import { useAppState } from './hooks/useAppState'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { UserProvider } from './contexts/UserContext'
 
-function App() {
+function AppContent() {
   const { currentScreen, finishLoading } = useAppState()
+  const { user, loading } = useAuth()
 
   // Simulate loading time
   useEffect(() => {
@@ -23,26 +26,62 @@ function App() {
     return () => clearTimeout(timer)
   }, [finishLoading])
 
+  // Show loading screen while auth is loading
+  if (loading) {
+    return <LoadingScreen />
+  }
+
   return (
-    <UserProvider>
-      <Routes>
-        <Route path="/Profile" element={<ProfileScreen />} />
-        <Route path="/create-event" element={<CreateEventScreen />} />
-        <Route path="/edit-event/:eventId" element={<EditEventScreen />} />
-        <Route path="/info" element={<InfoScreen />} />
-        <Route path="/login" element={<LoginScreen />} />
-        <Route
-          path="/*"
-          element={
-            currentScreen === 'loading' ? (
-              <LoadingScreen />
-            ) : (
-              <MainMapScreen />
-            )
-          }
-        />
-      </Routes>
-    </UserProvider>
+    <Routes>
+      <Route 
+        path="/Profile" 
+        element={
+          <ProtectedRoute>
+            <ProfileScreen />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/create-event" 
+        element={
+          <ProtectedRoute>
+            <CreateEventScreen />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/edit-event/:eventId" 
+        element={
+          <ProtectedRoute>
+            <EditEventScreen />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="/info" element={<InfoScreen />} />
+      <Route path="/login" element={<LoginScreen />} />
+      <Route
+        path="/*"
+        element={
+          currentScreen === 'loading' ? (
+            <LoadingScreen />
+          ) : user ? (
+            <MainMapScreen />
+          ) : (
+            <LoginScreen />
+          )
+        }
+      />
+    </Routes>
+  )
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <UserProvider>
+        <AppContent />
+      </UserProvider>
+    </AuthProvider>
   )
 }
 

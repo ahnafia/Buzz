@@ -79,6 +79,15 @@ public class UserService {
         return repo.fetchUserByUsername(username);
     }
 
+    public User getUserByEmail(String email) {
+        return repo.fetchUserByEmail(email);
+    }
+
+    public boolean isUsernameExists(String username) {
+        User user = repo.fetchUserByUsername(username);
+        return user != null;
+    }
+
     public UserProfile getPublicProfile(String username) {
         User user = repo.fetchUserByUsername(username);
         if (user == null) {
