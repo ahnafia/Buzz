@@ -104,7 +104,9 @@ export const api = {
       return result.available
     } catch (error) {
       console.error('Error checking username availability:', error)
-      return false
+      // Return true (available) when we can't check, so signup can proceed
+      // The backend will do the final validation during user creation
+      return true
     }
   },
 

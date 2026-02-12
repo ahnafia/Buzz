@@ -14,7 +14,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
-  
+
   const navigate = useNavigate()
   const { signIn, signUp, resetPassword } = useAuth()
 
@@ -55,7 +55,8 @@ export default function LoginScreen() {
           }
         } catch (err) {
           console.warn('Could not check username availability:', err)
-          // Continue with signup even if check fails
+          // Show a warning but allow signup to continue
+          setMessage('Unable to verify username availability. Proceeding with signup...')
         }
 
         if (password !== confirmPassword) {
@@ -90,10 +91,10 @@ export default function LoginScreen() {
       setError('Please enter your email address first')
       return
     }
-    
+
     setLoading(true)
     setError('')
-    
+
     const { error } = await resetPassword(email)
     if (error) {
       setError(error.message)
@@ -166,7 +167,7 @@ export default function LoginScreen() {
             <form className="login-menu-form" onSubmit={handleSubmit}>
               {error && <div className="error-message">{error}</div>}
               {message && <div className="success-message">{message}</div>}
-              
+
               <label className="login-menu-label">
                 Email
                 <input
@@ -198,7 +199,7 @@ export default function LoginScreen() {
                   />
                 </label>
               )}
-              
+
               <label className="login-menu-label">
                 Password
                 <input
@@ -211,7 +212,7 @@ export default function LoginScreen() {
                   autoComplete={isSignUp ? 'new-password' : 'current-password'}
                 />
               </label>
-              
+
               {isSignUp && (
                 <label className="login-menu-label">
                   Confirm Password
@@ -226,15 +227,15 @@ export default function LoginScreen() {
                   />
                 </label>
               )}
-              
-              <button 
-                type="submit" 
+
+              <button
+                type="submit"
                 className="login-btn login-menu-submit"
                 disabled={loading}
               >
                 {loading ? 'Loading...' : (isSignUp ? 'Sign Up' : 'Log in')}
               </button>
-              
+
               {!isSignUp && (
                 <button
                   type="button"
@@ -245,7 +246,7 @@ export default function LoginScreen() {
                   Forgot Password?
                 </button>
               )}
-              
+
               <button
                 type="button"
                 className="switch-mode-btn"
