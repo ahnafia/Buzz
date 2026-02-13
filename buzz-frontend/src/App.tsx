@@ -4,6 +4,7 @@ import './App.css'
 import LoadingScreen from './screens/LoadingScreen'
 import MainMapScreen from './screens/MainMapScreen'
 import ProfileScreen from './screens/ProfileScreen'
+import ProfileViewer from './screens/ProfileViewer'
 import CreateEventScreen from './screens/CreateEventScreen'
 import EditEventScreen from './screens/EditEventScreen'
 import MakeFlagScreen from './screens/MakeFlagScreen'
@@ -39,6 +40,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <ProfileScreen />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile-viewer/:username" 
+        element={
+          <ProtectedRoute>
+            <ProfileViewer />
           </ProtectedRoute>
         } 
       />

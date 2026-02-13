@@ -586,7 +586,7 @@ const ProfileScreen = () => {
                         className={`list-item-btn ${pressedItem === friend.id ? 'pressed' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation()
-                          setPressedItem(pressedItem === friend.id ? null : friend.id)
+                          navigate(`/profile-viewer/${encodeURIComponent(friend.username)}`)
                         }}
                       >
                         <ProfileAvatar />
@@ -656,7 +656,7 @@ const ProfileScreen = () => {
                           </div>
                         )
                       }
-                      return nonFriends.map((user) => (
+                          return nonFriends.map((user) => (
                         <div
                           key={user.id}
                           className={`list-item-btn find-friends-item ${pressedItem === user.id ? 'pressed' : ''}`}
@@ -666,7 +666,7 @@ const ProfileScreen = () => {
                             className="list-item-btn-inner"
                             onClick={(e) => {
                               e.stopPropagation()
-                              setPressedItem(pressedItem === user.id ? null : user.id)
+                              navigate(`/profile-viewer/${encodeURIComponent(user.username)}`)
                             }}
                           >
                             <ProfileAvatar />
@@ -737,6 +737,15 @@ const ProfileScreen = () => {
           </div>
         </div>
       </div>
+
+      {/* Orange plus FAB - bottom left (same as Main Map Screen style) */}
+      <Link
+        to="/make_flag"
+        className="profile-fab"
+        aria-label="Create"
+      >
+        <span className="profile-fab-icon">+</span>
+      </Link>
     </div>
   )
 }
