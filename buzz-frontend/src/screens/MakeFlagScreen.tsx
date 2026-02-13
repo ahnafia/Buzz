@@ -1,22 +1,26 @@
 import { useState, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import LocationPickerMap from '../components/LocationPickerMap'
 import '../components/LocationPickerMap.css'
 import './MakeFlagScreen.css'
+import { api } from '../utils/api'
 
 const ACCEPT_MEDIA = 'image/*,video/*'
 
 export type FlagLocation = { lat: number; lng: number } | null
 
 const MakeFlagScreen = () => {
+  const navigate = useNavigate()
   const [flagName, setFlagName] = useState('')
   const [location, setLocation] = useState<FlagLocation>(null)
+  const [locationLabel, setLocationLabel] = useState('')
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState('')
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [showPost, setShowPost] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const updatePreview = (files: File[]) => {
@@ -65,6 +69,38 @@ const MakeFlagScreen = () => {
     setMediaFiles([])
     setPreviewUrl(prev => { URL.revokeObjectURL(prev ?? ''); return null })
     if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleGenerate = async () => {
+    setCreateError(null)
+    const name = flagName.trim()
+    if (!name) {
+      setCreateError('Please enter a flag name.')
+      return
+    }
+    if (!location) {
+      setCreateError('Please choose a location on the map.')
+      return
+    }
+    setCreating(true)
+    try {
+      await api.createFlag({
+        title: name,
+        description: caption.trim() || null,
+        lat: location.lat,
+        lon: location.lng,
+        city: locationLabel.trim() || null,
+        addressText: locationLabel.trim() || null,
+        category: tags.trim() || null,
+        imageUrl: null,
+        isPublic: true
+      })
+      navigate('/', { replace: true })
+    } catch (e) {
+      setCreateError(e instanceof Error ? e.message : 'Failed to create flag.')
+    } finally {
+      setCreating(false)
+    }
   }
 
   return (
@@ -125,6 +161,17 @@ const MakeFlagScreen = () => {
           </div>
 
           <div className="make-flag-field">
+            <label className="make-flag-label">Location:</label>
+            <input
+              type="text"
+              className="make-flag-input"
+              value={locationLabel}
+              onChange={(e) => setLocationLabel(e.target.value)}
+              placeholder="e.g. Central Park, NYC"
+            />
+          </div>
+
+          <div className="make-flag-field">
             <label className="make-flag-label">Caption:</label>
             <input
               type="text"
@@ -146,12 +193,16 @@ const MakeFlagScreen = () => {
             />
           </div>
 
+          {createError && (
+            <p className="make-flag-error" role="alert">{createError}</p>
+          )}
           <button
             type="button"
             className="make-flag-generate-btn"
-            onClick={() => setShowPost(true)}
+            onClick={handleGenerate}
+            disabled={creating}
           >
-            Generate
+            {creating ? 'Creating…' : 'Generate'}
           </button>
         </div>
 
@@ -162,54 +213,6 @@ const MakeFlagScreen = () => {
             onLocationSelect={(loc) => setLocation(loc)}
           />
         </div>
-
-        {showPost && (
-          <aside className="make-flag-post-column" aria-label="Generated post preview">
-            <article className="make-flag-post-preview">
-              <div className="make-flag-post-media">
-                {previewUrl ? (
-                  mediaFiles[0]?.type.startsWith('video/') ? (
-                    <video src={previewUrl} className="make-flag-post-media-item" muted playsInline />
-                  ) : (
-                    <img src={previewUrl} alt="" className="make-flag-post-media-item" />
-                  )
-                ) : (
-                  <div className="make-flag-post-media-placeholder">No media</div>
-                )}
-                {mediaFiles.length > 1 && (
-                  <span className="make-flag-post-media-count">+{mediaFiles.length - 1}</span>
-                )}
-              </div>
-              <div className="make-flag-post-info">
-                <div className="make-flag-post-info-row">
-                  <span className="make-flag-post-info-label">Name</span>
-                  <span className="make-flag-post-info-value">{flagName || '—'}</span>
-                </div>
-                <div className="make-flag-post-info-row">
-                  <span className="make-flag-post-info-label">Location</span>
-                  <span className="make-flag-post-info-value">
-                    {location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : '—'}
-                  </span>
-                </div>
-                <div className="make-flag-post-info-row">
-                  <span className="make-flag-post-info-label">Caption</span>
-                  <span className="make-flag-post-info-value">{caption || '—'}</span>
-                </div>
-                <div className="make-flag-post-info-row">
-                  <span className="make-flag-post-info-label">Tags</span>
-                  <span className="make-flag-post-info-value">{tags || '—'}</span>
-                </div>
-              </div>
-            </article>
-            <button type="button" className="make-flag-plant-btn">
-              <svg className="make-flag-plant-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
-                <line x1="4" y1="22" x2="4" y2="15" />
-              </svg>
-              <span>Plant</span>
-            </button>
-          </aside>
-        )}
       </div>
     </div>
   )

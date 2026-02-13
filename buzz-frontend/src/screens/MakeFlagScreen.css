@@ -322,6 +322,19 @@
   transform: scale(0.99);
 }
 
+.make-flag-generate-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.make-flag-error {
+  color: #c62828;
+  font-size: 14px;
+  margin: 0 0 12px 0;
+  width: 100%;
+  max-width: min(560px, 90vw);
+}
+
 .make-flag-post-preview {
   width: 100%;
   max-width: 340px;
