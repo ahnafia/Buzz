@@ -146,7 +146,12 @@ const ProfileViewer = () => {
                         className={`list-item-btn ${pressedItem === flag.id ? 'pressed' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation()
-                          setPressedItem(pressedItem === flag.id ? null : flag.id)
+                          navigate('/', {
+                            state: {
+                              findFriendsUsername: profile.username,
+                              focusFlag: { id: flag.id, lat: flag.lat, lon: flag.lon }
+                            }
+                          })
                         }}
                       >
                         <span className="list-item-icon flag-icon">

@@ -4,7 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './InteractiveMap.css'
 import { api } from '../utils/api'
-import type { Event, Flag } from '../types/api'
+import type { Event, Flag, UserProfile } from '../types/api'
 import { useUser } from '../contexts/UserContext'
 
 export type InteractiveMapHandle = {
@@ -14,6 +14,15 @@ export type InteractiveMapHandle = {
   enableLocationPicker: () => void
   disableLocationPicker: () => void
   getSelectedLocation: () => { lat: number; lng: number } | null
+}
+
+export type InteractiveMapProps = {
+  /** Open Find Friends with this user's My Map (from ProfileViewer flag click). */
+  initialFindFriendsUsername?: string
+  /** Flag to zoom to and select (same zoom as clicking a pin: 15). */
+  initialFocusFlag?: { id: string; lat: number; lon: number }
+  /** Called after initial focus is applied so parent can clear location state. */
+  onInitialFocusDone?: () => void
 }
 
 type PinData = {
@@ -133,10 +142,14 @@ function formatDistance(feet: number): string {
   return `${miles.toFixed(1)} mi`
 }
 
-const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(_, ref) {
+const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(function InteractiveMap(
+  { initialFindFriendsUsername, initialFocusFlag, onInitialFocusDone },
+  ref
+) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const markersRef = useRef<L.Marker[]>([])
+  const initialFocusDoneRef = useRef(false)
   const [showCreatePopup, setShowCreatePopup] = useState(false)
   const [selectedPin, setSelectedPin] = useState<PinData | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -144,14 +157,29 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   const [events, setEvents] = useState<Event[]>([])
   const [eventPins, setEventPins] = useState<PinData[]>([])
   const [profileFlags, setProfileFlags] = useState<PinData[]>([])
+  const [friendFlags, setFriendFlags] = useState<PinData[]>([])
+  const [viewedUserFlags, setViewedUserFlags] = useState<PinData[]>([])
+  const [viewedUsername, setViewedUsername] = useState<string | null>(null)
+  const [userSuggestions, setUserSuggestions] = useState<UserProfile[]>([])
+  const [userSuggestionsLoading, setUserSuggestionsLoading] = useState(false)
   const { currentUserId, currentUsername } = useUser()
-  const [mapMode, setMapMode] = useState<'Algorithm' | 'Search' | 'Personal'>('Algorithm')
+  const [mapMode, setMapMode] = useState<'Discover' | 'Find Friends' | 'My Map'>('Discover')
   const [mapModeDropdownOpen, setMapModeDropdownOpen] = useState(false)
   const mapModeDropdownRef = useRef<HTMLDivElement>(null)
-  const allPins = useMemo(
-    () => (mapMode === 'Personal' ? [...eventPins, ...profileFlags] : [...eventPins]),
-    [eventPins, profileFlags, mapMode]
-  )
+  const allPins = useMemo(() => {
+    if (mapMode === 'My Map') {
+      const pins = [...profileFlags]
+      console.log('[Map] allPins (My Map): user flags only', { mapMode, count: pins.length, pins })
+      return pins
+    }
+    if (mapMode === 'Find Friends') {
+      console.log('[Map] allPins (Find Friends): viewed user flags', { viewedUsername, count: viewedUserFlags.length })
+      return [...viewedUserFlags]
+    }
+    const pins = [...eventPins, ...friendFlags]
+    console.log('[Map] allPins', { mapMode, eventCount: eventPins.length, friendFlagCount: friendFlags.length, total: pins.length })
+    return pins
+  }, [eventPins, profileFlags, friendFlags, viewedUserFlags, mapMode])
   const [categorySearch, setCategorySearch] = useState('')
   // Only apply category filter after user commits (Enter or blur) – keeps all pins visible while typing
   const [appliedCategorySearch, setAppliedCategorySearch] = useState('')
@@ -176,51 +204,79 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     [allPins]
   )
 
-  // Only hide pins when a known category name is entered (exact match, case-insensitive). Otherwise show all.
-  // In "Personal" mode, filter out all event pins
+  // Search options: "Flags" / "Events" (filter by type) plus pin categories (Discover/Find Friends only)
+  const searchOptions = useMemo(
+    () => ['Flags', 'Events', ...allCategories],
+    [allCategories]
+  )
+
+  // Only hide pins when a known category/type is entered (exact match, case-insensitive). Otherwise show all.
+  // In "My Map" mode, filter out all event pins
   const applied = appliedCategorySearch.trim().toLowerCase()
+  const isFlagsFilter = applied === 'flags'
+  const isEventsFilter = applied === 'events'
   const isKnownCategory =
     applied !== '' &&
-    allCategories.some((c) => c.toLowerCase() === applied)
+    (isFlagsFilter || isEventsFilter || allCategories.some((c) => c.toLowerCase() === applied))
   
   let filteredPins = allPins
-  if (mapMode === 'Personal') {
-    // Remove all event pins in Personal mode
+  if (mapMode === 'My Map') {
     filteredPins = allPins.filter((p) => p.type !== 'event')
+    console.log('[Map] filteredPins (My Map): flags only', { count: filteredPins.length, filteredPins })
   }
-  
-  const visiblePins =
-    !isKnownCategory
-      ? filteredPins
-      : filteredPins.filter(
-          (p) =>
-            p.category &&
-            p.category.toLowerCase() === applied
-        )
+
+  const visiblePins = (() => {
+    if (!isKnownCategory) {
+      console.log('[Map] visiblePins: no category filter', { count: filteredPins.length })
+      return filteredPins
+    }
+    if (isFlagsFilter) {
+      const out = filteredPins.filter((p) => p.type === 'flag')
+      console.log('[Map] visiblePins: Flags filter', { count: out.length })
+      return out
+    }
+    if (isEventsFilter) {
+      const out = filteredPins.filter((p) => p.type === 'event')
+      console.log('[Map] visiblePins: Events filter', { count: out.length })
+      return out
+    }
+    const out = filteredPins.filter(
+      (p) => p.category && p.category.toLowerCase() === applied
+    )
+    console.log('[Map] visiblePins: category filter', { applied, count: out.length })
+    return out
+  })()
 
   const applyCategoryFilter = () => setAppliedCategorySearch(categorySearch)
 
-  // Suggestions that match current input (prefix or contains)
+  // Suggestions: Discover = "Flags", "Events", categories; Find Friends = user search results
   const categorySuggestions = useMemo(() => {
+    if (mapMode === 'Find Friends') return []
     const q = categorySearch.trim().toLowerCase()
-    if (q === '') return allCategories
-    return allCategories.filter((c) => c.toLowerCase().includes(q))
-  }, [allCategories, categorySearch])
+    if (q === '') return searchOptions
+    return searchOptions.filter((c) => c.toLowerCase().includes(q))
+  }, [mapMode, searchOptions, categorySearch])
+
+  // For Find Friends, highlight is over userSuggestions; for Discover, over categorySuggestions
+  const suggestionsCount = mapMode === 'Find Friends' ? userSuggestions.length : categorySuggestions.length
 
   // Reset highlight when suggestions or query change
   useEffect(() => {
     setHighlightedSuggestionIndex(0)
-  }, [categorySearch, categorySuggestions.length])
+  }, [categorySearch, suggestionsCount])
 
   // Clamp highlighted index to valid range
   const safeHighlightedIndex = Math.min(
     Math.max(0, highlightedSuggestionIndex),
-    Math.max(0, categorySuggestions.length - 1)
+    Math.max(0, suggestionsCount - 1)
   )
-  const highlightedSuggestion = categorySuggestions[safeHighlightedIndex]
+  const highlightedSuggestion = mapMode === 'Find Friends'
+    ? (userSuggestions[safeHighlightedIndex]?.displayName || userSuggestions[safeHighlightedIndex]?.username || '')
+    : categorySuggestions[safeHighlightedIndex]
 
-  // Inline completion: use the highlighted suggestion; show rest of word if it starts with typed text
+  // Inline completion: use the highlighted suggestion (Discover only; Find Friends no completion)
   const completionSuffix = (() => {
+    if (mapMode === 'Find Friends') return ''
     const q = categorySearch.trim()
     if (q === '' || !highlightedSuggestion) return ''
     if (!highlightedSuggestion.toLowerCase().startsWith(q.toLowerCase())) return ''
@@ -230,9 +286,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setHighlightedSuggestionIndex((i) =>
-        Math.min(i + 1, categorySuggestions.length - 1)
-      )
+      setHighlightedSuggestionIndex((i) => Math.min(i + 1, suggestionsCount - 1))
       return
     }
     if (e.key === 'ArrowUp') {
@@ -241,6 +295,19 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       return
     }
     if (e.key !== 'Enter') return
+    if (mapMode === 'Find Friends') {
+      setShowSuggestions(false)
+      const user = userSuggestions[safeHighlightedIndex]
+      if (user) {
+        setCategorySearch(user.displayName || user.username)
+        setAppliedCategorySearch('')
+        fetchViewedUserFlags(user.username)
+      } else if (categorySearch.trim()) {
+        // Treat typed text as username and load their My Map
+        fetchViewedUserFlags(categorySearch.trim())
+      }
+      return
+    }
     if (categorySuggestions.length > 0 && highlightedSuggestion) {
       setCategorySearch(highlightedSuggestion)
       setAppliedCategorySearch(highlightedSuggestion)
@@ -256,10 +323,22 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     setShowSuggestions(false)
   }
 
+  const chooseUserSuggestion = (user: UserProfile) => {
+    setCategorySearch(user.displayName || user.username)
+    setAppliedCategorySearch('')
+    setShowSuggestions(false)
+    fetchViewedUserFlags(user.username)
+  }
+
   const clearSearch = () => {
     setCategorySearch('')
     setAppliedCategorySearch('')
     setShowSuggestions(false)
+    if (mapMode === 'Find Friends') {
+      setViewedUserFlags([])
+      setViewedUsername(null)
+      setUserSuggestions([])
+    }
   }
 
   useImperativeHandle(ref, () => ({
@@ -272,6 +351,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     refreshEvents() {
       fetchEvents()
       fetchProfileFlags()
+      fetchFriendFlags()
     },
     enableLocationPicker() {
       setIsLocationPickerMode(true)
@@ -286,15 +366,14 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     }
   }), [selectedLocation])
 
-  // Fetch events from API
+  // Fetch events from API (Discover / Find Friends only; My Map does not use these)
   const fetchEvents = async () => {
     try {
-      console.log('InteractiveMap: Fetching events from API...')
-      const eventPins = await api.getEventPins(mapCenter.lat, mapCenter.lng, 10) // 10 mile radius
-      console.log('InteractiveMap: Received event pins:', eventPins)
-      
+      console.log('[Events] Fetching events from API...', { center: mapCenter, radiusMiles: 10 })
+      const eventPins = await api.getEventPins(mapCenter.lat, mapCenter.lng, 10)
+      console.log('[Events] Received event pins', { count: eventPins?.length ?? 0, eventPins })
+
       if (eventPins) {
-        // Convert EventPin objects to Event objects for state
         const events = eventPins.map(pin => ({
           id: pin.id,
           title: pin.title,
@@ -306,54 +385,113 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
           lon: pin.lon,
           description: pin.description
         }))
-        console.log('InteractiveMap: Converted events:', events)
+        console.log('[Events] Converted to events', { count: events.length, events })
         setEvents(events)
-        
-        // Convert events to pins (flags come from user profile)
+
         const eventPinData = events.map(event =>
           eventToPinData(event, mapCenter.lat, mapCenter.lng)
         )
         setEventPins(eventPinData)
+        console.log('[Events] Set eventPins', { count: eventPinData.length, eventPinData })
       } else {
         setEventPins([])
+        console.log('[Events] No event pins, set eventPins to []')
       }
     } catch (error) {
-      console.error('InteractiveMap: Error fetching events:', error)
+      console.error('[Events] Error fetching events:', error)
       setEventPins([])
     }
   }
 
-  // Load flags from the current user's profile (same as profile page – each has lat/lon)
+  // Load friends' flags for Discover map (each friend's profile recentFlags)
+  const fetchFriendFlags = async () => {
+    console.log('[Discover] fetchFriendFlags called', { currentUsername })
+    if (!currentUsername) {
+      console.log('[Discover] No currentUsername – not loading friend flags')
+      setFriendFlags([])
+      return
+    }
+    try {
+      const friendsRes = await api.getFriends(currentUsername)
+      const friends = friendsRes?.users ?? []
+      console.log('[Discover] getFriends result', { friendCount: friends.length, friends })
+      const allFlags: PinData[] = []
+      for (const friend of friends) {
+        const profile = await api.getEnhancedProfile(friend.username)
+        const flags = profile?.recentFlags ?? []
+        console.log('[Discover] Friend', friend.username, 'flags', { count: flags.length })
+        for (const flag of flags) {
+          allFlags.push(flagToPinData(flag, mapCenter.lat, mapCenter.lng))
+        }
+      }
+      setFriendFlags(allFlags)
+      console.log('[Discover] Set friendFlags', { count: allFlags.length, allFlags })
+    } catch (error) {
+      console.error('[Discover] Error fetching friend flags:', error)
+      setFriendFlags([])
+    }
+  }
+
+  // Find Friends: load a user's flags (their "My Map") by username.
+  // Uses the same source as the profile page: getEnhancedProfile(username).recentFlags.
+  const fetchViewedUserFlags = async (username: string) => {
+    const trimmed = username.trim()
+    if (!trimmed) {
+      setViewedUserFlags([])
+      setViewedUsername(null)
+      return
+    }
+    try {
+      const profile = await api.getEnhancedProfile(trimmed)
+      const flags = profile?.recentFlags ?? []
+      const pinData = flags.map((flag: Flag) =>
+        flagToPinData(flag, mapCenter.lat, mapCenter.lng)
+      )
+      setViewedUserFlags(pinData)
+      setViewedUsername(trimmed)
+    } catch (error) {
+      console.error('InteractiveMap: Error fetching user flags for', trimmed, error)
+      setViewedUserFlags([])
+      setViewedUsername(null)
+    }
+  }
+
+  // Load flags from the current user's profile (My Map = user's own flags only)
   const fetchProfileFlags = async () => {
+    console.log('[My Map] fetchProfileFlags called', { currentUserId, currentUsername })
     if (!currentUserId) {
-      console.log('[Flags] No currentUserId – not loading profile flags')
+      console.log('[My Map] No currentUserId – not loading profile flags')
       setProfileFlags([])
       return
     }
     try {
-      console.log('[Flags] Fetching flags for user:', currentUserId)
+      console.log('[My Map] Fetching flags for user:', currentUserId)
       let flags: Flag[] = []
       const directFlags = await api.getMyFlags()
+      console.log('[My Map] api.getMyFlags() result', { count: directFlags?.length ?? 0, directFlags })
       if (directFlags && directFlags.length > 0) {
         flags = directFlags
-        console.log('[Flags] Got', flags.length, 'flag(s) from GET /users/me/flags')
+        console.log('[My Map] Using', flags.length, 'flag(s) from GET /users/me/flags', flags)
       } else {
         const profile = await api.getCurrentUserProfile()
+        console.log('[My Map] api.getCurrentUserProfile()', { recentFlagsCount: profile?.recentFlags?.length ?? 0, profile })
         flags = profile?.recentFlags ?? []
         if (flags.length === 0 && currentUsername) {
-          console.log('[Flags] recentFlags empty from /users/me, trying enhanced profile for:', currentUsername)
+          console.log('[My Map] recentFlags empty, trying getEnhancedProfile:', currentUsername)
           const enhanced = await api.getEnhancedProfile(currentUsername)
           flags = enhanced?.recentFlags ?? []
+          console.log('[My Map] getEnhancedProfile recentFlags', { count: flags.length, flags })
+        } else {
+          console.log('[My Map] Profile recentFlags', { count: flags.length, flags: flags.length > 0 ? flags : '(none)' })
         }
-        console.log('[Flags] Profile recentFlags count:', flags.length, flags.length > 0 ? flags : '(none)')
       }
       const pinData = flags.map((flag: Flag) =>
         flagToPinData(flag, mapCenter.lat, mapCenter.lng)
       )
       setProfileFlags(pinData)
-      console.log('[Flags] Added', pinData.length, 'flag(s) to map at', pinData.map((p) => ({ title: p.title, lat: p.lat, lng: p.lng })))
+      console.log('[My Map] Set profileFlags (user own flags)', { count: pinData.length, pinData })
     } catch (error) {
-      console.error('InteractiveMap: Error fetching profile flags:', error)
+      console.error('[My Map] Error fetching profile flags:', error)
       setProfileFlags([])
     }
   }
@@ -367,6 +505,69 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   useEffect(() => {
     fetchProfileFlags()
   }, [currentUserId, currentUsername])
+
+  // Load friends' flags for Discover map when username is available
+  useEffect(() => {
+    fetchFriendFlags()
+  }, [currentUsername])
+
+  useEffect(() => {
+    console.log('[Map] mapMode changed', { mapMode })
+  }, [mapMode])
+
+  // From ProfileViewer: open Find Friends with this user and load their My Map
+  useEffect(() => {
+    if (!initialFindFriendsUsername || initialFocusDoneRef.current) return
+    setMapMode('Find Friends')
+    setCategorySearch(initialFindFriendsUsername)
+    setAppliedCategorySearch('')
+    fetchViewedUserFlags(initialFindFriendsUsername)
+  }, [initialFindFriendsUsername])
+
+  // After viewed user flags load, zoom to the focused flag (same zoom as pin click: 15)
+  useEffect(() => {
+    if (
+      initialFocusDoneRef.current ||
+      !initialFocusFlag ||
+      !initialFindFriendsUsername ||
+      viewedUsername !== initialFindFriendsUsername ||
+      viewedUserFlags.length === 0 ||
+      !map.current
+    ) {
+      return
+    }
+    const pin = viewedUserFlags.find((p) => p.id === initialFocusFlag.id)
+    if (!pin) return
+    setSelectedPin(pin)
+    setSidebarOpen(true)
+    const targetZoom = 15
+    map.current.flyTo([pin.lat, pin.lng], targetZoom, { duration: 1.2, easeLinearity: 0.25 })
+    initialFocusDoneRef.current = true
+    onInitialFocusDone?.()
+  }, [viewedUserFlags, viewedUsername, initialFindFriendsUsername, initialFocusFlag, onInitialFocusDone])
+
+  // Find Friends: debounced user search for suggestions
+  useEffect(() => {
+    if (mapMode !== 'Find Friends') {
+      setUserSuggestions([])
+      return
+    }
+    const q = categorySearch.trim()
+    if (!q) {
+      setUserSuggestions([])
+      return
+    }
+    const t = setTimeout(async () => {
+      setUserSuggestionsLoading(true)
+      try {
+        const users = await api.searchUsers(q, 20)
+        setUserSuggestions(users)
+      } finally {
+        setUserSuggestionsLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [mapMode, categorySearch])
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return
@@ -456,15 +657,15 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   useEffect(() => {
     if (!map.current) return
 
+    const flagCount = visiblePins.filter((p) => p.type === 'flag').length
+    const eventCount = visiblePins.filter((p) => p.type === 'event').length
+    console.log('[Map] Updating markers', { total: visiblePins.length, flags: flagCount, events: eventCount, visiblePins })
+
     // Clear existing markers
     markersRef.current.forEach((m) => m.remove())
     markersRef.current = []
 
     // Add new markers only for visible pins (pins or flags)
-    const flagCount = visiblePins.filter((p) => p.type === 'flag').length
-    if (flagCount > 0) {
-      console.log('[Flags] Placing', flagCount, 'flag icon(s) on map')
-    }
     const markers: L.Marker[] = []
     for (const pin of visiblePins) {
       const icon = pin.type === 'flag' 
@@ -570,7 +771,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
         </button>
         {mapModeDropdownOpen && (
           <ul className="map-mode-dropdown-menu" role="menu">
-            {(['Algorithm', 'Search', 'Personal'] as const).map((mode) => (
+            {(['Discover', 'Find Friends', 'My Map'] as const).map((mode) => (
               <li key={mode} role="menuitem">
                 <button
                   type="button"
@@ -588,8 +789,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
         )}
       </div>
 
-      {/* Floating Top Search Bar with category suggestions - hidden in Personal mode */}
-      {mapMode !== 'Personal' && (
+      {/* Floating Top Search Bar with category suggestions - hidden in My Map mode */}
+      {mapMode !== 'My Map' && (
         <div className="floating-search">
         <div className={`map-search-wrapper ${categorySearch.trim() !== '' ? 'map-search-wrapper--has-clear' : ''}`}>
           <span className="map-search-icon" aria-hidden="true">
@@ -604,19 +805,19 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
           </span>
           <input
             type="text"
-            placeholder="Search by category..."
+            placeholder={mapMode === 'Find Friends' ? 'Search users…' : 'Search by category...'}
             className={`map-search-bar ${completionSuffix ? 'map-search-bar--has-completion' : ''}`}
             value={categorySearch}
             onChange={(e) => setCategorySearch(e.target.value)}
             onFocus={() => setShowSuggestions(true)}
             onBlur={() => {
-              applyCategoryFilter()
+              if (mapMode !== 'Find Friends') applyCategoryFilter()
               setTimeout(() => setShowSuggestions(false), 180)
             }}
             onKeyDown={handleSearchKeyDown}
             autoComplete="off"
             aria-autocomplete="list"
-            aria-expanded={showSuggestions && categorySearch.trim() !== '' && categorySuggestions.length > 0}
+            aria-expanded={showSuggestions && categorySearch.trim() !== '' && (categorySuggestions.length > 0 || userSuggestions.length > 0)}
           />
           {completionSuffix && (
             <div className="map-search-completion-overlay" aria-hidden="true">
@@ -637,31 +838,56 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
               </svg>
             </button>
           )}
-          {showSuggestions && categorySearch.trim() !== '' && categorySuggestions.length > 0 && (
+          {showSuggestions && categorySearch.trim() !== '' && (categorySuggestions.length > 0 || userSuggestions.length > 0) && (
             <ul
               className="map-search-suggestions"
               role="listbox"
-              aria-label="Category suggestions"
-              aria-activedescendant={categorySuggestions.length > 0 ? `suggestion-${safeHighlightedIndex}` : undefined}
+              aria-label={mapMode === 'Find Friends' ? 'User suggestions' : 'Category suggestions'}
+              aria-activedescendant={suggestionsCount > 0 ? `suggestion-${safeHighlightedIndex}` : undefined}
             >
-              {categorySuggestions.map((cat, idx) => (
-                <li key={cat} role="option" id={`suggestion-${idx}`}>
-                  <button
-                    type="button"
-                    className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      chooseSuggestion(cat)
-                    }}
-                    onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
-                  >
-                    {cat}
-                  </button>
-                </li>
-              ))}
+              {mapMode === 'Find Friends'
+                ? userSuggestions.map((user, idx) => (
+                    <li key={user.id} role="option" id={`suggestion-${idx}`}>
+                      <button
+                        type="button"
+                        className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          chooseUserSuggestion(user)
+                        }}
+                        onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
+                      >
+                        {user.displayName || user.username}
+                        {user.displayName && user.displayName !== user.username ? ` (@${user.username})` : ''}
+                      </button>
+                    </li>
+                  ))
+                : categorySuggestions.map((cat, idx) => (
+                    <li key={cat} role="option" id={`suggestion-${idx}`}>
+                      <button
+                        type="button"
+                        className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          chooseSuggestion(cat)
+                        }}
+                        onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
+                      >
+                        {cat}
+                      </button>
+                    </li>
+                  ))}
             </ul>
           )}
+          {mapMode === 'Find Friends' && categorySearch.trim() !== '' && userSuggestionsLoading && (
+            <div className="map-search-suggestions-loading" aria-live="polite">Searching…</div>
+          )}
         </div>
+        {mapMode === 'Find Friends' && viewedUsername && (
+          <p className="map-viewing-user-label" aria-live="polite">
+            Viewing {viewedUsername}'s My Map
+          </p>
+        )}
         </div>
       )}
 
