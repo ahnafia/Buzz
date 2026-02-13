@@ -6,6 +6,7 @@ import './InteractiveMap.css'
 import { api } from '../utils/api'
 import type { Event, Flag } from '../types/api'
 import { useUser } from '../contexts/UserContext'
+import EventImage from './EventImage'
 
 export type InteractiveMapHandle = {
   zoomIn: () => void
@@ -68,7 +69,7 @@ function eventToPinData(event: Event, userLat: number, userLon: number): PinData
   const startDate = new Date(event.startTime)
   const expiresDate = new Date(event.expiresAt)
   const now = new Date()
-  
+
   let status = 'Upcoming'
   if (now > expiresDate) status = 'Expired'
   else if (now >= startDate) status = 'Live'
@@ -86,7 +87,8 @@ function eventToPinData(event: Event, userLat: number, userLon: number): PinData
     expiresAt: event.expiresAt,
     hours: `${startDate.toLocaleDateString()} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${expiresDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     tips: `Status: ${status}`,
-    type: 'event'
+    type: 'event',
+    imageUrl: event.imagePath
   }
 }
 
@@ -95,12 +97,44 @@ function pinIconForPin(pin: PinData, isSelected?: boolean) {
   const letter = pin.title.charAt(0).toUpperCase()
   const isEvent = pin.type === 'event'
   const selectedClass = isSelected ? ' buzz-pin-icon--selected' : ''
-  
+
+
+  // For events with images, try to show the image, but fallback to calendar icon
+  if (isEvent && pin.imageUrl) {
+    return L.divIcon({
+      className: `buzz-pin-icon buzz-pin-icon--event${selectedClass}`,
+      html: `<span class="buzz-pin-dot buzz-pin-dot--event">
+        <span class="buzz-pin-logo">
+          <img src="${pin.imageUrl}" alt="${pin.title}" class="buzz-pin-image" 
+               onerror="this.style.display='none'; this.parentElement.innerHTML='<svg viewBox=\\'0 0 24 24\\' fill=\\'#FF9B56\\' style=\\'width:16px;height:16px;\\'><path d=\\'M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z\\'/></svg>';" />
+        </span>
+      </span>`,
+      iconSize: [48, 48],
+      iconAnchor: [24, 16]
+    })
+  }
+
+  // For events without images or non-events, show letter or calendar icon
+  if (isEvent) {
+    return L.divIcon({
+      className: `buzz-pin-icon buzz-pin-icon--event${selectedClass}`,
+      html: `<span class="buzz-pin-dot buzz-pin-dot--event">
+        <span class="buzz-pin-logo">
+          <svg viewBox="0 0 24 24" fill="#FF9B56" style="width:16px;height:16px;">
+            <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+          </svg>
+        </span>
+      </span>`,
+      iconSize: [48, 48],
+      iconAnchor: [24, 16]
+    })
+  }
+
   return L.divIcon({
-    className: `buzz-pin-icon ${isEvent ? 'buzz-pin-icon--event' : 'buzz-pin-icon--landmark'}${selectedClass}`,
-    html: `<span class="buzz-pin-dot ${isEvent ? 'buzz-pin-dot--event' : ''}"><span class="buzz-pin-logo"><span class="buzz-pin-letter">${letter}</span></span></span>`,
-    iconSize: [44, 44],
-    iconAnchor: [22, 14]
+    className: `buzz-pin-icon buzz-pin-icon--landmark${selectedClass}`,
+    html: `<span class="buzz-pin-dot"><span class="buzz-pin-logo"><span class="buzz-pin-letter">${letter}</span></span></span>`,
+    iconSize: [48, 48],
+    iconAnchor: [24, 16]
   })
 }
 
@@ -108,7 +142,7 @@ function pinIconForPin(pin: PinData, isSelected?: boolean) {
 function flagIconForFlag(flag: PinData, isSelected?: boolean) {
   const letter = flag.title.charAt(0).toUpperCase()
   const selectedClass = isSelected ? ' buzz-flag-icon--selected' : ''
-  
+
   return L.divIcon({
     className: `buzz-flag-icon${selectedClass}`,
     html: `<div class="buzz-flag-container"><div class="buzz-flag-pole"></div><div class="buzz-flag-banner"><span class="buzz-flag-letter">${letter}</span></div></div>`,
@@ -118,8 +152,27 @@ function flagIconForFlag(flag: PinData, isSelected?: boolean) {
 }
 
 function buildPopupHtml(pin: PinData) {
+  console.log('Building popup for pin:', pin.title, 'imageUrl:', pin.imageUrl, 'type:', pin.type)
+
+  const imageHtml = pin.imageUrl && pin.type === 'event'
+    ? `<div class="buzz-popup-image-container">
+         <img src="${pin.imageUrl}" alt="${pin.title}" class="buzz-popup-image" 
+              onerror="console.error('Popup image failed to load:', '${pin.imageUrl}'); this.style.display='none'; this.parentElement.innerHTML='<div class=\\'buzz-popup-image-fallback\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'#FF9B56\\' style=\\'width:48px;height:48px;\\'><path d=\\'M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z\\'/></svg></div>';" 
+              onload="console.log('Popup image loaded successfully:', '${pin.imageUrl}');" />
+       </div>`
+    : pin.type === 'event'
+      ? `<div class="buzz-popup-image-container">
+         <div class="buzz-popup-image-fallback">
+           <svg viewBox="0 0 24 24" fill="#FF9B56" style="width:48px;height:48px;">
+             <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+           </svg>
+         </div>
+       </div>`
+      : ''
+
   return `
     <div class="buzz-popup-card">
+      ${imageHtml}
       <h4 class="buzz-popup-title">${pin.title}</h4>
     </div>
   `
@@ -182,21 +235,21 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   const isKnownCategory =
     applied !== '' &&
     allCategories.some((c) => c.toLowerCase() === applied)
-  
+
   let filteredPins = allPins
   if (mapMode === 'Personal') {
     // Remove all event pins in Personal mode
     filteredPins = allPins.filter((p) => p.type !== 'event')
   }
-  
+
   const visiblePins =
     !isKnownCategory
       ? filteredPins
       : filteredPins.filter(
-          (p) =>
-            p.category &&
-            p.category.toLowerCase() === applied
-        )
+        (p) =>
+          p.category &&
+          p.category.toLowerCase() === applied
+      )
 
   const applyCategoryFilter = () => setAppliedCategorySearch(categorySearch)
 
@@ -292,7 +345,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       console.log('InteractiveMap: Fetching events from API...')
       const eventPins = await api.getEventPins(mapCenter.lat, mapCenter.lng, 10) // 10 mile radius
       console.log('InteractiveMap: Received event pins:', eventPins)
-      
+
       if (eventPins) {
         // Convert EventPin objects to Event objects for state
         const events = eventPins.map(pin => ({
@@ -304,11 +357,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
           owner: pin.owner,
           lat: pin.lat,
           lon: pin.lon,
-          description: pin.description
+          description: pin.description,
+          imagePath: pin.imagePath
         }))
         console.log('InteractiveMap: Converted events:', events)
         setEvents(events)
-        
+
         // Convert events to pins (flags come from user profile)
         const eventPinData = events.map(event =>
           eventToPinData(event, mapCenter.lat, mapCenter.lng)
@@ -467,7 +521,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     }
     const markers: L.Marker[] = []
     for (const pin of visiblePins) {
-      const icon = pin.type === 'flag' 
+      const icon = pin.type === 'flag'
         ? flagIconForFlag(pin, selectedPin?.id === pin.id)
         : pinIconForPin(pin, selectedPin?.id === pin.id)
       const marker = L.marker([pin.lat, pin.lng], { icon })
@@ -512,8 +566,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
         iconAnchor: [10, 10]
       })
 
-      locationMarkerRef.current = L.marker([selectedLocation.lat, selectedLocation.lng], { 
-        icon: locationIcon 
+      locationMarkerRef.current = L.marker([selectedLocation.lat, selectedLocation.lng], {
+        icon: locationIcon
       }).addTo(map.current)
     }
   }, [selectedLocation, isLocationPickerMode])
@@ -591,77 +645,77 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       {/* Floating Top Search Bar with category suggestions - hidden in Personal mode */}
       {mapMode !== 'Personal' && (
         <div className="floating-search">
-        <div className={`map-search-wrapper ${categorySearch.trim() !== '' ? 'map-search-wrapper--has-clear' : ''}`}>
-          <span className="map-search-icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              className="map-search-icon-svg"
-              focusable="false"
-            >
-              <circle cx="11" cy="11" r="6" />
-              <line x1="15" y1="15" x2="20" y2="20" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            placeholder="Search by category..."
-            className={`map-search-bar ${completionSuffix ? 'map-search-bar--has-completion' : ''}`}
-            value={categorySearch}
-            onChange={(e) => setCategorySearch(e.target.value)}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => {
-              applyCategoryFilter()
-              setTimeout(() => setShowSuggestions(false), 180)
-            }}
-            onKeyDown={handleSearchKeyDown}
-            autoComplete="off"
-            aria-autocomplete="list"
-            aria-expanded={showSuggestions && categorySearch.trim() !== '' && categorySuggestions.length > 0}
-          />
-          {completionSuffix && (
-            <div className="map-search-completion-overlay" aria-hidden="true">
-              <span className="map-search-completion-typed">{categorySearch}</span>
-              <span className="map-search-completion-suffix">{completionSuffix}</span>
-            </div>
-          )}
-          {categorySearch.trim() !== '' && (
-            <button
-              type="button"
-              className="map-search-clear-btn"
-              onClick={clearSearch}
-              aria-label="Clear search and show all pins"
-            >
-              <svg viewBox="0 0 24 24" className="map-search-clear-icon" aria-hidden="true">
-                <line x1="6" y1="6" x2="18" y2="18" />
-                <line x1="18" y1="6" x2="6" y2="18" />
+          <div className={`map-search-wrapper ${categorySearch.trim() !== '' ? 'map-search-wrapper--has-clear' : ''}`}>
+            <span className="map-search-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                className="map-search-icon-svg"
+                focusable="false"
+              >
+                <circle cx="11" cy="11" r="6" />
+                <line x1="15" y1="15" x2="20" y2="20" />
               </svg>
-            </button>
-          )}
-          {showSuggestions && categorySearch.trim() !== '' && categorySuggestions.length > 0 && (
-            <ul
-              className="map-search-suggestions"
-              role="listbox"
-              aria-label="Category suggestions"
-              aria-activedescendant={categorySuggestions.length > 0 ? `suggestion-${safeHighlightedIndex}` : undefined}
-            >
-              {categorySuggestions.map((cat, idx) => (
-                <li key={cat} role="option" id={`suggestion-${idx}`}>
-                  <button
-                    type="button"
-                    className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
-                    onMouseDown={(e) => {
-                      e.preventDefault()
-                      chooseSuggestion(cat)
-                    }}
-                    onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
-                  >
-                    {cat}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+            </span>
+            <input
+              type="text"
+              placeholder="Search by category..."
+              className={`map-search-bar ${completionSuffix ? 'map-search-bar--has-completion' : ''}`}
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => {
+                applyCategoryFilter()
+                setTimeout(() => setShowSuggestions(false), 180)
+              }}
+              onKeyDown={handleSearchKeyDown}
+              autoComplete="off"
+              aria-autocomplete="list"
+              aria-expanded={showSuggestions && categorySearch.trim() !== '' && categorySuggestions.length > 0}
+            />
+            {completionSuffix && (
+              <div className="map-search-completion-overlay" aria-hidden="true">
+                <span className="map-search-completion-typed">{categorySearch}</span>
+                <span className="map-search-completion-suffix">{completionSuffix}</span>
+              </div>
+            )}
+            {categorySearch.trim() !== '' && (
+              <button
+                type="button"
+                className="map-search-clear-btn"
+                onClick={clearSearch}
+                aria-label="Clear search and show all pins"
+              >
+                <svg viewBox="0 0 24 24" className="map-search-clear-icon" aria-hidden="true">
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                </svg>
+              </button>
+            )}
+            {showSuggestions && categorySearch.trim() !== '' && categorySuggestions.length > 0 && (
+              <ul
+                className="map-search-suggestions"
+                role="listbox"
+                aria-label="Category suggestions"
+                aria-activedescendant={categorySuggestions.length > 0 ? `suggestion-${safeHighlightedIndex}` : undefined}
+              >
+                {categorySuggestions.map((cat, idx) => (
+                  <li key={cat} role="option" id={`suggestion-${idx}`}>
+                    <button
+                      type="button"
+                      className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        chooseSuggestion(cat)
+                      }}
+                      onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
+                    >
+                      {cat}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 
@@ -669,10 +723,10 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       <div className="floating-bottom-menu">
         <button className="menu-item menu-item--home" type="button">
           <svg className="menu-icon menu-icon--house" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 3L4 10V20H9V15H15V20H20V10L12 3Z" stroke="#FF9B56" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="#FF9B56"/>
-            <rect x="9" y="15" width="6" height="5" fill="#FFFBF5"/>
-            <circle cx="13.5" cy="17.5" r="0.8" fill="#FF9B56"/>
-            <rect x="10" y="11" width="4" height="4" stroke="#FFFBF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <path d="M12 3L4 10V20H9V15H15V20H20V10L12 3Z" stroke="#FF9B56" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="#FF9B56" />
+            <rect x="9" y="15" width="6" height="5" fill="#FFFBF5" />
+            <circle cx="13.5" cy="17.5" r="0.8" fill="#FF9B56" />
+            <rect x="10" y="11" width="4" height="4" stroke="#FFFBF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
         </button>
 
@@ -685,8 +739,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
 
         <Link to="/Profile" className="menu-item menu-item--profile" aria-label="Profile">
           <svg className="menu-icon menu-icon--profile" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-            <circle cx="12" cy="8" r="3.5" stroke="#FF9B56" strokeWidth="2" fill="none"/>
-            <path d="M5 20c0-3.5 3.5-6 7-6s7 2.5 7 6" stroke="#FF9B56" strokeWidth="2" strokeLinecap="round" fill="none"/>
+            <circle cx="12" cy="8" r="3.5" stroke="#FF9B56" strokeWidth="2" fill="none" />
+            <path d="M5 20c0-3.5 3.5-6 7-6s7 2.5 7 6" stroke="#FF9B56" strokeWidth="2" strokeLinecap="round" fill="none" />
           </svg>
         </Link>
       </div>
@@ -694,9 +748,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       {/* Persistent orange button (caret) – always visible, toggles sidebar */}
       <button
         type="button"
-        className={`pin-sidebar-footer-btn pin-sidebar-trigger ${
-          sidebarOpen ? 'pin-sidebar-trigger--open' : ''
-        }`}
+        className={`pin-sidebar-footer-btn pin-sidebar-trigger ${sidebarOpen ? 'pin-sidebar-trigger--open' : ''
+          }`}
         onClick={() => setSidebarOpen((o) => !o)}
         aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
       >
@@ -707,52 +760,51 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
 
       {/* Collapsible right sidebar – more info when a pin is selected */}
       <aside
-        className={`pin-detail-sidebar ${
-          sidebarCollapsed ? 'pin-detail-sidebar--collapsed' : ''
-        } ${sidebarOpen ? 'pin-detail-sidebar--open' : 'pin-detail-sidebar--closed'}`}
+        className={`pin-detail-sidebar ${sidebarCollapsed ? 'pin-detail-sidebar--collapsed' : ''
+          } ${sidebarOpen ? 'pin-detail-sidebar--open' : 'pin-detail-sidebar--closed'}`}
       >
-          <div className="pin-detail-sidebar-inner">
-            <div className="pin-detail-header">
-              <h3 className="pin-detail-title">
-                {selectedPin?.title ?? ''}
-              </h3>
-            </div>
-            {!sidebarCollapsed && selectedPin && (
-              <div className="pin-detail-body">
-                <div className="pin-detail-card pin-detail-card--selected">
-                  <p className="pin-detail-desc">{selectedPin.fullDescription}</p>
-                  <span className="pin-detail-meta">
-                    {formatDistance(selectedPin.distanceFeet)}
-                  </span>
-                  {selectedPin.type === 'event' && selectedPin.category && (
-                    <div className="pin-detail-block">
-                      <span className="pin-detail-label">Category</span>
-                      <p className="pin-detail-text">{selectedPin.category}</p>
-                    </div>
-                  )}
-                  {selectedPin.address && (
-                    <div className="pin-detail-block">
-                      <span className="pin-detail-label">Address</span>
-                      <p className="pin-detail-text">{selectedPin.address}</p>
-                    </div>
-                  )}
-                  {selectedPin.hours && (
-                    <div className="pin-detail-block">
-                      <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Time' : 'Hours'}</span>
-                      <p className="pin-detail-text">{selectedPin.hours}</p>
-                    </div>
-                  )}
-                  {selectedPin.tips && (
-                    <div className="pin-detail-block">
-                      <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Status' : 'Tips'}</span>
-                      <p className="pin-detail-text">{selectedPin.tips}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+        <div className="pin-detail-sidebar-inner">
+          <div className="pin-detail-header">
+            <h3 className="pin-detail-title">
+              {selectedPin?.title ?? ''}
+            </h3>
           </div>
-        </aside>
+          {!sidebarCollapsed && selectedPin && (
+            <div className="pin-detail-body">
+              <div className="pin-detail-card pin-detail-card--selected">
+                <p className="pin-detail-desc">{selectedPin.fullDescription}</p>
+                <span className="pin-detail-meta">
+                  {formatDistance(selectedPin.distanceFeet)}
+                </span>
+                {selectedPin.type === 'event' && selectedPin.category && (
+                  <div className="pin-detail-block">
+                    <span className="pin-detail-label">Category</span>
+                    <p className="pin-detail-text">{selectedPin.category}</p>
+                  </div>
+                )}
+                {selectedPin.address && (
+                  <div className="pin-detail-block">
+                    <span className="pin-detail-label">Address</span>
+                    <p className="pin-detail-text">{selectedPin.address}</p>
+                  </div>
+                )}
+                {selectedPin.hours && (
+                  <div className="pin-detail-block">
+                    <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Time' : 'Hours'}</span>
+                    <p className="pin-detail-text">{selectedPin.hours}</p>
+                  </div>
+                )}
+                {selectedPin.tips && (
+                  <div className="pin-detail-block">
+                    <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Status' : 'Tips'}</span>
+                    <p className="pin-detail-text">{selectedPin.tips}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </aside>
 
       {/* Create Popup */}
       {showCreatePopup && (

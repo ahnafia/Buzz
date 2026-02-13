@@ -35,6 +35,7 @@ export interface Event {
   lat: number
   lon: number
   description?: string
+  imagePath?: string
 }
 
 export interface EventsResponse {
@@ -51,6 +52,7 @@ export interface CreateEventRequest {
   startTime: string
   endTime?: string  // optional - if not provided, backend will use startTime + 24 hours
   description?: string
+  imagePath?: string
 }
 
 export interface UpdateEventRequest {
@@ -61,6 +63,7 @@ export interface UpdateEventRequest {
   startTime?: string
   endTime?: string
   description?: string
+  imagePath?: string
 }
 
 export interface Landmark {

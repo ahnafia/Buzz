@@ -12,5 +12,13 @@ public class StaticResourceConfig implements WebMvcConfigurer {
         // Serve profile images from /profiles/** URLs
         registry.addResourceHandler("/profiles/**")
                 .addResourceLocations("classpath:/static/profiles/", "file:profiles/");
+        
+        // Serve event images from /events/** URLs
+        registry.addResourceHandler("/events/**")
+                .addResourceLocations("classpath:/static/events/", "file:events/");
+        
+        // Serve general images from /images/** URLs
+        registry.addResourceHandler("/images/**")
+                .addResourceLocations("classpath:/static/images/", "file:images/");
     }
 }

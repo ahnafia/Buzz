@@ -20,10 +20,12 @@ public class EventService {
     private static final int MAX_LIMIT = 500;
 
     private final EventRepository repo;
+    private final SupabaseStorageService storageService;
     private final ZoneId appZone;
 
-    public EventService(EventRepository repo) {
+    public EventService(EventRepository repo, SupabaseStorageService storageService) {
         this.repo = repo;
+        this.storageService = storageService;
         // choose your app timezone (campus-based). Change if needed.
         this.appZone = ZoneId.of("America/New_York");
     }
@@ -42,22 +44,26 @@ public class EventService {
         TimeFilter tf = TimeFilter.from(timeFilterRaw);
         TimeWindow w = TimeWindow.from(tf, appZone);
 
-        return repo.fetchPins(
+        List<EventPin> pins = repo.fetchPins(
                 lon, lat,
                 clampedRadius,
                 w.start(), w.end(),
                 categories,
                 clampedLimit
         );
+
+        log.info("Fetched {} pins from repository, converting image URLs", pins.size());
+        return withSignedImageUrls(pins);
     }
 
     public EventPin getEventById(UUID id) {
-        return repo.fetchEventById(id);
+        return withSignedImageUrl(repo.fetchEventById(id));
     }
 
     public List<EventPin> getEventsByOwner(String owner, int limit) {
         int clampedLimit = clamp(limit, 1, MAX_LIMIT);
-        return repo.fetchEventsByOwner(owner, clampedLimit);
+        List<EventPin> events = repo.fetchEventsByOwner(owner, clampedLimit);
+        return withSignedImageUrls(events);
     }
 
     public EventsResponse getEvents(
@@ -93,11 +99,14 @@ public class EventService {
             nextCursor = events.get(events.size() - 1).id().toString();
         }
 
+        // Convert image paths to signed URLs
+        events = withSignedImageUrls(events);
+
         return new EventsResponse(events, nextCursor);
     }
 
     public EventPin getEventByIdActive(UUID id) {
-        return repo.fetchEventByIdActive(id);
+        return withSignedImageUrl(repo.fetchEventByIdActive(id));
     }
 
     public EventPin createEvent(CreateEventRequest request, String owner) {
@@ -118,7 +127,7 @@ public class EventService {
                 request.imagePath()
         );
 
-        return repo.fetchEventById(eventId);
+        return withSignedImageUrl(repo.fetchEventById(eventId));
     }
 
     public EventPin updateEvent(UUID eventId, UpdateEventRequest request, String owner) {
@@ -158,7 +167,7 @@ public class EventService {
                 request.imagePath()
         );
 
-        return updated ? repo.fetchEventById(eventId) : null;
+        return updated ? withSignedImageUrl(repo.fetchEventById(eventId)) : null;
     }
 
     public boolean deleteEvent(UUID eventId, String owner) {
@@ -204,10 +213,82 @@ public class EventService {
             nextCursor = events.get(events.size() - 1).id().toString();
         }
 
+        // Convert image paths to signed URLs
+        events = withSignedImageUrls(events);
+
         return new EventsResponse(events, nextCursor);
     }
 
     private static int clamp(int v, int lo, int hi) {
         return Math.max(lo, Math.min(hi, v));
+    }
+
+    /**
+     * Convert EventPin with image path to EventPin with signed URL
+     */
+    private EventPin withSignedImageUrl(EventPin eventPin) {
+        log.info("=== withSignedImageUrl called ===");
+        if (eventPin == null) {
+            log.warn("EventPin is null, returning null");
+            return eventPin;
+        }
+
+        log.info("Processing event: {} (ID: {})", eventPin.title(), eventPin.id());
+        if (eventPin.imagePath() == null) {
+            log.info("Event {} has no imagePath, returning as-is", eventPin.id());
+            return eventPin;
+        }
+
+        log.info("Converting image path to signed URL for event {}: '{}'", eventPin.id(), eventPin.imagePath());
+        
+        if (storageService == null) {
+            log.error("SupabaseStorageService is NULL! Cannot convert image path.");
+            return eventPin;
+        }
+        
+        String signedUrl = storageService.generateProfileImageUrl(eventPin.imagePath());
+        log.info("Generated signed URL for event {}: {} -> '{}'", 
+                eventPin.id(), 
+                signedUrl != null ? "SUCCESS" : "FAILED",
+                signedUrl);
+        
+        return new EventPin(
+            eventPin.id(),
+            eventPin.title(),
+            eventPin.category(),
+            eventPin.startTime(),
+            eventPin.expiresAt(),
+            eventPin.owner(),
+            eventPin.lat(),
+            eventPin.lon(),
+            eventPin.description(),
+            signedUrl  // Replace imagePath with signed URL
+        );
+    }
+
+    /**
+     * Convert list of EventPins with signed URLs
+     */
+    private List<EventPin> withSignedImageUrls(List<EventPin> eventPins) {
+        log.info("=== withSignedImageUrls called with {} EventPins ===", eventPins.size());
+        
+        // Log each event's image path before conversion
+        for (EventPin pin : eventPins) {
+            log.info("Event '{}' has imagePath: '{}'", pin.title(), pin.imagePath());
+        }
+        
+        List<EventPin> result = eventPins.stream()
+            .map(this::withSignedImageUrl)
+            .toList();
+        
+        long withImages = result.stream().filter(pin -> pin.imagePath() != null).count();
+        log.info("=== Conversion complete: {} total, {} with image URLs ===", result.size(), withImages);
+        
+        // Log each event's image path after conversion
+        for (EventPin pin : result) {
+            log.info("Event '{}' now has imagePath: '{}'", pin.title(), pin.imagePath());
+        }
+        
+        return result;
     }
 }
