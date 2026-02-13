@@ -4,7 +4,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './InteractiveMap.css'
 import { api } from '../utils/api'
-import type { Event } from '../types/api'
+import type { Event, Flag } from '../types/api'
+import { useUser } from '../contexts/UserContext'
 
 export type InteractiveMapHandle = {
   zoomIn: () => void
@@ -32,9 +33,29 @@ type PinData = {
   category?: string
   startTime?: string
   expiresAt?: string
+  imageUrl?: string
 }
 
-
+/** Convert profile Flag (has lat, lon) to PinData for map */
+function flagToPinData(flag: Flag, userLat: number, userLon: number): PinData {
+  const latDiff = flag.lat - userLat
+  const lonDiff = flag.lon - userLon
+  const distanceKm = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) * 111
+  const distanceFeet = distanceKm * 3280.84
+  return {
+    id: flag.id,
+    lat: flag.lat,
+    lng: flag.lon,
+    title: flag.title,
+    description: flag.description ?? '',
+    distanceFeet: Math.round(distanceFeet),
+    fullDescription: flag.description ?? flag.addressText ?? flag.city ?? flag.category ?? 'Flag',
+    address: flag.addressText ?? flag.city,
+    type: 'flag',
+    category: flag.category,
+    imageUrl: flag.imageUrl
+  }
+}
 
 /** Convert Event to PinData */
 function eventToPinData(event: Event, userLat: number, userLon: number): PinData {
@@ -121,7 +142,10 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [events, setEvents] = useState<Event[]>([])
-  const [allPins, setAllPins] = useState<PinData[]>([])
+  const [eventPins, setEventPins] = useState<PinData[]>([])
+  const [profileFlags, setProfileFlags] = useState<PinData[]>([])
+  const { currentUserId, currentUsername } = useUser()
+  const allPins = useMemo(() => [...eventPins, ...profileFlags], [eventPins, profileFlags])
   const [categorySearch, setCategorySearch] = useState('')
   // Only apply category filter after user commits (Enter or blur) – keeps all pins visible while typing
   const [appliedCategorySearch, setAppliedCategorySearch] = useState('')
@@ -244,6 +268,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     },
     refreshEvents() {
       fetchEvents()
+      fetchProfileFlags()
     },
     enableLocationPicker() {
       setIsLocationPickerMode(true)
@@ -281,88 +306,52 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
         console.log('InteractiveMap: Converted events:', events)
         setEvents(events)
         
-        // Convert events to pins and add sample flags
-        const eventPinData = events.map(event => 
+        // Convert events to pins (flags come from user profile)
+        const eventPinData = events.map(event =>
           eventToPinData(event, mapCenter.lat, mapCenter.lng)
         )
-        
-        // Add sample flags for testing (near Penn State campus)
-        const sampleFlags: PinData[] = [
-          {
-            id: 'flag-1',
-            lat: mapCenter.lat + 0.002,
-            lng: mapCenter.lng + 0.001,
-            title: 'Library',
-            description: 'Main library flag',
-            distanceFeet: 200,
-            fullDescription: 'Main library location',
-            type: 'flag'
-          },
-          {
-            id: 'flag-2',
-            lat: mapCenter.lat - 0.0015,
-            lng: mapCenter.lng + 0.002,
-            title: 'Café',
-            description: 'Coffee shop flag',
-            distanceFeet: 350,
-            fullDescription: 'Popular coffee spot',
-            type: 'flag'
-          },
-          {
-            id: 'flag-3',
-            lat: mapCenter.lat + 0.001,
-            lng: mapCenter.lng - 0.002,
-            title: 'Park',
-            description: 'Park area flag',
-            distanceFeet: 500,
-            fullDescription: 'Community park',
-            type: 'flag'
-          }
-        ]
-        
-        const allPinData = [...eventPinData, ...sampleFlags]
-        console.log('InteractiveMap: Created pin data:', allPinData)
-        setAllPins(allPinData)
+        setEventPins(eventPinData)
       } else {
-        console.log('InteractiveMap: No event pins received')
-        // Add sample flags even when no events
-        const sampleFlags: PinData[] = [
-          {
-            id: 'flag-1',
-            lat: mapCenter.lat + 0.002,
-            lng: mapCenter.lng + 0.001,
-            title: 'Library',
-            description: 'Main library flag',
-            distanceFeet: 200,
-            fullDescription: 'Main library location',
-            type: 'flag'
-          },
-          {
-            id: 'flag-2',
-            lat: mapCenter.lat - 0.0015,
-            lng: mapCenter.lng + 0.002,
-            title: 'Café',
-            description: 'Coffee shop flag',
-            distanceFeet: 350,
-            fullDescription: 'Popular coffee spot',
-            type: 'flag'
-          },
-          {
-            id: 'flag-3',
-            lat: mapCenter.lat + 0.001,
-            lng: mapCenter.lng - 0.002,
-            title: 'Park',
-            description: 'Park area flag',
-            distanceFeet: 500,
-            fullDescription: 'Community park',
-            type: 'flag'
-          }
-        ]
-        setAllPins(sampleFlags)
+        setEventPins([])
       }
     } catch (error) {
       console.error('InteractiveMap: Error fetching events:', error)
-      setAllPins([])
+      setEventPins([])
+    }
+  }
+
+  // Load flags from the current user's profile (same as profile page – each has lat/lon)
+  const fetchProfileFlags = async () => {
+    if (!currentUserId) {
+      console.log('[Flags] No currentUserId – not loading profile flags')
+      setProfileFlags([])
+      return
+    }
+    try {
+      console.log('[Flags] Fetching flags for user:', currentUserId)
+      let flags: Flag[] = []
+      const directFlags = await api.getMyFlags()
+      if (directFlags && directFlags.length > 0) {
+        flags = directFlags
+        console.log('[Flags] Got', flags.length, 'flag(s) from GET /users/me/flags')
+      } else {
+        const profile = await api.getCurrentUserProfile()
+        flags = profile?.recentFlags ?? []
+        if (flags.length === 0 && currentUsername) {
+          console.log('[Flags] recentFlags empty from /users/me, trying enhanced profile for:', currentUsername)
+          const enhanced = await api.getEnhancedProfile(currentUsername)
+          flags = enhanced?.recentFlags ?? []
+        }
+        console.log('[Flags] Profile recentFlags count:', flags.length, flags.length > 0 ? flags : '(none)')
+      }
+      const pinData = flags.map((flag: Flag) =>
+        flagToPinData(flag, mapCenter.lat, mapCenter.lng)
+      )
+      setProfileFlags(pinData)
+      console.log('[Flags] Added', pinData.length, 'flag(s) to map at', pinData.map((p) => ({ title: p.title, lat: p.lat, lng: p.lng })))
+    } catch (error) {
+      console.error('InteractiveMap: Error fetching profile flags:', error)
+      setProfileFlags([])
     }
   }
 
@@ -370,6 +359,11 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   useEffect(() => {
     fetchEvents()
   }, [])
+
+  // Load profile flags when user is logged in (and when username is available for fallback)
+  useEffect(() => {
+    fetchProfileFlags()
+  }, [currentUserId, currentUsername])
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return
@@ -464,6 +458,10 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     markersRef.current = []
 
     // Add new markers only for visible pins (pins or flags)
+    const flagCount = visiblePins.filter((p) => p.type === 'flag').length
+    if (flagCount > 0) {
+      console.log('[Flags] Placing', flagCount, 'flag icon(s) on map')
+    }
     const markers: L.Marker[] = []
     for (const pin of visiblePins) {
       const icon = pin.type === 'flag' 

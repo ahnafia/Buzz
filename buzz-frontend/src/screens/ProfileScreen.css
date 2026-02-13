@@ -965,3 +965,33 @@
     margin-left: 0;
   }
 }
+
+/* Orange plus FAB – bottom left (same style as Main Map Screen) */
+.profile-fab {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  width: 56px;
+  height: 56px;
+  background: #ffe2b7;
+  color: #FF9B56;
+  border: 2px solid #FF9B56;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-shadow: none;
+  transition: transform 0.2s;
+  z-index: 50;
+}
+
+.profile-fab:hover {
+  transform: scale(1.1);
+  color: #FFF7eb;
+}
+
+.profile-fab-icon {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
