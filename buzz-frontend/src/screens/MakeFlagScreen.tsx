@@ -1,12 +1,16 @@
 import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import LocationPickerMap from '../components/LocationPickerMap'
+import '../components/LocationPickerMap.css'
 import './MakeFlagScreen.css'
 
 const ACCEPT_MEDIA = 'image/*,video/*'
 
+export type FlagLocation = { lat: number; lng: number } | null
+
 const MakeFlagScreen = () => {
   const [flagName, setFlagName] = useState('')
-  const [location, setLocation] = useState('')
+  const [location, setLocation] = useState<FlagLocation>(null)
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState('')
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
@@ -121,17 +125,6 @@ const MakeFlagScreen = () => {
           </div>
 
           <div className="make-flag-field">
-            <label className="make-flag-label">Location:</label>
-            <input
-              type="text"
-              className="make-flag-input"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Enter location"
-            />
-          </div>
-
-          <div className="make-flag-field">
             <label className="make-flag-label">Caption:</label>
             <input
               type="text"
@@ -162,6 +155,14 @@ const MakeFlagScreen = () => {
           </button>
         </div>
 
+        <div className="make-flag-map-column">
+          <p className="make-flag-map-label">Choose location</p>
+          <LocationPickerMap
+            initialLocation={location ?? undefined}
+            onLocationSelect={(loc) => setLocation(loc)}
+          />
+        </div>
+
         {showPost && (
           <aside className="make-flag-post-column" aria-label="Generated post preview">
             <article className="make-flag-post-preview">
@@ -186,7 +187,9 @@ const MakeFlagScreen = () => {
                 </div>
                 <div className="make-flag-post-info-row">
                   <span className="make-flag-post-info-label">Location</span>
-                  <span className="make-flag-post-info-value">{location || '—'}</span>
+                  <span className="make-flag-post-info-value">
+                    {location ? `${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : '—'}
+                  </span>
                 </div>
                 <div className="make-flag-post-info-row">
                   <span className="make-flag-post-info-label">Caption</span>

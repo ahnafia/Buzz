@@ -10,8 +10,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px 20px;
-  background: white;
+  padding: 5px 20px;
+  background: #FFFBF5;
   border-bottom: 1px solid rgba(255, 155, 86, 0.2);
   position: sticky;
   top: 0;
@@ -53,15 +53,58 @@
 }
 
 .make-flag-form-column {
-  flex: 1;
+  flex: 0 0 auto;
+  width: min(480px, 42vw);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 32px 40px;
+  padding: 24px 32px;
   min-width: 0;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255, 155, 86, 0.12);
+}
+
+.make-flag-map-column {
+  flex: 1 1 0%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.make-flag-map-label {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+/* Square area on the right for the map */
+.make-flag-map-column .location-picker-map-container {
+  flex: 0 0 auto;
   width: 100%;
-  max-width: min(560px, 90vw);
+  max-width: min(100%, 80vmin);
+  aspect-ratio: 1.5;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 320px;
+}
+
+.make-flag-map-column .location-picker-leaflet-map {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .make-flag-post-column {
@@ -120,19 +163,20 @@
 
 .make-flag-square-area {
   width: 100%;
-  max-width: min(560px, 45vw);
-  aspect-ratio: 1;
+  max-width: min(400px, 100%);
+  height: 140px;
+  max-height: 140px;
   background: rgba(255, 155, 86, 0.12);
   border: 2px dashed rgba(255, 155, 86, 0.4);
-  border-radius: 16px;
-  margin-bottom: 28px;
+  border-radius: 12px;
+  margin-bottom: 20px;
   flex-shrink: 0;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   transition: background 0.2s, border-color 0.2s;
   position: relative;
   overflow: hidden;
@@ -354,6 +398,19 @@
   .make-flag-body {
     flex-direction: column;
     align-items: center;
+  }
+
+  .make-flag-form-column {
+    width: 100%;
+    max-width: min(560px, 90vw);
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 155, 86, 0.12);
+  }
+
+  .make-flag-map-column {
+    width: 100%;
+    max-width: min(560px, 90vw);
+    min-height: 820px;
   }
 
   .make-flag-post-column {
