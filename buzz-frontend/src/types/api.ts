@@ -96,6 +96,18 @@ export interface Flag {
   updatedAt: string
 }
 
+export interface CreateFlagRequest {
+  title: string
+  description?: string | null
+  lat: number
+  lon: number
+  city?: string | null
+  addressText?: string | null
+  category?: string | null
+  imageUrl?: string | null
+  isPublic?: boolean
+}
+
 export interface FlagWithLikeCount {
   flag: Flag
   likeCount: number

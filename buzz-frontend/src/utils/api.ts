@@ -1,5 +1,5 @@
 // API utility functions - backend integration
-import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest, Flag } from '../types/api'
+import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest, Flag, CreateFlagRequest } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -494,6 +494,34 @@ export const api = {
     }
   },
 
+  createFlag: async (request: CreateFlagRequest): Promise<Flag> => {
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId) throw new Error('Not logged in')
+    const response = await fetch(`${API_BASE_URL}/flags`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': currentUserId
+      },
+      body: JSON.stringify({
+        title: request.title,
+        description: request.description ?? null,
+        lat: request.lat,
+        lon: request.lon,
+        city: request.city ?? null,
+        addressText: request.addressText ?? null,
+        category: request.category ?? null,
+        imageUrl: request.imageUrl ?? null,
+        isPublic: request.isPublic ?? true
+      })
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(response.status === 401 ? 'Not logged in' : `Failed to create flag: ${response.status} ${text}`)
+    }
+    return await response.json()
+  },
+
   // Places
   searchPlaces: async (query: string, location?: { lat: number; lng: number }) => {
     // TODO: Implement API call
@@ -513,5 +541,6 @@ export type {
   Event,
   EventsResponse,
   CreateEventRequest,
-  UpdateEventRequest
+  UpdateEventRequest,
+  CreateFlagRequest
 } from '../types/api'
