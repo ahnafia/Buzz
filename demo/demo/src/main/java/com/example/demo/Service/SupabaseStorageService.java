@@ -73,8 +73,10 @@ public class SupabaseStorageService {
             Map<String, Object> result = response.block();
             
             if (result != null && result.containsKey("signedURL")) {
-                String signedUrl = supabaseUrl + result.get("signedURL").toString();
-                log.info("Generated signed URL successfully");
+                String signedUrlPath = result.get("signedURL").toString();
+                // The signedURL from Supabase is a relative path, we need to add the full storage URL
+                String signedUrl = supabaseUrl + "/storage/v1" + signedUrlPath;
+                log.info("Generated signed URL successfully: {}", signedUrl);
                 return signedUrl;
             } else {
                 log.error("Failed to generate signed URL - no signedURL in response: {}", result);
@@ -86,12 +88,20 @@ public class SupabaseStorageService {
             if (e.getCause() != null) {
                 log.error("Caused by: {} - {}", e.getCause().getClass().getSimpleName(), e.getCause().getMessage());
             }
+            
+            // For development: if file doesn't exist, return a placeholder URL or null
+            if (e.getMessage() != null && e.getMessage().contains("not_found")) {
+                log.info("File not found in storage, this is expected for testing. Returning null.");
+                return null;
+            }
+            
             return null;
         }
     }
     
     /**
      * Generate a signed URL for a profile image with default 5-minute expiry
+     * Handles paths in format "BucketName/filename.jpg"
      */
     public String generateProfileImageUrl(String profileImagePath) {
         log.info("generateProfileImageUrl called with path: '{}'", profileImagePath);
@@ -100,11 +110,30 @@ public class SupabaseStorageService {
             return null;
         }
         
+        // Parse bucket and file path from format "BucketName/filename.jpg"
+        String[] pathParts = profileImagePath.split("/", 2);
+        if (pathParts.length != 2) {
+            log.error("Invalid profile image path format. Expected 'BucketName/filename', got: '{}'", profileImagePath);
+            return null;
+        }
+        
+        String bucketName = pathParts[0];  // e.g., "Media"
+        String filePath = pathParts[1];    // e.g., "167501_00_2x.jpg"
+        
+        log.info("Parsed bucket: '{}', file: '{}'", bucketName, filePath);
         log.info("Supabase URL: {}", supabaseUrl);
         log.info("Service role key configured: {}", serviceRoleKey != null && !serviceRoleKey.isEmpty() ? "Yes" : "No");
         
-        String result = generateSignedUrl("media", profileImagePath, 300); // 5 minutes
+        String result = generateSignedUrl(bucketName, filePath, 300); // 5 minutes
         log.info("Generated signed URL result: {}", result != null ? "Success" : "Failed");
+        
+        // For development: if signed URL generation fails, return a placeholder
+        if (result == null) {
+            log.info("Signed URL generation failed, returning placeholder URL for development");
+            // Return a placeholder image URL for development
+            return "https://via.placeholder.com/150x150/cccccc/666666?text=No+Image";
+        }
+        
         return result;
     }
 }

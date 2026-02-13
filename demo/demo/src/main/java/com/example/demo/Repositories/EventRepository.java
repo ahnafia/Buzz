@@ -46,7 +46,8 @@ public List<EventPin> fetchPins(
           owner,
           st_y(location::geometry) as lat,
           st_x(location::geometry) as lon,
-          description
+          description,
+          image_path
         from events
         where st_dwithin(
           location,
@@ -100,7 +101,8 @@ public List<EventPin> fetchPins(
                     rs.getString("owner"),
                     rs.getDouble("lat"),
                     rs.getDouble("lon"),
-                    rs.getString("description")
+                    rs.getString("description"),
+                    rs.getString("image_path")
             ),
             queryParams
     );
@@ -121,7 +123,8 @@ public List<EventPin> fetchPins(
               owner,
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
-              description
+              description,
+              image_path
             from events
             where id = ?
             limit 1;
@@ -138,7 +141,8 @@ public List<EventPin> fetchPins(
                         rs.getString("owner"),
                         rs.getDouble("lat"),
                         rs.getDouble("lon"),
-                        rs.getString("description")
+                        rs.getString("description"),
+                        rs.getString("image_path")
                 ),
                 id
         );
@@ -157,7 +161,8 @@ public List<EventPin> fetchPins(
               owner,
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
-              description
+              description,
+              image_path
             from events
             where owner = ?
             order by start_time asc
@@ -175,7 +180,8 @@ public List<EventPin> fetchPins(
                         rs.getString("owner"),
                         rs.getDouble("lat"),
                         rs.getDouble("lon"),
-                        rs.getString("description")
+                        rs.getString("description"),
+                        rs.getString("image_path")
                 ),
                 owner, limit
         );
@@ -217,7 +223,8 @@ public List<EventPin> fetchPins(
               owner,
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
-              description
+              description,
+              image_path
             from events
             where expires_at > now()
               and st_dwithin(
@@ -265,7 +272,8 @@ public List<EventPin> fetchPins(
                         rs.getString("owner"),
                         rs.getDouble("lat"),
                         rs.getDouble("lon"),
-                        rs.getString("description")
+                        rs.getString("description"),
+                        rs.getString("image_path")
                 ),
                 params.toArray()
         );
@@ -281,15 +289,16 @@ public List<EventPin> fetchPins(
             OffsetDateTime startTime,
             OffsetDateTime expiresAt,
             String owner,
-            String description
+            String description,
+            String imagePath
     ) {
         UUID eventId = UUID.randomUUID();
         String sql = """
-            insert into events (id, title, category, location, start_time, expires_at, owner, description)
-            values (?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, ?, ?)
+            insert into events (id, title, category, location, start_time, expires_at, owner, description, image_path)
+            values (?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, ?, ?, ?)
         """;
 
-        jdbc.update(sql, eventId, title, category, lon, lat, startTime, expiresAt, owner, description);
+        jdbc.update(sql, eventId, title, category, lon, lat, startTime, expiresAt, owner, description, imagePath);
         return eventId;
     }
 
@@ -301,7 +310,8 @@ public List<EventPin> fetchPins(
             Double lon,
             OffsetDateTime startTime,
             OffsetDateTime expiresAt,
-            String description
+            String description,
+            String imagePath
     ) {
         // Build dynamic update query
         StringBuilder sql = new StringBuilder("update events set ");
@@ -339,6 +349,11 @@ public List<EventPin> fetchPins(
             params.add(description);
             hasUpdate = true;
         }
+        if (imagePath != null) {
+            sql.append("image_path = ?, ");
+            params.add(imagePath);
+            hasUpdate = true;
+        }
 
         if (!hasUpdate) {
             return false;
@@ -371,7 +386,8 @@ public List<EventPin> fetchPins(
               owner,
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
-              description
+              description,
+              image_path
             from events
             where id = ? and expires_at > now()
             limit 1;
@@ -388,7 +404,8 @@ public List<EventPin> fetchPins(
                         rs.getString("owner"),
                         rs.getDouble("lat"),
                         rs.getDouble("lon"),
-                        rs.getString("description")
+                        rs.getString("description"),
+                        rs.getString("image_path")
                 ),
                 id
         );
@@ -412,7 +429,8 @@ public List<EventPin> fetchPins(
               owner,
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
-              description
+              description,
+              image_path
             from events
             where owner = ?
         """);
@@ -457,7 +475,8 @@ public List<EventPin> fetchPins(
                         rs.getString("owner"),
                         rs.getDouble("lat"),
                         rs.getDouble("lon"),
-                        rs.getString("description")
+                        rs.getString("description"),
+                        rs.getString("image_path")
                 ),
                 params.toArray()
         );

@@ -9,6 +9,7 @@ public record CreateEventRequest(
         double lon,
         OffsetDateTime startTime,
         OffsetDateTime endTime,  // optional
-        String description       // optional
+        String description,      // optional
+        String imagePath         // optional
 ) {
 }

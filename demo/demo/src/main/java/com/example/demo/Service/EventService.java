@@ -114,7 +114,8 @@ public class EventService {
                 request.startTime(),
                 expiresAt,
                 owner,
-                request.description()
+                request.description(),
+                request.imagePath()
         );
 
         return repo.fetchEventById(eventId);
@@ -153,7 +154,8 @@ public class EventService {
                 request.lon(),
                 request.startTime(),
                 newExpiresAt,
-                request.description()
+                request.description(),
+                request.imagePath()
         );
 
         return updated ? repo.fetchEventById(eventId) : null;

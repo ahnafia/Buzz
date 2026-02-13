@@ -12,6 +12,7 @@ public record EventPin(
         String owner,
         double lat,
         double lon,
-        String description
+        String description,
+        String imagePath
 ) {
 }

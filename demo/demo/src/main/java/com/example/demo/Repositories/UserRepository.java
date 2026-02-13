@@ -409,6 +409,9 @@ public User fetchUserByUsername(String username) {
     private User mapUser(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         Double lat = rs.getObject("lat") != null ? rs.getDouble("lat") : null;
         Double lon = rs.getObject("lon") != null ? rs.getDouble("lon") : null;
+        
+        String profileImagePath = rs.getString("profile_image_path");
+        log.debug("Mapping user {} with profile_image_path: '{}'", rs.getString("username"), profileImagePath);
 
         return new User(
                 UUID.fromString(rs.getString("id")),
@@ -416,7 +419,7 @@ public User fetchUserByUsername(String username) {
                 rs.getString("email"),
                 rs.getString("display_name"),
                 rs.getString("bio"),
-                rs.getString("profile_image_path"),
+                profileImagePath,
                 UserType.from(rs.getString("user_type")),
                 lat,
                 lon,
