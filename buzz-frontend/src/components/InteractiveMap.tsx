@@ -145,7 +145,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   const [eventPins, setEventPins] = useState<PinData[]>([])
   const [profileFlags, setProfileFlags] = useState<PinData[]>([])
   const { currentUserId, currentUsername } = useUser()
-  const allPins = useMemo(() => [...eventPins, ...profileFlags], [eventPins, profileFlags])
+  const [mapMode, setMapMode] = useState<'Algorithm' | 'Search' | 'Personal'>('Algorithm')
+  const [mapModeDropdownOpen, setMapModeDropdownOpen] = useState(false)
+  const mapModeDropdownRef = useRef<HTMLDivElement>(null)
+  const allPins = useMemo(
+    () => (mapMode === 'Personal' ? [...eventPins, ...profileFlags] : [...eventPins]),
+    [eventPins, profileFlags, mapMode]
+  )
   const [categorySearch, setCategorySearch] = useState('')
   // Only apply category filter after user commits (Enter or blur) – keeps all pins visible while typing
   const [appliedCategorySearch, setAppliedCategorySearch] = useState('')
@@ -153,9 +159,6 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0)
   const [isLocationPickerMode, setIsLocationPickerMode] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [mapMode, setMapMode] = useState<'Algorithm' | 'Search' | 'Personal'>('Algorithm')
-  const [mapModeDropdownOpen, setMapModeDropdownOpen] = useState(false)
-  const mapModeDropdownRef = useRef<HTMLDivElement>(null)
 
   // Default map center (Penn State)
   const mapCenter = { lat: 40.7934, lng: -77.8616 }
