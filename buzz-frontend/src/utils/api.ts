@@ -1,5 +1,5 @@
 // API utility functions - backend integration
-import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest } from '../types/api'
+import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest, Flag } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -192,6 +192,21 @@ export const api = {
       return await response.json()
     } catch (error) {
       console.error('Error fetching current user profile:', error)
+      return null
+    }
+  },
+
+  /** Current user's flags (for map). Tries GET /users/me/flags; if missing, returns null so caller can use profile.recentFlags. */
+  getMyFlags: async (): Promise<Flag[] | null> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      if (!currentUserId) return null
+      const response = await fetch(`${API_BASE_URL}/users/me/flags`, {
+        headers: { 'Content-Type': 'application/json', 'X-User-Id': currentUserId }
+      })
+      if (!response.ok) return null
+      return await response.json()
+    } catch {
       return null
     }
   },
