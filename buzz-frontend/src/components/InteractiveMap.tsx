@@ -44,10 +44,12 @@ type PinData = {
   startTime?: string
   expiresAt?: string
   imageUrl?: string
+  userId?: string // For flags, to track the owner
+  ownerProfileImageUrl?: string // For flags, the owner's profile image
 }
 
 /** Convert profile Flag (has lat, lon) to PinData for map */
-function flagToPinData(flag: Flag, userLat: number, userLon: number): PinData {
+function flagToPinData(flag: Flag, userLat: number, userLon: number, ownerProfileImageUrl?: string): PinData {
   const latDiff = flag.lat - userLat
   const lonDiff = flag.lon - userLon
   const distanceKm = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) * 111
@@ -63,7 +65,9 @@ function flagToPinData(flag: Flag, userLat: number, userLon: number): PinData {
     address: flag.addressText ?? flag.city,
     type: 'flag',
     category: flag.category,
-    imageUrl: flag.imageUrl
+    imageUrl: flag.imageUrl,
+    userId: flag.userId,
+    ownerProfileImageUrl
   }
 }
 
@@ -147,14 +151,23 @@ function pinIconForPin(pin: PinData, isSelected?: boolean) {
   })
 }
 
-/** Flag icon - rectangular flag on a pole, similar size to pins */
-function flagIconForFlag(flag: PinData, isSelected?: boolean) {
-  const letter = flag.title.charAt(0).toUpperCase()
+/** Flag icon - rectangular flag on a pole with owner's profile picture */
+function flagIconForFlag(pin: PinData, isSelected?: boolean) {
+  const letter = pin.title.charAt(0).toUpperCase()
   const selectedClass = isSelected ? ' buzz-flag-icon--selected' : ''
+
+  // Use profile image if available, otherwise fallback to letter
+  const flagContent = pin.ownerProfileImageUrl 
+    ? `<img src="${pin.ownerProfileImageUrl}" alt="${pin.title}" class="buzz-flag-profile-image" 
+           onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\\'buzz-flag-letter\\'>${letter}</span>';" />`
+    : `<span class="buzz-flag-letter">${letter}</span>`
 
   return L.divIcon({
     className: `buzz-flag-icon${selectedClass}`,
-    html: `<div class="buzz-flag-container"><div class="buzz-flag-pole"></div><div class="buzz-flag-banner"><span class="buzz-flag-letter">${letter}</span></div></div>`,
+    html: `<div class="buzz-flag-container">
+             <div class="buzz-flag-pole"></div>
+             <div class="buzz-flag-banner">${flagContent}</div>
+           </div>`,
     iconSize: [40, 40],
     iconAnchor: [8, 38]
   })
@@ -299,16 +312,6 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     console.log('[Map] visiblePins: category filter', { applied, count: out.length })
     return out
   })()
-  }
-
-  const visiblePins =
-    !isKnownCategory
-      ? filteredPins
-      : filteredPins.filter(
-        (p) =>
-          p.category &&
-          p.category.toLowerCase() === applied
-      )
 
   const applyCategoryFilter = () => setAppliedCategorySearch(categorySearch)
 
@@ -486,7 +489,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
         const flags = profile?.recentFlags ?? []
         console.log('[Discover] Friend', friend.username, 'flags', { count: flags.length })
         for (const flag of flags) {
-          allFlags.push(flagToPinData(flag, mapCenter.lat, mapCenter.lng))
+          allFlags.push(flagToPinData(flag, mapCenter.lat, mapCenter.lng, profile?.profileImageUrl))
         }
       }
       setFriendFlags(allFlags)
@@ -510,7 +513,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       const profile = await api.getEnhancedProfile(trimmed)
       const flags = profile?.recentFlags ?? []
       const pinData = flags.map((flag: Flag) =>
-        flagToPinData(flag, mapCenter.lat, mapCenter.lng)
+        flagToPinData(flag, mapCenter.lat, mapCenter.lng, profile?.profileImageUrl)
       )
       setViewedUserFlags(pinData)
       setViewedUsername(trimmed)
@@ -532,26 +535,31 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     try {
       console.log('[My Map] Fetching flags for user:', currentUserId)
       let flags: Flag[] = []
+      let userProfile: UserProfile | null = null
+      
       const directFlags = await api.getMyFlags()
       console.log('[My Map] api.getMyFlags() result', { count: directFlags?.length ?? 0, directFlags })
       if (directFlags && directFlags.length > 0) {
         flags = directFlags
         console.log('[My Map] Using', flags.length, 'flag(s) from GET /users/me/flags', flags)
+        // Get current user profile for profile image
+        userProfile = await api.getCurrentUserProfile()
       } else {
-        const profile = await api.getCurrentUserProfile()
-        console.log('[My Map] api.getCurrentUserProfile()', { recentFlagsCount: profile?.recentFlags?.length ?? 0, profile })
-        flags = profile?.recentFlags ?? []
+        userProfile = await api.getCurrentUserProfile()
+        console.log('[My Map] api.getCurrentUserProfile()', { recentFlagsCount: userProfile?.recentFlags?.length ?? 0, userProfile })
+        flags = userProfile?.recentFlags ?? []
         if (flags.length === 0 && currentUsername) {
           console.log('[My Map] recentFlags empty, trying getEnhancedProfile:', currentUsername)
           const enhanced = await api.getEnhancedProfile(currentUsername)
           flags = enhanced?.recentFlags ?? []
+          userProfile = enhanced
           console.log('[My Map] getEnhancedProfile recentFlags', { count: flags.length, flags })
         } else {
           console.log('[My Map] Profile recentFlags', { count: flags.length, flags: flags.length > 0 ? flags : '(none)' })
         }
       }
       const pinData = flags.map((flag: Flag) =>
-        flagToPinData(flag, mapCenter.lat, mapCenter.lng)
+        flagToPinData(flag, mapCenter.lat, mapCenter.lng, userProfile?.profileImageUrl)
       )
       setProfileFlags(pinData)
       console.log('[My Map] Set profileFlags (user own flags)', { count: pinData.length, pinData })
@@ -857,102 +865,6 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       {/* Floating Top Search Bar with category suggestions - hidden in My Map mode */}
       {mapMode !== 'My Map' && (
         <div className="floating-search">
-        <div className={`map-search-wrapper ${categorySearch.trim() !== '' ? 'map-search-wrapper--has-clear' : ''}`}>
-          <span className="map-search-icon" aria-hidden="true">
-            <svg
-              viewBox="0 0 24 24"
-              className="map-search-icon-svg"
-              focusable="false"
-            >
-              <circle cx="11" cy="11" r="6" />
-              <line x1="15" y1="15" x2="20" y2="20" />
-            </svg>
-          </span>
-          <input
-            type="text"
-            placeholder={mapMode === 'Find Friends' ? 'Search users…' : 'Search by category...'}
-            className={`map-search-bar ${completionSuffix ? 'map-search-bar--has-completion' : ''}`}
-            value={categorySearch}
-            onChange={(e) => setCategorySearch(e.target.value)}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => {
-              if (mapMode !== 'Find Friends') applyCategoryFilter()
-              setTimeout(() => setShowSuggestions(false), 180)
-            }}
-            onKeyDown={handleSearchKeyDown}
-            autoComplete="off"
-            aria-autocomplete="list"
-            aria-expanded={showSuggestions && categorySearch.trim() !== '' && (categorySuggestions.length > 0 || userSuggestions.length > 0)}
-          />
-          {completionSuffix && (
-            <div className="map-search-completion-overlay" aria-hidden="true">
-              <span className="map-search-completion-typed">{categorySearch}</span>
-              <span className="map-search-completion-suffix">{completionSuffix}</span>
-            </div>
-          )}
-          {categorySearch.trim() !== '' && (
-            <button
-              type="button"
-              className="map-search-clear-btn"
-              onClick={clearSearch}
-              aria-label="Clear search and show all pins"
-            >
-              <svg viewBox="0 0 24 24" className="map-search-clear-icon" aria-hidden="true">
-                <line x1="6" y1="6" x2="18" y2="18" />
-                <line x1="18" y1="6" x2="6" y2="18" />
-              </svg>
-            </button>
-          )}
-          {showSuggestions && categorySearch.trim() !== '' && (categorySuggestions.length > 0 || userSuggestions.length > 0) && (
-            <ul
-              className="map-search-suggestions"
-              role="listbox"
-              aria-label={mapMode === 'Find Friends' ? 'User suggestions' : 'Category suggestions'}
-              aria-activedescendant={suggestionsCount > 0 ? `suggestion-${safeHighlightedIndex}` : undefined}
-            >
-              {mapMode === 'Find Friends'
-                ? userSuggestions.map((user, idx) => (
-                    <li key={user.id} role="option" id={`suggestion-${idx}`}>
-                      <button
-                        type="button"
-                        className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
-                        onMouseDown={(e) => {
-                          e.preventDefault()
-                          chooseUserSuggestion(user)
-                        }}
-                        onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
-                      >
-                        {user.displayName || user.username}
-                        {user.displayName && user.displayName !== user.username ? ` (@${user.username})` : ''}
-                      </button>
-                    </li>
-                  ))
-                : categorySuggestions.map((cat, idx) => (
-                    <li key={cat} role="option" id={`suggestion-${idx}`}>
-                      <button
-                        type="button"
-                        className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
-                        onMouseDown={(e) => {
-                          e.preventDefault()
-                          chooseSuggestion(cat)
-                        }}
-                        onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
-                      >
-                        {cat}
-                      </button>
-                    </li>
-                  ))}
-            </ul>
-          )}
-          {mapMode === 'Find Friends' && categorySearch.trim() !== '' && userSuggestionsLoading && (
-            <div className="map-search-suggestions-loading" aria-live="polite">Searching…</div>
-          )}
-        </div>
-        {mapMode === 'Find Friends' && viewedUsername && (
-          <p className="map-viewing-user-label" aria-live="polite">
-            Viewing {viewedUsername}'s My Map
-          </p>
-        )}
           <div className={`map-search-wrapper ${categorySearch.trim() !== '' ? 'map-search-wrapper--has-clear' : ''}`}>
             <span className="map-search-icon" aria-hidden="true">
               <svg
@@ -966,19 +878,19 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
             </span>
             <input
               type="text"
-              placeholder="Search by category..."
+              placeholder={mapMode === 'Find Friends' ? 'Search users…' : 'Search by category...'}
               className={`map-search-bar ${completionSuffix ? 'map-search-bar--has-completion' : ''}`}
               value={categorySearch}
               onChange={(e) => setCategorySearch(e.target.value)}
               onFocus={() => setShowSuggestions(true)}
               onBlur={() => {
-                applyCategoryFilter()
+                if (mapMode !== 'Find Friends') applyCategoryFilter()
                 setTimeout(() => setShowSuggestions(false), 180)
               }}
               onKeyDown={handleSearchKeyDown}
               autoComplete="off"
               aria-autocomplete="list"
-              aria-expanded={showSuggestions && categorySearch.trim() !== '' && categorySuggestions.length > 0}
+              aria-expanded={showSuggestions && categorySearch.trim() !== '' && (categorySuggestions.length > 0 || userSuggestions.length > 0)}
             />
             {completionSuffix && (
               <div className="map-search-completion-overlay" aria-hidden="true">
@@ -999,31 +911,56 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
                 </svg>
               </button>
             )}
-            {showSuggestions && categorySearch.trim() !== '' && categorySuggestions.length > 0 && (
+            {showSuggestions && categorySearch.trim() !== '' && (categorySuggestions.length > 0 || userSuggestions.length > 0) && (
               <ul
                 className="map-search-suggestions"
                 role="listbox"
-                aria-label="Category suggestions"
-                aria-activedescendant={categorySuggestions.length > 0 ? `suggestion-${safeHighlightedIndex}` : undefined}
+                aria-label={mapMode === 'Find Friends' ? 'User suggestions' : 'Category suggestions'}
+                aria-activedescendant={suggestionsCount > 0 ? `suggestion-${safeHighlightedIndex}` : undefined}
               >
-                {categorySuggestions.map((cat, idx) => (
-                  <li key={cat} role="option" id={`suggestion-${idx}`}>
-                    <button
-                      type="button"
-                      className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
-                      onMouseDown={(e) => {
-                        e.preventDefault()
-                        chooseSuggestion(cat)
-                      }}
-                      onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
-                    >
-                      {cat}
-                    </button>
-                  </li>
-                ))}
+                {mapMode === 'Find Friends'
+                  ? userSuggestions.map((user, idx) => (
+                    <li key={user.id} role="option" id={`suggestion-${idx}`}>
+                      <button
+                        type="button"
+                        className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          chooseUserSuggestion(user)
+                        }}
+                        onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
+                      >
+                        {user.displayName || user.username}
+                        {user.displayName && user.displayName !== user.username ? ` (@${user.username})` : ''}
+                      </button>
+                    </li>
+                  ))
+                  : categorySuggestions.map((cat, idx) => (
+                    <li key={cat} role="option" id={`suggestion-${idx}`}>
+                      <button
+                        type="button"
+                        className={`map-search-suggestion-item ${idx === safeHighlightedIndex ? 'map-search-suggestion-item--highlighted' : ''}`}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          chooseSuggestion(cat)
+                        }}
+                        onMouseEnter={() => setHighlightedSuggestionIndex(idx)}
+                      >
+                        {cat}
+                      </button>
+                    </li>
+                  ))}
               </ul>
             )}
+            {mapMode === 'Find Friends' && categorySearch.trim() !== '' && userSuggestionsLoading && (
+              <div className="map-search-suggestions-loading" aria-live="polite">Searching…</div>
+            )}
           </div>
+          {mapMode === 'Find Friends' && viewedUsername && (
+            <p className="map-viewing-user-label" aria-live="polite">
+              Viewing {viewedUsername}'s My Map
+            </p>
+          )}
         </div>
       )}
 
