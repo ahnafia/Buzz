@@ -42,26 +42,25 @@ export const useFriends = (username: string) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchFriends = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-        const friendsData = await api.getFriends(username)
-        setFriends(friendsData)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch friends')
-      } finally {
-        setLoading(false)
-      }
+  const refetch = async () => {
+    if (!username) return
+    try {
+      setLoading(true)
+      setError(null)
+      const friendsData = await api.getFriends(username)
+      setFriends(friendsData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch friends')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    if (username) {
-      fetchFriends()
-    }
+  useEffect(() => {
+    if (username) refetch()
   }, [username])
 
-  return { friends, loading, error }
+  return { friends, loading, error, refetch }
 }
 
 export const useBusinessEvents = () => {

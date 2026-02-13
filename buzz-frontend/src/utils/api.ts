@@ -241,6 +241,60 @@ export const api = {
     }
   },
 
+  searchUsers: async (query: string, limit: number = 20): Promise<UserProfile[]> => {
+    try {
+      if (!query || !query.trim()) return []
+      const params = new URLSearchParams({ q: query.trim(), limit: limit.toString() })
+      const response = await fetch(`${API_BASE_URL}/users/search?${params}`, {
+        headers: { 'Content-Type': 'application/json' }
+      })
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      return await response.json()
+    } catch (error) {
+      console.error('Error searching users:', error)
+      return []
+    }
+  },
+
+  followUser: async (username: string): Promise<void> => {
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId) throw new Error('Not logged in')
+    const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(username)}/follow`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': currentUserId
+      }
+    })
+    if (!response.ok) throw new Error(response.status === 401 ? 'Not logged in' : `Failed to follow user: ${response.status}`)
+  },
+
+  getFollowers: async (username: string, cursor?: string, limit: number = 50): Promise<UsersResponse | null> => {
+    try {
+      const params = new URLSearchParams({ limit: limit.toString() })
+      if (cursor) params.append('cursor', cursor)
+      const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(username)}/followers?${params}`)
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching followers:', error)
+      return null
+    }
+  },
+
+  getFollowing: async (username: string, cursor?: string, limit: number = 50): Promise<UsersResponse | null> => {
+    try {
+      const params = new URLSearchParams({ limit: limit.toString() })
+      if (cursor) params.append('cursor', cursor)
+      const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(username)}/following?${params}`)
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching following:', error)
+      return null
+    }
+  },
+
   // Events
   getEvents: async (lat: number, lon: number, radiusMiles: number = 5.0, timeWindow?: string, categories?: string[], cursor?: string, limit: number = 20): Promise<EventsResponse | null> => {
     try {

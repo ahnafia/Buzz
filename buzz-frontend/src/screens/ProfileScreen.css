@@ -282,6 +282,165 @@
   color: #333;
 }
 
+.find-friends-search {
+  margin-bottom: 0.75rem;
+}
+
+.find-friends-input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #FF9B56;
+  font-size: 0.95rem;
+  background: #FFFBF5;
+  color: #333;
+}
+
+.find-friends-input::placeholder {
+  color: #999;
+}
+
+.find-friends-input:focus {
+  outline: none;
+  border-color: #e8894d;
+  box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.25);
+}
+
+.find-friends-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  min-height: 0;
+}
+
+.find-friends-main {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.find-friends-main .tab-list {
+  flex: 1;
+  min-height: 0;
+}
+
+.friend-requests-column {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(255, 155, 86, 0.35);
+  padding-top: 1rem;
+}
+
+.friend-requests-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #FF9B56;
+  flex-shrink: 0;
+}
+
+.friend-requests-list {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.friend-request-item .accept-friend-btn {
+  flex-shrink: 0;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #FF9B56;
+  color: white;
+  transition: background 0.2s;
+}
+
+.friend-request-item .accept-friend-btn:hover:not(:disabled) {
+  background: #e8894d;
+}
+
+.friend-request-item .accept-friend-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.friend-request-item .accept-friend-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.5);
+}
+
+.find-friends-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 0.75rem 1rem;
+}
+
+.find-friends-item .list-item-btn-inner {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  border-radius: 8px;
+  outline: none;
+  color: inherit;
+  font: inherit;
+}
+
+.find-friends-item .list-item-btn-inner:hover {
+  background: transparent;
+}
+
+.add-friend-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #FF9B56;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  line-height: 1;
+  transition: background 0.2s;
+}
+
+.add-friend-btn:hover:not(:disabled) {
+  background: #e8894d;
+}
+
+.add-friend-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.add-friend-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.5);
+}
+
+.add-friend-icon {
+  font-weight: 300;
+}
+
 /* Tab list content */
 .tab-list-content {
   margin-top: 1.5rem;

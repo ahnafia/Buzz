@@ -6,7 +6,8 @@ import { useAuth } from '../contexts/AuthContext'
 import UserSelector from '../components/UserSelector'
 import BusinessMapView from '../components/BusinessMapView'
 import '../components/BusinessMapView.css'
-import type { Event } from '../types/api'
+import { api } from '../utils/api'
+import type { Event, UserProfile, Friend } from '../types/api'
 import './ProfileScreen.css'
 
 // Business Profile Components
@@ -140,13 +141,20 @@ const ProfileScreen = () => {
   }, [username, navigate])
 
   const { profile, loading, error } = useProfile(username || undefined)
-  const { friends } = useFriends(profile?.username || '')
+  const { friends, refetch: refetchFriends } = useFriends(profile?.username || '')
 
-  const [activeTab, setActiveTab] = useState<'flag' | 'friends' | 'likes' | null>('flag')
+  const [activeTab, setActiveTab] = useState<'flag' | 'friends' | 'likes' | 'find-friends' | null>('flag')
   const [pressedItem, setPressedItem] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [businessSettingsOpen, setBusinessSettingsOpen] = useState(false)
-  
+  const [findFriendsQuery, setFindFriendsQuery] = useState('')
+  const [findFriendsResults, setFindFriendsResults] = useState<UserProfile[]>([])
+  const [findFriendsLoading, setFindFriendsLoading] = useState(false)
+  const [addingFriendId, setAddingFriendId] = useState<string | null>(null)
+  const [friendRequests, setFriendRequests] = useState<Friend[]>([])
+  const [friendRequestsLoading, setFriendRequestsLoading] = useState(false)
+  const [acceptingFriendId, setAcceptingFriendId] = useState<string | null>(null)
+
   // Business events hook - only used for business profiles
   const businessEvents = useBusinessEvents()
 
@@ -157,6 +165,79 @@ const ProfileScreen = () => {
       businessEvents.refetch()
     }
   }, [profile])
+
+  // Find Friends: search users when query changes (debounced)
+  useEffect(() => {
+    if (activeTab !== 'find-friends') return
+    const q = findFriendsQuery.trim()
+    if (!q) {
+      setFindFriendsResults([])
+      return
+    }
+    const t = setTimeout(async () => {
+      setFindFriendsLoading(true)
+      try {
+        const users = await api.searchUsers(q, 30)
+        setFindFriendsResults(users)
+      } finally {
+        setFindFriendsLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [activeTab, findFriendsQuery])
+
+  // Fetch friend requests (followers who we don't follow back) when Find Friends tab is active
+  const refetchFriendRequests = async () => {
+    if (!currentUsername) return
+    setFriendRequestsLoading(true)
+    try {
+      const [followersRes, followingRes] = await Promise.all([
+        api.getFollowers(currentUsername, undefined, 100),
+        api.getFollowing(currentUsername, undefined, 100)
+      ])
+      const followingIds = new Set((followingRes?.users ?? []).map((u) => u.id))
+      const pending = (followersRes?.users ?? []).filter((u) => !followingIds.has(u.id))
+      setFriendRequests(pending)
+    } finally {
+      setFriendRequestsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'find-friends' && currentUsername) {
+      refetchFriendRequests()
+    }
+  }, [activeTab, currentUsername])
+
+  const handleSendFriendRequest = async (user: UserProfile) => {
+    if (addingFriendId) return
+    setAddingFriendId(user.id)
+    try {
+      await api.followUser(user.username)
+      setFindFriendsResults((prev) => prev.filter((u) => u.id !== user.id))
+    } catch (err) {
+      console.error('Failed to send friend request:', err)
+      alert(err instanceof Error ? err.message : 'Failed to send request')
+    } finally {
+      setAddingFriendId(null)
+    }
+  }
+
+  const handleAcceptFriendRequest = async (friend: Friend) => {
+    if (acceptingFriendId) return
+    setAcceptingFriendId(friend.id)
+    try {
+      await api.followUser(friend.username)
+      await refetchFriends()
+      await refetchFriendRequests()
+      setFriendRequests((prev) => prev.filter((u) => u.id !== friend.id))
+    } catch (err) {
+      console.error('Failed to accept friend request:', err)
+      alert(err instanceof Error ? err.message : 'Failed to accept')
+    } finally {
+      setAcceptingFriendId(null)
+    }
+  }
 
   const handlePostEvent = () => {
     navigate('/create-event')
@@ -435,7 +516,7 @@ const ProfileScreen = () => {
           </div>
         </div>
 
-        {/* Right: Tabs (Flag, Friends, Likes) */}
+        {/* Right: Tabs (Flag, Friends, Likes, Find Friends) */}
         <div className="profile-main-section">
           <div className="profile-tabs-row">
             <div className="landmarks-buttons">
@@ -456,6 +537,12 @@ const ProfileScreen = () => {
                 onClick={(e) => { e.stopPropagation(); setActiveTab('likes'); setPressedItem(null); }}
               >
                 Likes ({profile.totalLikesGiven})
+              </button>
+              <button
+                className={`tab-btn ${activeTab === 'find-friends' ? 'active' : ''}`}
+                onClick={(e) => { e.stopPropagation(); setActiveTab('find-friends'); setPressedItem(null); }}
+              >
+                Find Friends
               </button>
             </div>
 
@@ -537,6 +624,113 @@ const ProfileScreen = () => {
                   ) : (
                     <div className="empty-state">No liked flags yet</div>
                   )}
+                </div>
+              )}
+              {activeTab === 'find-friends' && (
+                <div className="find-friends-layout">
+                  <div className="find-friends-main">
+                <div className="tab-list">
+                  <div className="find-friends-search">
+                    <input
+                      type="text"
+                      className="find-friends-input"
+                      placeholder="Search by username or name"
+                      value={findFriendsQuery}
+                      onChange={(e) => setFindFriendsQuery(e.target.value)}
+                    />
+                  </div>
+                  {findFriendsLoading ? (
+                    <div className="empty-state">Searching…</div>
+                  ) : (
+                    (() => {
+                      const friendIds = new Set((friends?.users ?? []).map((f) => f.id))
+                      const nonFriends = findFriendsResults.filter(
+                        (u) => u.id !== profile?.id && !friendIds.has(u.id)
+                      )
+                      if (nonFriends.length === 0) {
+                        return (
+                          <div className="empty-state">
+                            {findFriendsQuery.trim()
+                              ? 'No users found or they’re already friends'
+                              : 'Type to search for users to add'}
+                          </div>
+                        )
+                      }
+                      return nonFriends.map((user) => (
+                        <div
+                          key={user.id}
+                          className={`list-item-btn find-friends-item ${pressedItem === user.id ? 'pressed' : ''}`}
+                        >
+                          <button
+                            type="button"
+                            className="list-item-btn-inner"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setPressedItem(pressedItem === user.id ? null : user.id)
+                            }}
+                          >
+                            <ProfileAvatar />
+                            <span className="list-item-name">{user.displayName ?? user.username}</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="add-friend-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSendFriendRequest(user)
+                            }}
+                            disabled={addingFriendId === user.id}
+                            aria-label={`Send friend request to ${user.displayName ?? user.username}`}
+                          >
+                            <span className="add-friend-icon">+</span>
+                          </button>
+                        </div>
+                      ))
+                    })()
+                  )}
+                </div>
+                  </div>
+                  <div className="friend-requests-column">
+                    <h3 className="friend-requests-title">Friend Requests</h3>
+                    {friendRequestsLoading ? (
+                      <div className="empty-state">Loading…</div>
+                    ) : friendRequests.length === 0 ? (
+                      <div className="empty-state">No pending requests</div>
+                    ) : (
+                      <div className="tab-list friend-requests-list">
+                        {friendRequests.map((friend) => (
+                          <div
+                            key={friend.id}
+                            className={`list-item-btn find-friends-item friend-request-item ${pressedItem === friend.id ? 'pressed' : ''}`}
+                          >
+                            <button
+                              type="button"
+                              className="list-item-btn-inner"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setPressedItem(pressedItem === friend.id ? null : friend.id)
+                              }}
+                            >
+                              <ProfileAvatar />
+                              <span className="list-item-name">{friend.displayName ?? friend.username}</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="accept-friend-btn"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleAcceptFriendRequest(friend)
+                              }}
+                              disabled={acceptingFriendId === friend.id}
+                              aria-label={`Accept request from ${friend.displayName ?? friend.username}`}
+                            >
+                              {acceptingFriendId === friend.id ? '…' : 'Accept'}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
