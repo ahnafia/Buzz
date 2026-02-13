@@ -5,6 +5,7 @@ import { useUser } from '../contexts/UserContext'
 import { useAuth } from '../contexts/AuthContext'
 import UserSelector from '../components/UserSelector'
 import BusinessMapView from '../components/BusinessMapView'
+import ProfileImage from '../components/ProfileImage'
 import '../components/BusinessMapView.css'
 import { api } from '../utils/api'
 import type { Event, UserProfile, Friend } from '../types/api'
@@ -27,11 +28,13 @@ const BusinessHeader = ({ profile, hasActiveEvents }: { profile: any, hasActiveE
         </span>
       </div>
     </div>
-    {profile.profileImageUrl && (
-      <div className="business-logo">
-        <img src={profile.profileImageUrl} alt="Business logo" />
-      </div>
-    )}
+    <div className="business-logo">
+      <ProfileImage 
+        src={profile.profileImageUrl} 
+        alt={`${profile.businessName || profile.displayName} logo`}
+        size="large"
+      />
+    </div>
   </div>
 )
 
@@ -108,12 +111,13 @@ const BusinessSettings = ({ profile, isOpen, onToggle }: {
   </div>
 )
 
-const ProfileAvatar = () => (
+const ProfileAvatar = ({ profileImageUrl, displayName }: { profileImageUrl?: string, displayName?: string }) => (
   <div className="list-item-avatar">
-    <svg viewBox="0 0 100 100" fill="none" stroke="#FF9B56" strokeWidth="2" strokeLinecap="round">
-      <circle cx="50" cy="40" r="22" />
-      <path d="M 15 98 Q 50 45 85 98" />
-    </svg>
+    <ProfileImage 
+      src={profileImageUrl} 
+      alt={`${displayName || 'User'} profile`}
+      size="medium"
+    />
   </div>
 )
 
@@ -481,18 +485,11 @@ const ProfileScreen = () => {
         <div className="profile-info-section">
           <div className="profile-avatar-row">
             <div className="profile-circle">
-              <svg
-                className="profile-silhouette"
-                viewBox="0 0 100 100"
-                fill="none"
-                stroke="#FF9B56"
-                strokeWidth="2"
-                strokeLinecap="round"
-                aria-hidden
-              >
-                <circle cx="50" cy="40" r="22" />
-                <path d="M 15 98 Q 50 45 85 98" />
-              </svg>
+              <ProfileImage 
+                src={profile.profileImageUrl} 
+                alt={`${profile.displayName} profile`}
+                size="large"
+              />
             </div>
             <div className="profile-meta">
               <div className="profile-underline name-box">{profile.displayName}</div>
@@ -589,7 +586,7 @@ const ProfileScreen = () => {
                           setPressedItem(pressedItem === friend.id ? null : friend.id)
                         }}
                       >
-                        <ProfileAvatar />
+                        <ProfileAvatar profileImageUrl={friend.profileImageUrl} displayName={friend.displayName} />
                         <span className="list-item-name">{friend.displayName}</span>
                       </button>
                     ))
@@ -611,7 +608,7 @@ const ProfileScreen = () => {
                           setPressedItem(pressedItem === flagWithLikes.flag.id ? null : flagWithLikes.flag.id)
                         }}
                       >
-                        <ProfileAvatar />
+                        <ProfileAvatar profileImageUrl={profile.profileImageUrl} displayName={profile.displayName} />
                         <div className="list-item-text list-item-text-likes">
                           <span className="list-item-name">{flagWithLikes.likeCount} likes</span>
                           <div className="list-item-details">
@@ -669,7 +666,7 @@ const ProfileScreen = () => {
                               setPressedItem(pressedItem === user.id ? null : user.id)
                             }}
                           >
-                            <ProfileAvatar />
+                            <ProfileAvatar profileImageUrl={user.profileImageUrl} displayName={user.displayName} />
                             <span className="list-item-name">{user.displayName ?? user.username}</span>
                           </button>
                           <button
@@ -711,7 +708,7 @@ const ProfileScreen = () => {
                                 setPressedItem(pressedItem === friend.id ? null : friend.id)
                               }}
                             >
-                              <ProfileAvatar />
+                              <ProfileAvatar profileImageUrl={friend.profileImageUrl} displayName={friend.displayName} />
                               <span className="list-item-name">{friend.displayName ?? friend.username}</span>
                             </button>
                             <button

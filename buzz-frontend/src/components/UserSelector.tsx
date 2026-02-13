@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useUser } from '../contexts/UserContext'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../utils/api'
+import ProfileImage from './ProfileImage'
 import './UserSelector.css'
 
 type User = {
@@ -10,6 +11,7 @@ type User = {
     displayName: string
     userType: string
     businessName?: string
+    profileImageUrl?: string
 }
 
 const UserSelector = () => {
@@ -75,10 +77,17 @@ const UserSelector = () => {
                             <div className="user-selector-section">
                                 <div className="user-selector-section-title">Current User</div>
                                 <div className="user-selector-item active authenticated-user">
-                                    {currentUser 
-                                        ? `${getUserDisplayName(currentUser)} (@${currentUser.username})`
-                                        : `${currentUsername} (You)`
-                                    }
+                                    <ProfileImage 
+                                        src={currentUser?.profileImageUrl} 
+                                        alt={`${currentUser?.displayName || currentUsername} profile`}
+                                        size="small"
+                                    />
+                                    <span>
+                                        {currentUser 
+                                            ? `${getUserDisplayName(currentUser)} (@${currentUser.username})`
+                                            : `${currentUsername} (You)`
+                                        }
+                                    </span>
                                 </div>
                             </div>
                             
@@ -93,7 +102,12 @@ const UserSelector = () => {
                                                 className="user-selector-item"
                                                 onClick={() => handleUserSelect(user)}
                                             >
-                                                {getUserDisplayName(user)} (@{user.username})
+                                                <ProfileImage 
+                                                    src={user.profileImageUrl} 
+                                                    alt={`${user.displayName} profile`}
+                                                    size="small"
+                                                />
+                                                <span>{getUserDisplayName(user)} (@{user.username})</span>
                                             </button>
                                         ))
                                     }
@@ -135,7 +149,12 @@ const UserSelector = () => {
                                     className={`user-selector-item ${currentUsername === user.username ? 'active' : ''}`}
                                     onClick={() => handleUserSelect(user)}
                                 >
-                                    {getUserDisplayName(user)} (@{user.username})
+                                    <ProfileImage 
+                                        src={user.profileImageUrl} 
+                                        alt={`${user.displayName} profile`}
+                                        size="small"
+                                    />
+                                    <span>{getUserDisplayName(user)} (@{user.username})</span>
                                 </button>
                             ))
                         )}

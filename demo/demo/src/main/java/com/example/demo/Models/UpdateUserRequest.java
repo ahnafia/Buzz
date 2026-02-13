@@ -3,7 +3,7 @@ package com.example.demo.Models;
 public record UpdateUserRequest(
         String displayName,         // optional
         String bio,                 // optional
-        String profileImageUrl,     // optional
+        String profileImagePath,    // optional - path in Supabase storage (e.g., "profiles/167501_00_2x.jpg")
         Double lat,                 // optional - update location
         Double lon,                 // optional
         String city,                // optional

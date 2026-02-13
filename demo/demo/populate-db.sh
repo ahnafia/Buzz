@@ -255,8 +255,14 @@ update_user_profile() {
     local city="$4"
     local lat="$5"
     local lon="$6"
+    local profile_image_url="${7:-null}"
 
     log_info "Updating user profile..."
+
+    local profile_image_field=""
+    if [ "$profile_image_url" != "null" ]; then
+        profile_image_field=", \"profileImageUrl\": \"$profile_image_url\""
+    fi
 
     curl -s -X PATCH "$BASE_URL/users/me" \
         -H "Content-Type: application/json" \
@@ -269,6 +275,7 @@ update_user_profile() {
             \"lon\": $lon,
             \"locationVisible\": true,
             \"profilePublic\": true
+            $profile_image_field
         }" > /dev/null
 
     log_success "Updated user profile"
@@ -309,10 +316,10 @@ main() {
     log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
 
-    update_user_profile "$USER1" "John Doe" "Travel enthusiast | Coffee lover | NYC explorer" "New York" "40.7128" "-74.0060"
-    update_user_profile "$USER2" "Alice Smith" "Art collector | Museum enthusiast | Brunch lover" "New York" "40.7489" "-73.9680"
-    update_user_profile "$USER3" "Bobs Coffee Shop" "Premium coffee | Specialty drinks | Est. 2015" "New York" "40.7489" "-73.9680"
-    update_user_profile "$USER4" "Event Promoter" "Bringing amazing events to NYC" "New York" "40.7580" "-73.9855"
+    update_user_profile "$USER1" "John Doe" "Travel enthusiast | Coffee lover | NYC explorer" "New York" "40.7128" "-74.0060" "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+    update_user_profile "$USER2" "Alice Smith" "Art collector | Museum enthusiast | Brunch lover" "New York" "40.7489" "-73.9680" "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
+    update_user_profile "$USER3" "Bobs Coffee Shop" "Premium coffee | Specialty drinks | Est. 2015" "New York" "40.7489" "-73.9680" "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=150&h=150&fit=crop&crop=center"
+    update_user_profile "$USER4" "Event Promoter" "Bringing amazing events to NYC" "New York" "40.7580" "-73.9855" "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
 
     echo ""
 

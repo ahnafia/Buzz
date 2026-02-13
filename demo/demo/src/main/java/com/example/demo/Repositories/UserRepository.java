@@ -46,7 +46,7 @@ public class UserRepository {
 
     public User fetchUserById(UUID id) {
         String sql = "SELECT " +
-                "id, username, email, display_name, bio, profile_image_url, " +
+                "id, username, email, display_name, bio, profile_image_path, " +
                 "user_type, " +
                 "CASE WHEN location IS NOT NULL THEN st_y(location::geometry) ELSE NULL END as lat, " +
                 "CASE WHEN location IS NOT NULL THEN st_x(location::geometry) ELSE NULL END as lon, " +
@@ -63,7 +63,7 @@ public User fetchUserByUsername(String username) {
     log.info("fetchUserByUsername called with username: '{}'", username);
     String sql = """
         select
-            id, username, email, display_name, bio, profile_image_url,
+            id, username, email, display_name, bio, profile_image_path,
             user_type, 
             CASE WHEN location IS NOT NULL THEN st_y(location::geometry) ELSE NULL END as lat, 
             CASE WHEN location IS NOT NULL THEN st_x(location::geometry) ELSE NULL END as lon,
@@ -87,7 +87,7 @@ public User fetchUserByUsername(String username) {
     public User fetchUserByEmail(String email) {
         String sql = """
             select
-                id, username, email, display_name, bio, profile_image_url,
+                id, username, email, display_name, bio, profile_image_path,
                 user_type, st_y(location::geometry) as lat, st_x(location::geometry) as lon,
                 city, address_text, business_name, business_category, location_visible,
                 profile_public, verified, created_at, last_active_at
@@ -112,7 +112,7 @@ public User fetchUserByUsername(String username) {
             UUID userId,
             String displayName,
             String bio,
-            String profileImageUrl,
+            String profileImagePath,
             Double lat,
             Double lon,
             String city,
@@ -133,9 +133,9 @@ public User fetchUserByUsername(String username) {
             sql.append(", bio = ?");
             params.add(bio);
         }
-        if (profileImageUrl != null) {
-            sql.append(", profile_image_url = ?");
-            params.add(profileImageUrl);
+        if (profileImagePath != null) {
+            sql.append(", profile_image_path = ?");
+            params.add(profileImagePath);
         }
         if (lat != null && lon != null) {
             sql.append(", location = st_setsrid(st_makepoint(?, ?), 4326)::geography");
@@ -197,7 +197,7 @@ public User fetchUserByUsername(String username) {
     public List<User> fetchUsersNearby(double lon, double lat, int radiusM, int limit) {
         String sql = """
             select
-                id, username, email, display_name, bio, profile_image_url,
+                id, username, email, display_name, bio, profile_image_path,
                 user_type, st_y(location::geometry) as lat, st_x(location::geometry) as lon,
                 city, address_text, business_name, business_category, location_visible,
                 profile_public, verified, created_at, last_active_at
@@ -223,7 +223,7 @@ public User fetchUserByUsername(String username) {
     public List<User> fetchBusinessesNearby(double lon, double lat, int radiusM, String category, int limit) {
         StringBuilder sql = new StringBuilder("""
             select
-                id, username, email, display_name, bio, profile_image_url,
+                id, username, email, display_name, bio, profile_image_path,
                 user_type, st_y(location::geometry) as lat, st_x(location::geometry) as lon,
                 city, address_text, business_name, business_category, location_visible,
                 profile_public, verified, created_at, last_active_at
@@ -260,7 +260,7 @@ public User fetchUserByUsername(String username) {
     public List<User> searchUsers(String query, int limit) {
         String sql = """
             select
-                id, username, email, display_name, bio, profile_image_url,
+                id, username, email, display_name, bio, profile_image_path,
                 user_type, st_y(location::geometry) as lat, st_x(location::geometry) as lon,
                 city, address_text, business_name, business_category, location_visible,
                 profile_public, verified, created_at, last_active_at
@@ -305,7 +305,7 @@ public User fetchUserByUsername(String username) {
     public List<User> fetchFollowers(UUID userId, String cursor, int limit) {
         StringBuilder sql = new StringBuilder("""
             select
-                u.id, u.username, u.email, u.display_name, u.bio, u.profile_image_url,
+                u.id, u.username, u.email, u.display_name, u.bio, u.profile_image_path,
                 u.user_type, st_y(u.location::geometry) as lat, st_x(u.location::geometry) as lon,
                 u.city, u.address_text, u.business_name, u.business_category, u.location_visible,
                 u.profile_public, u.verified, u.created_at, u.last_active_at
@@ -336,7 +336,7 @@ public User fetchUserByUsername(String username) {
     public List<User> fetchFollowing(UUID userId, String cursor, int limit) {
         StringBuilder sql = new StringBuilder("""
             select
-                u.id, u.username, u.email, u.display_name, u.bio, u.profile_image_url,
+                u.id, u.username, u.email, u.display_name, u.bio, u.profile_image_path,
                 u.user_type, st_y(u.location::geometry) as lat, st_x(u.location::geometry) as lon,
                 u.city, u.address_text, u.business_name, u.business_category, u.location_visible,
                 u.profile_public, u.verified, u.created_at, u.last_active_at
@@ -416,7 +416,7 @@ public User fetchUserByUsername(String username) {
                 rs.getString("email"),
                 rs.getString("display_name"),
                 rs.getString("bio"),
-                rs.getString("profile_image_url"),
+                rs.getString("profile_image_path"),
                 UserType.from(rs.getString("user_type")),
                 lat,
                 lon,
@@ -437,7 +437,7 @@ public User fetchUserByUsername(String username) {
 public List<User> fetchFriends(UUID userId, String cursor, int limit) {
     StringBuilder sql = new StringBuilder("""
         select
-            u.id, u.username, u.email, u.display_name, u.bio, u.profile_image_url,
+            u.id, u.username, u.email, u.display_name, u.bio, u.profile_image_path,
             u.user_type, st_y(u.location::geometry) as lat, st_x(u.location::geometry) as lon,
             u.city, u.address_text, u.business_name, u.business_category, u.location_visible,
             u.profile_public, u.verified, u.created_at, u.last_active_at
@@ -484,7 +484,7 @@ public int countFriends(UUID userId) {
 
 public List<User> fetchAllUsers() {
     String sql = "SELECT " +
-            "id, username, email, display_name, bio, profile_image_url, " +
+            "id, username, email, display_name, bio, profile_image_path, " +
             "user_type, " +
             "business_name, business_category, " +
             "city, address_text, " +

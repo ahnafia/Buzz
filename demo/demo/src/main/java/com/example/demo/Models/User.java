@@ -9,7 +9,7 @@ public record User(
         String email,
         String displayName,
         String bio,
-        String profileImageUrl,
+        String profileImagePath,
         UserType userType,
         // Location - for the map-based social network
         Double lat,

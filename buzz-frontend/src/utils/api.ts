@@ -207,16 +207,21 @@ export const api = {
         headers['X-User-Id'] = currentUserId
       }
 
+      console.log('API: getEnhancedProfile headers:', headers)
+
       const response = await fetch(`${API_BASE_URL}/users/${username}/profile`, {
         headers
       })
-      console.log(headers)
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      return await response.json()
+      const profileData = await response.json()
+      console.log('API: getEnhancedProfile response:', profileData)
+      console.log('API: profileImageUrl in response:', profileData.profileImageUrl)
+
+      return profileData
     } catch (error) {
       console.error('Error fetching enhanced profile:', error)
       return null

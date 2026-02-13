@@ -48,7 +48,55 @@ public record EnhancedUserProfile(
                 user.username(),
                 user.displayName(),
                 user.bio(),
-                user.profileImageUrl(),
+                user.profileImagePath(), // This will be converted to signed URL in the service layer
+                user.userType(),
+                user.locationVisible() ? user.lat() : null,
+                user.locationVisible() ? user.lon() : null,
+                user.city(),
+                user.addressText(),
+                user.businessName(),
+                user.businessCategory(),
+                followerCount,
+                followingCount,
+                eventCount,
+                landmarkCount,
+                flagCount,
+                totalLikesGiven,
+                user.verified(),
+                user.createdAt(),
+                landmarks,
+                recentFlags,
+                flagsWithLikeCounts
+        );
+    }
+    
+    /**
+     * Create EnhancedUserProfile with signed URL generation for profile images
+     */
+    public static EnhancedUserProfile fromWithSignedUrl(
+            User user,
+            int followerCount,
+            int followingCount,
+            int eventCount,
+            int landmarkCount,
+            int flagCount,
+            int totalLikesGiven,
+            List<Landmark> landmarks,
+            List<Flag> recentFlags,
+            List<FlagWithLikeCount> flagsWithLikeCounts,
+            com.example.demo.Service.SupabaseStorageService storageService
+    ) {
+        String profileImageUrl = null;
+        if (user.profileImagePath() != null) {
+            profileImageUrl = storageService.generateProfileImageUrl(user.profileImagePath());
+        }
+        
+        return new EnhancedUserProfile(
+                user.id(),
+                user.username(),
+                user.displayName(),
+                user.bio(),
+                profileImageUrl,
                 user.userType(),
                 user.locationVisible() ? user.lat() : null,
                 user.locationVisible() ? user.lon() : null,

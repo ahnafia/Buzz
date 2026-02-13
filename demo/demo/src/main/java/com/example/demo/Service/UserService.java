@@ -24,11 +24,13 @@ public class UserService {
     private final UserRepository repo;
     private final LandmarkService landmarkService;
     private final FlagService flagService;
+    private final SupabaseStorageService supabaseStorageService;
 
-    public UserService(UserRepository repo, LandmarkService landmarkService, FlagService flagService) {
+    public UserService(UserRepository repo, LandmarkService landmarkService, FlagService flagService, SupabaseStorageService supabaseStorageService) {
         this.repo = repo;
         this.landmarkService = landmarkService;
         this.flagService = flagService;
+        this.supabaseStorageService = supabaseStorageService;
     }
 
     // ==================== USER CRUD ====================
@@ -103,7 +105,7 @@ public class UserService {
         int followerCount = repo.countFollowers(user.id());
         int followingCount = repo.countFollowing(user.id());
 
-        return UserProfile.from(user, eventCount, followerCount, followingCount);
+        return UserProfile.fromWithSignedUrl(user, eventCount, followerCount, followingCount, supabaseStorageService);
     }
 
     public UserProfile getPublicProfileById(UUID userId) {
@@ -116,7 +118,7 @@ public class UserService {
         int followerCount = repo.countFollowers(user.id());
         int followingCount = repo.countFollowing(user.id());
 
-        return UserProfile.from(user, eventCount, followerCount, followingCount);
+        return UserProfile.fromWithSignedUrl(user, eventCount, followerCount, followingCount, supabaseStorageService);
     }
 
     public User updateUser(UUID userId, UpdateUserRequest request) {
@@ -129,7 +131,7 @@ public class UserService {
                 userId,
                 request.displayName(),
                 request.bio(),
-                request.profileImageUrl(),
+                request.profileImagePath(),
                 request.lat(),
                 request.lon(),
                 request.city(),
@@ -157,10 +159,11 @@ public class UserService {
         List<User> users = repo.fetchUsersNearby(lon, lat, clampedRadius, clampedLimit);
 
         return users.stream()
-                .map(u -> UserProfile.from(u,
+                .map(u -> UserProfile.fromWithSignedUrl(u,
                         repo.countEvents(u.id()),
                         repo.countFollowers(u.id()),
-                        repo.countFollowing(u.id())))
+                        repo.countFollowing(u.id()),
+                        supabaseStorageService))
                 .collect(Collectors.toList());
     }
 
@@ -174,10 +177,11 @@ public class UserService {
         List<User> users = repo.fetchBusinessesNearby(lon, lat, clampedRadius, category, clampedLimit);
 
         return users.stream()
-                .map(u -> UserProfile.from(u,
+                .map(u -> UserProfile.fromWithSignedUrl(u,
                         repo.countEvents(u.id()),
                         repo.countFollowers(u.id()),
-                        repo.countFollowing(u.id())))
+                        repo.countFollowing(u.id()),
+                        supabaseStorageService))
                 .collect(Collectors.toList());
     }
 
@@ -190,10 +194,11 @@ public class UserService {
         List<User> users = repo.searchUsers(query.trim(), clampedLimit);
 
         return users.stream()
-                .map(u -> UserProfile.from(u,
+                .map(u -> UserProfile.fromWithSignedUrl(u,
                         repo.countEvents(u.id()),
                         repo.countFollowers(u.id()),
-                        repo.countFollowing(u.id())))
+                        repo.countFollowing(u.id()),
+                        supabaseStorageService))
                 .collect(Collectors.toList());
     }
 
@@ -227,10 +232,11 @@ public class UserService {
         }
 
         List<UserProfile> profiles = users.stream()
-                .map(u -> UserProfile.from(u,
+                .map(u -> UserProfile.fromWithSignedUrl(u,
                         repo.countEvents(u.id()),
                         repo.countFollowers(u.id()),
-                        repo.countFollowing(u.id())))
+                        repo.countFollowing(u.id()),
+                        supabaseStorageService))
                 .collect(Collectors.toList());
 
         return new UsersResponse(profiles, nextCursor);
@@ -248,10 +254,11 @@ public class UserService {
         }
 
         List<UserProfile> profiles = users.stream()
-                .map(u -> UserProfile.from(u,
+                .map(u -> UserProfile.fromWithSignedUrl(u,
                         repo.countEvents(u.id()),
                         repo.countFollowers(u.id()),
-                        repo.countFollowing(u.id())))
+                        repo.countFollowing(u.id()),
+                        supabaseStorageService))
                 .collect(Collectors.toList());
 
         return new UsersResponse(profiles, nextCursor);
@@ -326,7 +333,7 @@ public EnhancedUserProfile getEnhancedPublicProfile(String username, UUID curren
             ))
             .collect(java.util.stream.Collectors.toList());
 
-    return EnhancedUserProfile.from(
+    return EnhancedUserProfile.fromWithSignedUrl(
             user,
             followerCount,
             followingCount,
@@ -336,7 +343,8 @@ public EnhancedUserProfile getEnhancedPublicProfile(String username, UUID curren
             totalLikesGiven,
             landmarks,
             recentFlags,
-            flagsWithLikeCounts
+            flagsWithLikeCounts,
+            supabaseStorageService
     );
 }
 
@@ -354,10 +362,11 @@ public UsersResponse getFriends(UUID userId, String cursor, int limit) {
     }
 
     List<UserProfile> profiles = users.stream()
-            .map(u -> UserProfile.from(u,
+            .map(u -> UserProfile.fromWithSignedUrl(u,
                     repo.countEvents(u.id()),
                     repo.countFollowers(u.id()),
-                    repo.countFollowing(u.id())))
+                    repo.countFollowing(u.id()),
+                    supabaseStorageService))
             .collect(java.util.stream.Collectors.toList());
 
     return new UsersResponse(profiles, nextCursor);
