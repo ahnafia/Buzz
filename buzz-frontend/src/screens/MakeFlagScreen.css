@@ -1,0 +1,385 @@
+.make-flag-screen {
+  min-height: 100vh;
+  background: #FFFBF5;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.make-flag-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: white;
+  border-bottom: 1px solid rgba(255, 155, 86, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(255, 155, 86, 0.08);
+}
+
+.make-flag-back {
+  color: #FF9B56;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 8px 0;
+  transition: color 0.2s;
+}
+
+.make-flag-back:hover {
+  color: #e8884a;
+}
+
+.make-flag-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: #333;
+}
+
+.make-flag-body {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-height: calc(100vh - 60px);
+}
+
+.make-flag-form-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 32px 40px;
+  min-width: 0;
+  width: 100%;
+  max-width: min(560px, 90vw);
+}
+
+.make-flag-post-column {
+  width: 380px;
+  min-width: 320px;
+  flex-shrink: 0;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 20px;
+  background: #FFFBF5;
+  border-left: 1px solid rgba(255, 155, 86, 0.12);
+}
+
+.make-flag-plant-btn {
+  width: 100%;
+  max-width: 340px;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background: #FF9B56;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.make-flag-plant-btn:hover {
+  background: #e8884a;
+}
+
+.make-flag-plant-btn:active {
+  transform: scale(0.99);
+}
+
+.make-flag-plant-btn-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.make-flag-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.make-flag-square-area {
+  width: 100%;
+  max-width: min(560px, 45vw);
+  aspect-ratio: 1;
+  background: rgba(255, 155, 86, 0.12);
+  border: 2px dashed rgba(255, 155, 86, 0.4);
+  border-radius: 16px;
+  margin-bottom: 28px;
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s, border-color 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.make-flag-square-area:hover {
+  background: rgba(255, 155, 86, 0.18);
+  border-color: rgba(255, 155, 86, 0.55);
+}
+
+.make-flag-square-area:focus-visible {
+  outline: 2px solid #FF9B56;
+  outline-offset: 2px;
+}
+
+.make-flag-square-area--dragging {
+  background: rgba(255, 155, 86, 0.22);
+  border-color: #FF9B56;
+  border-style: solid;
+}
+
+.make-flag-square-area--has-files {
+  padding: 0;
+}
+
+.make-flag-upload-placeholder-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: #b85e2a;
+}
+
+.make-flag-upload-placeholder-sub {
+  font-size: 14px;
+  color: rgba(184, 94, 42, 0.8);
+}
+
+.make-flag-upload-preview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #333;
+}
+
+.make-flag-upload-preview-media {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.make-flag-upload-count {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.make-flag-upload-clear {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.make-flag-upload-clear:hover {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.make-flag-field {
+  margin-bottom: 20px;
+}
+
+.make-flag-label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.make-flag-input {
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 16px;
+  border: 2px solid rgba(255, 155, 86, 0.3);
+  border-radius: 12px;
+  background: white;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.make-flag-input::placeholder {
+  color: #999;
+}
+
+.make-flag-input:focus {
+  border-color: #FF9B56;
+  box-shadow: 0 0 0 3px rgba(255, 155, 86, 0.2);
+}
+
+.make-flag-generate-btn {
+  width: 100%;
+  max-width: min(560px, 90vw);
+  margin-top: 8px;
+  margin-bottom: 32px;
+  padding: 14px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background: #FF9B56;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.make-flag-generate-btn:hover {
+  background: #e8884a;
+}
+
+.make-flag-generate-btn:active {
+  transform: scale(0.99);
+}
+
+.make-flag-post-preview {
+  width: 100%;
+  max-width: 340px;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 155, 86, 0.2);
+}
+
+.make-flag-post-media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.make-flag-post-media-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.make-flag-post-media-placeholder {
+  color: #999;
+  font-size: 15px;
+}
+
+.make-flag-post-media-count {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.make-flag-post-info {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.make-flag-post-info-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.make-flag-post-info-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #FF9B56;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.make-flag-post-info-value {
+  font-size: 15px;
+  color: #333;
+  word-break: break-word;
+}
+
+@media (max-width: 900px) {
+  .make-flag-body {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .make-flag-post-column {
+    width: 100%;
+    min-width: 0;
+    max-width: min(560px, 90vw);
+    border-left: none;
+    border-top: 1px solid rgba(255, 155, 86, 0.12);
+    padding-top: 24px;
+  }
+
+  .make-flag-post-preview {
+    max-width: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .make-flag-header {
+    padding: 12px 16px;
+  }
+
+  .make-flag-title {
+    font-size: 20px;
+  }
+
+  .make-flag-form-column {
+    padding: 16px;
+  }
+}

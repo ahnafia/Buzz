@@ -6,6 +6,7 @@ import MainMapScreen from './screens/MainMapScreen'
 import ProfileScreen from './screens/ProfileScreen'
 import CreateEventScreen from './screens/CreateEventScreen'
 import EditEventScreen from './screens/EditEventScreen'
+import MakeFlagScreen from './screens/MakeFlagScreen'
 import InfoScreen from './screens/InfoScreen'
 import LoginScreen from './screens/LoginScreen'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -54,6 +55,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <EditEventScreen />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/make_flag" 
+        element={
+          <ProtectedRoute>
+            <MakeFlagScreen />
           </ProtectedRoute>
         } 
       />

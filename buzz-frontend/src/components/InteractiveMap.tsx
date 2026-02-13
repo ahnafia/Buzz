@@ -28,7 +28,7 @@ type PinData = {
   address?: string
   hours?: string
   tips?: string
-  type: 'landmark' | 'event'
+  type: 'landmark' | 'event' | 'flag'
   category?: string
   startTime?: string
   expiresAt?: string
@@ -70,15 +70,29 @@ function eventToPinData(event: Event, userLat: number, userLon: number): PinData
 }
 
 /** Pin icon with circular logo (white + orange first letter) at head; orange visible around it */
-function pinIconForPin(pin: PinData) {
+function pinIconForPin(pin: PinData, isSelected?: boolean) {
   const letter = pin.title.charAt(0).toUpperCase()
   const isEvent = pin.type === 'event'
+  const selectedClass = isSelected ? ' buzz-pin-icon--selected' : ''
   
   return L.divIcon({
-    className: `buzz-pin-icon ${isEvent ? 'buzz-pin-icon--event' : 'buzz-pin-icon--landmark'}`,
+    className: `buzz-pin-icon ${isEvent ? 'buzz-pin-icon--event' : 'buzz-pin-icon--landmark'}${selectedClass}`,
     html: `<span class="buzz-pin-dot ${isEvent ? 'buzz-pin-dot--event' : ''}"><span class="buzz-pin-logo"><span class="buzz-pin-letter">${letter}</span></span></span>`,
-    iconSize: [36, 36],
-    iconAnchor: [18, 12]
+    iconSize: [44, 44],
+    iconAnchor: [22, 14]
+  })
+}
+
+/** Flag icon - rectangular flag on a pole, similar size to pins */
+function flagIconForFlag(flag: PinData, isSelected?: boolean) {
+  const letter = flag.title.charAt(0).toUpperCase()
+  const selectedClass = isSelected ? ' buzz-flag-icon--selected' : ''
+  
+  return L.divIcon({
+    className: `buzz-flag-icon${selectedClass}`,
+    html: `<div class="buzz-flag-container"><div class="buzz-flag-pole"></div><div class="buzz-flag-banner"><span class="buzz-flag-letter">${letter}</span></div></div>`,
+    iconSize: [40, 40],
+    iconAnchor: [8, 38]
   })
 }
 
@@ -115,6 +129,9 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0)
   const [isLocationPickerMode, setIsLocationPickerMode] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [mapMode, setMapMode] = useState<'Algorithm' | 'Search' | 'Personal'>('Algorithm')
+  const [mapModeDropdownOpen, setMapModeDropdownOpen] = useState(false)
+  const mapModeDropdownRef = useRef<HTMLDivElement>(null)
 
   // Default map center (Penn State)
   const mapCenter = { lat: 40.7934, lng: -77.8616 }
@@ -133,14 +150,22 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
   )
 
   // Only hide pins when a known category name is entered (exact match, case-insensitive). Otherwise show all.
+  // In "Personal" mode, filter out all event pins
   const applied = appliedCategorySearch.trim().toLowerCase()
   const isKnownCategory =
     applied !== '' &&
     allCategories.some((c) => c.toLowerCase() === applied)
+  
+  let filteredPins = allPins
+  if (mapMode === 'Personal') {
+    // Remove all event pins in Personal mode
+    filteredPins = allPins.filter((p) => p.type !== 'event')
+  }
+  
   const visiblePins =
     !isKnownCategory
-      ? allPins
-      : allPins.filter(
+      ? filteredPins
+      : filteredPins.filter(
           (p) =>
             p.category &&
             p.category.toLowerCase() === applied
@@ -256,15 +281,84 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
         console.log('InteractiveMap: Converted events:', events)
         setEvents(events)
         
-        // Convert events to pins and set them directly
+        // Convert events to pins and add sample flags
         const eventPinData = events.map(event => 
           eventToPinData(event, mapCenter.lat, mapCenter.lng)
         )
-        console.log('InteractiveMap: Created pin data:', eventPinData)
-        setAllPins(eventPinData)
+        
+        // Add sample flags for testing (near Penn State campus)
+        const sampleFlags: PinData[] = [
+          {
+            id: 'flag-1',
+            lat: mapCenter.lat + 0.002,
+            lng: mapCenter.lng + 0.001,
+            title: 'Library',
+            description: 'Main library flag',
+            distanceFeet: 200,
+            fullDescription: 'Main library location',
+            type: 'flag'
+          },
+          {
+            id: 'flag-2',
+            lat: mapCenter.lat - 0.0015,
+            lng: mapCenter.lng + 0.002,
+            title: 'Café',
+            description: 'Coffee shop flag',
+            distanceFeet: 350,
+            fullDescription: 'Popular coffee spot',
+            type: 'flag'
+          },
+          {
+            id: 'flag-3',
+            lat: mapCenter.lat + 0.001,
+            lng: mapCenter.lng - 0.002,
+            title: 'Park',
+            description: 'Park area flag',
+            distanceFeet: 500,
+            fullDescription: 'Community park',
+            type: 'flag'
+          }
+        ]
+        
+        const allPinData = [...eventPinData, ...sampleFlags]
+        console.log('InteractiveMap: Created pin data:', allPinData)
+        setAllPins(allPinData)
       } else {
         console.log('InteractiveMap: No event pins received')
-        setAllPins([])
+        // Add sample flags even when no events
+        const sampleFlags: PinData[] = [
+          {
+            id: 'flag-1',
+            lat: mapCenter.lat + 0.002,
+            lng: mapCenter.lng + 0.001,
+            title: 'Library',
+            description: 'Main library flag',
+            distanceFeet: 200,
+            fullDescription: 'Main library location',
+            type: 'flag'
+          },
+          {
+            id: 'flag-2',
+            lat: mapCenter.lat - 0.0015,
+            lng: mapCenter.lng + 0.002,
+            title: 'Café',
+            description: 'Coffee shop flag',
+            distanceFeet: 350,
+            fullDescription: 'Popular coffee spot',
+            type: 'flag'
+          },
+          {
+            id: 'flag-3',
+            lat: mapCenter.lat + 0.001,
+            lng: mapCenter.lng - 0.002,
+            title: 'Park',
+            description: 'Park area flag',
+            distanceFeet: 500,
+            fullDescription: 'Community park',
+            type: 'flag'
+          }
+        ]
+        setAllPins(sampleFlags)
       }
     } catch (error) {
       console.error('InteractiveMap: Error fetching events:', error)
@@ -314,10 +408,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       minZoom: 13
     }).addTo(map.current)
 
-    // Add click handler for location picking
+    // Add click handler for location picking and for deselecting pin when clicking map
     map.current.on('click', (e) => {
       if (isLocationPickerMode) {
         setSelectedLocation({ lat: e.latlng.lat, lng: e.latlng.lng })
+      } else {
+        setSelectedPin(null)
+        setMapModeDropdownOpen(false)
       }
     })
 
@@ -330,6 +427,23 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
       }
     }
   }, [])
+
+  // Close map mode dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        mapModeDropdownRef.current &&
+        !mapModeDropdownRef.current.contains(event.target as Node)
+      ) {
+        setMapModeDropdownOpen(false)
+      }
+    }
+
+    if (mapModeDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [mapModeDropdownOpen])
 
   // Clear selected pin if it's hidden by category filter
   useEffect(() => {
@@ -349,10 +463,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
     markersRef.current.forEach((m) => m.remove())
     markersRef.current = []
 
-    // Add new markers only for visible pins
+    // Add new markers only for visible pins (pins or flags)
     const markers: L.Marker[] = []
     for (const pin of visiblePins) {
-      const marker = L.marker([pin.lat, pin.lng], { icon: pinIconForPin(pin) })
+      const icon = pin.type === 'flag' 
+        ? flagIconForFlag(pin, selectedPin?.id === pin.id)
+        : pinIconForPin(pin, selectedPin?.id === pin.id)
+      const marker = L.marker([pin.lat, pin.lng], { icon })
         .bindPopup(buildPopupHtml(pin), {
           className: 'buzz-marker-popup',
           maxWidth: 320,
@@ -364,13 +481,15 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
         setSelectedPin(pin)
         setSidebarOpen(true)
         if (map.current) {
-          map.current.flyTo([pin.lat, pin.lng], 17, { duration: 1.2, easeLinearity: 0.25 })
+          const currentZoom = map.current.getZoom()
+          const targetZoom = Math.max(currentZoom, 15)
+          map.current.flyTo([pin.lat, pin.lng], targetZoom, { duration: 1.2, easeLinearity: 0.25 })
         }
       })
       markers.push(marker)
     }
     markersRef.current = markers
-  }, [visiblePins])
+  }, [visiblePins, selectedPin])
 
   // Handle location picker marker
   const locationMarkerRef = useRef<L.Marker | null>(null)
@@ -400,8 +519,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
 
   const handleCreateFlag = () => {
     setShowCreatePopup(false)
-    // TODO: Implement flag creation
-    console.log('Creating flag...')
+    window.location.href = '/make_flag'
   }
 
   const handleCreateEvent = () => {
@@ -435,8 +553,43 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
         <span className="buzz-logo-text-small">Buzz</span>
       </div>
 
-      {/* Floating Top Search Bar with category suggestions */}
-      <div className="floating-search">
+      {/* Map Mode Dropdown - Below Logo */}
+      <div className="map-mode-dropdown-container" ref={mapModeDropdownRef}>
+        <button
+          type="button"
+          className="map-mode-dropdown-btn"
+          onClick={() => setMapModeDropdownOpen(!mapModeDropdownOpen)}
+          aria-expanded={mapModeDropdownOpen}
+          aria-haspopup="true"
+        >
+          <span className="map-mode-dropdown-label">{mapMode}</span>
+          <span className="map-mode-dropdown-arrow" aria-hidden="true">
+            {mapModeDropdownOpen ? '▲' : '▼'}
+          </span>
+        </button>
+        {mapModeDropdownOpen && (
+          <ul className="map-mode-dropdown-menu" role="menu">
+            {(['Algorithm', 'Search', 'Personal'] as const).map((mode) => (
+              <li key={mode} role="menuitem">
+                <button
+                  type="button"
+                  className={`map-mode-dropdown-item ${mapMode === mode ? 'map-mode-dropdown-item--active' : ''}`}
+                  onClick={() => {
+                    setMapMode(mode)
+                    setMapModeDropdownOpen(false)
+                  }}
+                >
+                  {mode}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {/* Floating Top Search Bar with category suggestions - hidden in Personal mode */}
+      {mapMode !== 'Personal' && (
+        <div className="floating-search">
         <div className={`map-search-wrapper ${categorySearch.trim() !== '' ? 'map-search-wrapper--has-clear' : ''}`}>
           <span className="map-search-icon" aria-hidden="true">
             <svg
@@ -508,12 +661,18 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
             </ul>
           )}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Floating Bottom Menu Bar */}
       <div className="floating-bottom-menu">
-        <button className="menu-item">
-          <span className="menu-icon">🏠</span>
+        <button className="menu-item menu-item--home" type="button">
+          <svg className="menu-icon menu-icon--house" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3L4 10V20H9V15H15V20H20V10L12 3Z" stroke="#FF9B56" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="#FF9B56"/>
+            <rect x="9" y="15" width="6" height="5" fill="#FFFBF5"/>
+            <circle cx="13.5" cy="17.5" r="0.8" fill="#FF9B56"/>
+            <rect x="10" y="11" width="4" height="4" stroke="#FFFBF5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+          </svg>
         </button>
 
         <button
@@ -523,8 +682,11 @@ const InteractiveMap = forwardRef<InteractiveMapHandle>(function InteractiveMap(
           <span className="menu-icon create-icon">+</span>
         </button>
 
-        <Link to="/Profile" className="menu-item profile-link">
-          <span className="menu-icon">👤</span>
+        <Link to="/Profile" className="menu-item menu-item--profile" aria-label="Profile">
+          <svg className="menu-icon menu-icon--profile" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+            <circle cx="12" cy="8" r="3.5" stroke="#FF9B56" strokeWidth="2" fill="none"/>
+            <path d="M5 20c0-3.5 3.5-6 7-6s7 2.5 7 6" stroke="#FF9B56" strokeWidth="2" strokeLinecap="round" fill="none"/>
+          </svg>
         </Link>
       </div>
 
