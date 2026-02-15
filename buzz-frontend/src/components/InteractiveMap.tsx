@@ -679,12 +679,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       minZoom: 13
     }).addTo(map.current)
 
-    // Add click handler for location picking and for deselecting pin when clicking map
+    // Add click handler for location picking and for deselecting pin when clicking map (retract sidebar when flag is clicked off)
     map.current.on('click', (e) => {
       if (isLocationPickerMode) {
         setSelectedLocation({ lat: e.latlng.lat, lng: e.latlng.lng })
       } else {
         setSelectedPin(null)
+        setSidebarOpen(false)
         setMapModeDropdownOpen(false)
       }
     })
@@ -716,13 +717,14 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     }
   }, [mapModeDropdownOpen])
 
-  // Clear selected pin if it's hidden by category filter
+  // Clear selected pin if it's hidden by category filter; retract sidebar when selection is cleared
   useEffect(() => {
     if (
       selectedPin &&
       !visiblePins.some((p) => p.id === selectedPin.id)
     ) {
       setSelectedPin(null)
+      setSidebarOpen(false)
     }
   }, [visiblePins, selectedPin])
 

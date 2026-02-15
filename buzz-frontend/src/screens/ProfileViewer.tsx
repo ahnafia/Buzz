@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { useProfile, useFriends } from '../hooks/useProfile'
+import ProfileImage from '../components/ProfileImage'
 import type { Friend, Landmark, Flag } from '../types/api'
 import './ProfileScreen.css'
 import './ProfileViewer.css'
 
-const ProfileAvatar = () => (
-  <div className="list-item-avatar">
-    <svg viewBox="0 0 100 100" fill="none" stroke="#FF9B56" strokeWidth="2" strokeLinecap="round">
-      <circle cx="50" cy="40" r="22" />
-      <path d="M 15 98 Q 50 45 85 98" />
-    </svg>
-  </div>
-)
+const getFlagFirstImage = (flag: Flag): string | undefined => {
+  const raw = flag.imageUrl ?? (flag as { imagePath?: string }).imagePath
+  if (!raw) return undefined
+  const first = raw.includes(',') ? raw.split(',')[0]?.trim() : raw.trim()
+  return first || undefined
+}
 
 const ProfileViewer = () => {
   const { username } = useParams<{ username: string }>()
@@ -66,7 +65,7 @@ const ProfileViewer = () => {
       <div className="profile-header">
         <Link to="/" className="back-btn">← Back</Link>
         <div className="profile-title-row">
-          <img src="/IMG_0203.svg" alt="" className="profile-header-icon" />
+          <ProfileImage src={profile.profileImageUrl} alt="" size="small" className="profile-header-icon-wrap" />
           <h1>{profile.displayName}</h1>
         </div>
       </div>
@@ -76,18 +75,7 @@ const ProfileViewer = () => {
         <div className="profile-info-section">
           <div className="profile-avatar-row">
             <div className="profile-circle">
-              <svg
-                className="profile-silhouette"
-                viewBox="0 0 100 100"
-                fill="none"
-                stroke="#FF9B56"
-                strokeWidth="2"
-                strokeLinecap="round"
-                aria-hidden
-              >
-                <circle cx="50" cy="40" r="22" />
-                <path d="M 15 98 Q 50 45 85 98" />
-              </svg>
+              <ProfileImage src={profile.profileImageUrl} alt={`${profile.displayName} profile`} size="large" />
             </div>
             <div className="profile-meta">
               <div className="profile-underline name-box">{profile.displayName}</div>
@@ -139,7 +127,9 @@ const ProfileViewer = () => {
               {activeTab === 'flag' && (
                 <div className="tab-list">
                   {profile.recentFlags.length > 0 ? (
-                    profile.recentFlags.map((flag: Flag) => (
+                    profile.recentFlags.map((flag: Flag) => {
+                      const flagThumb = getFlagFirstImage(flag)
+                      return (
                       <button
                         key={flag.id}
                         type="button"
@@ -155,16 +145,20 @@ const ProfileViewer = () => {
                         }}
                       >
                         <span className="list-item-icon flag-icon">
-                          <svg viewBox="0 0 24 24" fill="#FF9B56" width="20" height="20">
-                            <path d="M5 2v20h2V2H5zm4 2h11l-4 6 4 6H9V4z" />
-                          </svg>
+                          {flagThumb ? (
+                            <img src={flagThumb} alt="" className="list-item-flag-thumb" />
+                          ) : (
+                            <svg viewBox="0 0 24 24" fill="#FF9B56" width="20" height="20">
+                              <path d="M5 2v20h2V2H5zm4 2h11l-4 6 4 6H9V4z" />
+                            </svg>
+                          )}
                         </span>
                         <div className="list-item-text">
                           <span className="list-item-title">{flag.title}</span>
                           <span className="list-item-location">{flag.addressText || flag.city || 'Location not set'}</span>
                         </div>
                       </button>
-                    ))
+                    )})
                   ) : (
                     <div className="empty-state">No flags yet</div>
                   )}
@@ -184,7 +178,9 @@ const ProfileViewer = () => {
                           goToUser(friend.username)
                         }}
                       >
-                        <ProfileAvatar />
+                        <div className="list-item-avatar">
+                          <ProfileImage src={friend.profileImageUrl} alt={`${friend.displayName ?? friend.username} profile`} size="medium" />
+                        </div>
                         <span className="list-item-name">{friend.displayName ?? friend.username}</span>
                       </button>
                     ))
