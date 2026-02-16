@@ -5,6 +5,14 @@
   background: #FFFBF5;
 }
 
+/* Remove black outline from buttons and menu links on focus/click */
+.map-container button:focus,
+.map-container button:active,
+.map-container a.menu-item:focus,
+.map-container a.menu-item:active {
+  outline: none;
+}
+
 .interactive-map {
   width: 100%;
   height: 100%;
@@ -841,18 +849,18 @@
   transform: translateY(-1px);
 }
 
-/* Persistent orange button (caret) – always at bottom right, same width as sidebar */
+/* Persistent orange button (caret) – narrow pill, arrow stays in same place as when full-width */
 .pin-sidebar-trigger.pin-sidebar-footer-btn {
   position: absolute;
   bottom: 30px;
-  right: 16px;
-  width: 340px;
-  max-width: calc(90vw - 32px);
+  /* Center of button kept at same spot as 340px bar: 16 + 170 = 186px from right */
+  right: 146px; /* 186 - (80/2) so 80px-wide button center is at 186px from right */
+  width: 80px;
   z-index: 902;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 20px;
+  padding: 10px 16px;
   border: none;
   border-radius: 20px;
   background: #FF9B56;
@@ -921,14 +929,46 @@
 .pin-detail-header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
   padding: 20px 18px 16px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 155, 86, 0.15);
 }
 
+.pin-detail-prev-btn,
+.pin-detail-next-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #FF9B56;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.pin-detail-prev-btn:hover:not(:disabled),
+.pin-detail-next-btn:hover:not(:disabled) {
+  color: #e88a45;
+  transform: scale(1.05);
+}
+
+.pin-detail-prev-btn:disabled,
+.pin-detail-next-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .pin-detail-title {
   margin: 0;
+  min-width: 0;
   font-size: 20px;
   font-weight: 600;
   color: #FF9B56;
@@ -937,18 +977,186 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 
 .pin-detail-sidebar--collapsed .pin-detail-title {
   display: none;
 }
 
+.pin-detail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 18px 8px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 155, 86, 0.15);
+}
+
+.pin-detail-sidebar--collapsed .pin-detail-footer {
+  justify-content: center;
+  gap: 8px;
+}
+
 .pin-detail-body {
   flex: 1;
   overflow-y: auto;
-  padding: 6px 8px 8px;
+  padding: 6px 8px 4px;
   display: flex;
   flex-direction: column;
+}
+
+/* Flag-specific sidebar content: image carousel, owner, caption, location, tags */
+.pin-detail-flag-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pin-detail-flag-image-wrap {
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 226, 183, 0.25);
+  aspect-ratio: 4 / 3;
+  min-height: 140px;
+}
+
+.pin-detail-flag-image-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 251, 245, 0.5);
+}
+
+.pin-detail-flag-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pin-detail-flag-carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 155, 86, 0.08);
+  border-top: 1px solid rgba(255, 155, 86, 0.15);
+}
+
+.pin-detail-flag-carousel-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #FF9B56;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.pin-detail-flag-carousel-btn:hover {
+  background: rgba(255, 155, 86, 0.15);
+  color: #e88a45;
+}
+
+.pin-detail-flag-carousel-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pin-detail-flag-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(255, 155, 86, 0.35);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.pin-detail-flag-carousel-dot:hover {
+  background: rgba(255, 155, 86, 0.6);
+}
+
+.pin-detail-flag-carousel-dot--active {
+  background: #FF9B56;
+  transform: scale(1.2);
+}
+
+.pin-detail-flag-image-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: rgba(255, 155, 86, 0.7);
+  font-size: 14px;
+}
+
+.pin-detail-flag-image-placeholder svg {
+  width: 48px;
+  height: 48px;
+}
+
+.pin-detail-flag-owner-line {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #2d2d2d;
+}
+
+.pin-detail-flag-owner {
+  font-weight: 600;
+  color: #2d2d2d;
+}
+
+.pin-detail-flag-owner-location-sep {
+  color: rgba(255, 155, 86, 0.8);
+  font-weight: 500;
+}
+
+.pin-detail-flag-location {
+  color: #555;
+}
+
+.pin-detail-flag-caption {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: #2d2d2d;
+}
+
+.pin-detail-flag-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pin-detail-flag-tag {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(255, 155, 86, 0.2);
+  color: #FF9B56;
 }
 
 .pin-detail-card {

@@ -46,14 +46,31 @@ type PinData = {
   imageUrl?: string
   userId?: string // For flags, to track the owner
   ownerProfileImageUrl?: string // For flags, the owner's profile image
+  /** For flags: display name of the user who created the flag */
+  ownerDisplayName?: string
+  /** For flags: all image URLs (comma-separated in API, parsed to array) */
+  flagImageUrls?: string[]
+}
+
+/** Parse comma-separated image URL string into array (empty if none). */
+function parseFlagImageUrls(imageUrl?: string): string[] {
+  if (!imageUrl || !imageUrl.trim()) return []
+  return imageUrl.split(',').map((s) => s.trim()).filter(Boolean)
 }
 
 /** Convert profile Flag (has lat, lon) to PinData for map */
-function flagToPinData(flag: Flag, userLat: number, userLon: number, ownerProfileImageUrl?: string): PinData {
+function flagToPinData(
+  flag: Flag,
+  userLat: number,
+  userLon: number,
+  ownerProfileImageUrl?: string,
+  ownerDisplayName?: string
+): PinData {
   const latDiff = flag.lat - userLat
   const lonDiff = flag.lon - userLon
   const distanceKm = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) * 111
   const distanceFeet = distanceKm * 3280.84
+  const flagImageUrls = parseFlagImageUrls(flag.imageUrl ?? (flag as { imagePath?: string }).imagePath)
   return {
     id: flag.id,
     lat: flag.lat,
@@ -67,7 +84,9 @@ function flagToPinData(flag: Flag, userLat: number, userLon: number, ownerProfil
     category: flag.category,
     imageUrl: flag.imageUrl,
     userId: flag.userId,
-    ownerProfileImageUrl
+    ownerProfileImageUrl,
+    ownerDisplayName,
+    flagImageUrls: flagImageUrls.length > 0 ? flagImageUrls : undefined
   }
 }
 
@@ -103,6 +122,21 @@ function eventToPinData(event: Event, userLat: number, userLon: number): PinData
     type: 'event',
     imageUrl: event.imagePath
   }
+}
+
+/** Find the pin closest to the given map center (by squared distance in lat/lng). */
+function findClosestPinToCenter(centerLat: number, centerLng: number, pins: PinData[]): PinData | null {
+  if (pins.length === 0) return null
+  let best = pins[0]
+  let bestD2 = (pins[0].lat - centerLat) ** 2 + (pins[0].lng - centerLng) ** 2
+  for (let i = 1; i < pins.length; i++) {
+    const d2 = (pins[i].lat - centerLat) ** 2 + (pins[i].lng - centerLng) ** 2
+    if (d2 < bestD2) {
+      bestD2 = d2
+      best = pins[i]
+    }
+  }
+  return best
 }
 
 /** Pin icon with circular logo (white + orange first letter) at head; orange visible around it */
@@ -220,6 +254,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   const [selectedPin, setSelectedPin] = useState<PinData | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [flagCarouselIndex, setFlagCarouselIndex] = useState(0)
   const [events, setEvents] = useState<Event[]>([])
   const [eventPins, setEventPins] = useState<PinData[]>([])
   const [profileFlags, setProfileFlags] = useState<PinData[]>([])
@@ -312,6 +347,11 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     console.log('[Map] visiblePins: category filter', { applied, count: out.length })
     return out
   })()
+
+  const visiblePinsSorted = useMemo(
+    () => [...visiblePins].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })),
+    [visiblePins]
+  )
 
   const applyCategoryFilter = () => setAppliedCategorySearch(categorySearch)
 
@@ -489,7 +529,15 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
         const flags = profile?.recentFlags ?? []
         console.log('[Discover] Friend', friend.username, 'flags', { count: flags.length })
         for (const flag of flags) {
-          allFlags.push(flagToPinData(flag, mapCenter.lat, mapCenter.lng, profile?.profileImageUrl))
+          allFlags.push(
+            flagToPinData(
+              flag,
+              mapCenter.lat,
+              mapCenter.lng,
+              profile?.profileImageUrl,
+              profile?.displayName ?? friend.displayName ?? friend.username
+            )
+          )
         }
       }
       setFriendFlags(allFlags)
@@ -513,7 +561,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       const profile = await api.getEnhancedProfile(trimmed)
       const flags = profile?.recentFlags ?? []
       const pinData = flags.map((flag: Flag) =>
-        flagToPinData(flag, mapCenter.lat, mapCenter.lng, profile?.profileImageUrl)
+        flagToPinData(
+          flag,
+          mapCenter.lat,
+          mapCenter.lng,
+          profile?.profileImageUrl,
+          profile?.displayName ?? trimmed
+        )
       )
       setViewedUserFlags(pinData)
       setViewedUsername(trimmed)
@@ -559,7 +613,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
         }
       }
       const pinData = flags.map((flag: Flag) =>
-        flagToPinData(flag, mapCenter.lat, mapCenter.lng, userProfile?.profileImageUrl)
+        flagToPinData(
+          flag,
+          mapCenter.lat,
+          mapCenter.lng,
+          userProfile?.profileImageUrl,
+          userProfile?.displayName ?? currentUsername ?? undefined
+        )
       )
       setProfileFlags(pinData)
       console.log('[My Map] Set profileFlags (user own flags)', { count: pinData.length, pinData })
@@ -728,6 +788,11 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     }
   }, [visiblePins, selectedPin])
 
+  // Reset flag image carousel when switching to a different pin
+  useEffect(() => {
+    setFlagCarouselIndex(0)
+  }, [selectedPin?.id])
+
   // Update markers when visible pins change (filtered by category search)
   useEffect(() => {
     if (!map.current) return
@@ -803,6 +868,33 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     setShowCreatePopup(false)
     // Navigate to create event screen
     window.location.href = '/create-event'
+  }
+
+  const goToNextAlphabetical = () => {
+    if (!selectedPin || visiblePinsSorted.length === 0) return
+    const idx = visiblePinsSorted.findIndex((p) => p.id === selectedPin.id)
+    const nextIdx = idx < 0 ? 0 : (idx + 1) % visiblePinsSorted.length
+    const next = visiblePinsSorted[nextIdx]
+    setSelectedPin(next)
+    if (map.current) {
+      const currentZoom = map.current.getZoom()
+      const targetZoom = Math.max(currentZoom, 15)
+      map.current.flyTo([next.lat, next.lng], targetZoom, { duration: 0.6, easeLinearity: 0.25 })
+    }
+  }
+
+  const goToPrevAlphabetical = () => {
+    if (!selectedPin || visiblePinsSorted.length === 0) return
+    const idx = visiblePinsSorted.findIndex((p) => p.id === selectedPin.id)
+    const len = visiblePinsSorted.length
+    const prevIdx = idx <= 0 ? len - 1 : (idx - 1 + len) % len
+    const prev = visiblePinsSorted[prevIdx]
+    setSelectedPin(prev)
+    if (map.current) {
+      const currentZoom = map.current.getZoom()
+      const targetZoom = Math.max(currentZoom, 15)
+      map.current.flyTo([prev.lat, prev.lng], targetZoom, { duration: 0.6, easeLinearity: 0.25 })
+    }
   }
 
   return (
@@ -997,7 +1089,18 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
         type="button"
         className={`pin-sidebar-footer-btn pin-sidebar-trigger ${sidebarOpen ? 'pin-sidebar-trigger--open' : ''
           }`}
-        onClick={() => setSidebarOpen((o) => !o)}
+        onClick={() => {
+          if (sidebarOpen) {
+            setSidebarOpen(false)
+          } else {
+            if (!selectedPin && visiblePins.length > 0 && map.current) {
+              const center = map.current.getCenter()
+              const closest = findClosestPinToCenter(center.lat, center.lng, visiblePins)
+              if (closest) setSelectedPin(closest)
+            }
+            setSidebarOpen(true)
+          }
+        }}
         aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
       >
         <span className="pin-sidebar-trigger-caret" aria-hidden>
@@ -1018,38 +1121,148 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
           </div>
           {!sidebarCollapsed && selectedPin && (
             <div className="pin-detail-body">
-              <div className="pin-detail-card pin-detail-card--selected">
-                <p className="pin-detail-desc">{selectedPin.fullDescription}</p>
-                <span className="pin-detail-meta">
-                  {formatDistance(selectedPin.distanceFeet)}
-                </span>
-                {selectedPin.type === 'event' && selectedPin.category && (
-                  <div className="pin-detail-block">
-                    <span className="pin-detail-label">Category</span>
-                    <p className="pin-detail-text">{selectedPin.category}</p>
+              {selectedPin.type === 'flag' ? (
+                <div className="pin-detail-flag-content">
+                  <div className="pin-detail-flag-image-wrap">
+                    {selectedPin.flagImageUrls && selectedPin.flagImageUrls.length > 0 ? (
+                      <>
+                        <div className="pin-detail-flag-image-container">
+                          <img
+                            src={selectedPin.flagImageUrls[flagCarouselIndex]}
+                            alt=""
+                            className="pin-detail-flag-image"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none'
+                            }}
+                          />
+                        </div>
+                        {selectedPin.flagImageUrls.length > 1 && (
+                          <div className="pin-detail-flag-carousel-nav">
+                            <button
+                              type="button"
+                              className="pin-detail-flag-carousel-btn"
+                              onClick={() =>
+                                setFlagCarouselIndex((i) =>
+                                  i <= 0 ? selectedPin.flagImageUrls!.length - 1 : i - 1
+                                )
+                              }
+                              aria-label="Previous image"
+                            >
+                              &lt;
+                            </button>
+                            <span className="pin-detail-flag-carousel-dots">
+                              {selectedPin.flagImageUrls.map((_, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  className={`pin-detail-flag-carousel-dot ${idx === flagCarouselIndex ? 'pin-detail-flag-carousel-dot--active' : ''}`}
+                                  onClick={() => setFlagCarouselIndex(idx)}
+                                  aria-label={`Image ${idx + 1}`}
+                                />
+                              ))}
+                            </span>
+                            <button
+                              type="button"
+                              className="pin-detail-flag-carousel-btn"
+                              onClick={() =>
+                                setFlagCarouselIndex((i) =>
+                                  i >= selectedPin.flagImageUrls!.length - 1 ? 0 : i + 1
+                                )
+                              }
+                              aria-label="Next image"
+                            >
+                              &gt;
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="pin-detail-flag-image-placeholder">
+                        <svg viewBox="0 0 24 24" fill="#FF9B56" aria-hidden>
+                          <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" />
+                        </svg>
+                        <span>No image</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {selectedPin.address && (
-                  <div className="pin-detail-block">
-                    <span className="pin-detail-label">Address</span>
-                    <p className="pin-detail-text">{selectedPin.address}</p>
-                  </div>
-                )}
-                {selectedPin.hours && (
-                  <div className="pin-detail-block">
-                    <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Time' : 'Hours'}</span>
-                    <p className="pin-detail-text">{selectedPin.hours}</p>
-                  </div>
-                )}
-                {selectedPin.tips && (
-                  <div className="pin-detail-block">
-                    <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Status' : 'Tips'}</span>
-                    <p className="pin-detail-text">{selectedPin.tips}</p>
-                  </div>
-                )}
-              </div>
+                  {(selectedPin.ownerDisplayName || selectedPin.address || selectedPin.fullDescription) && (
+                    <p className="pin-detail-flag-owner-line">
+                      {selectedPin.ownerDisplayName && (
+                        <span className="pin-detail-flag-owner">{selectedPin.ownerDisplayName}</span>
+                      )}
+                      {selectedPin.ownerDisplayName && (selectedPin.address || selectedPin.fullDescription) && (
+                        <span className="pin-detail-flag-owner-location-sep"> · </span>
+                      )}
+                      {(selectedPin.address || selectedPin.fullDescription) && (
+                        <span className="pin-detail-flag-location">
+                          {selectedPin.address ?? selectedPin.fullDescription}
+                        </span>
+                      )}
+                    </p>
+                  )}
+                  {selectedPin.description && (
+                    <p className="pin-detail-flag-caption">{selectedPin.description}</p>
+                  )}
+                  {selectedPin.category && (
+                    <div className="pin-detail-flag-tags">
+                      <span className="pin-detail-flag-tag">{selectedPin.category}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="pin-detail-card pin-detail-card--selected">
+                  <p className="pin-detail-desc">{selectedPin.fullDescription}</p>
+                  <span className="pin-detail-meta">
+                    {formatDistance(selectedPin.distanceFeet)}
+                  </span>
+                  {selectedPin.type === 'event' && selectedPin.category && (
+                    <div className="pin-detail-block">
+                      <span className="pin-detail-label">Category</span>
+                      <p className="pin-detail-text">{selectedPin.category}</p>
+                    </div>
+                  )}
+                  {selectedPin.address && (
+                    <div className="pin-detail-block">
+                      <span className="pin-detail-label">Address</span>
+                      <p className="pin-detail-text">{selectedPin.address}</p>
+                    </div>
+                  )}
+                  {selectedPin.hours && (
+                    <div className="pin-detail-block">
+                      <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Time' : 'Hours'}</span>
+                      <p className="pin-detail-text">{selectedPin.hours}</p>
+                    </div>
+                  )}
+                  {selectedPin.tips && (
+                    <div className="pin-detail-block">
+                      <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Status' : 'Tips'}</span>
+                      <p className="pin-detail-text">{selectedPin.tips}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
+          <div className="pin-detail-footer">
+            <button
+              type="button"
+              className="pin-detail-prev-btn"
+              onClick={goToPrevAlphabetical}
+              aria-label="Previous pin alphabetically"
+              disabled={!selectedPin || visiblePinsSorted.length === 0}
+            >
+              &lt;
+            </button>
+            <button
+              type="button"
+              className="pin-detail-next-btn"
+              onClick={goToNextAlphabetical}
+              aria-label="Next pin alphabetically"
+              disabled={!selectedPin || visiblePinsSorted.length === 0}
+            >
+              &gt;
+            </button>
+          </div>
         </div>
       </aside>
 
