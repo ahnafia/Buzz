@@ -32,8 +32,6 @@ type PinData = {
   lng: number
   title: string
   description: string
-  /** Approximate distance in feet for sidebar display */
-  distanceFeet: number
   /** Extra info for the right sidebar */
   fullDescription: string
   address?: string
@@ -50,6 +48,8 @@ type PinData = {
   ownerDisplayName?: string
   /** For flags: all image URLs (comma-separated in API, parsed to array) */
   flagImageUrls?: string[]
+  /** Event status: Open, Expired, or Upcoming */
+  status?: string
 }
 
 /** Parse comma-separated image URL string into array (empty if none). */
@@ -61,15 +61,11 @@ function parseFlagImageUrls(imageUrl?: string): string[] {
 /** Convert profile Flag (has lat, lon) to PinData for map */
 function flagToPinData(
   flag: Flag,
-  userLat: number,
-  userLon: number,
+  _userLat: number,
+  _userLon: number,
   ownerProfileImageUrl?: string,
   ownerDisplayName?: string
 ): PinData {
-  const latDiff = flag.lat - userLat
-  const lonDiff = flag.lon - userLon
-  const distanceKm = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) * 111
-  const distanceFeet = distanceKm * 3280.84
   const flagImageUrls = parseFlagImageUrls(flag.imageUrl ?? (flag as { imagePath?: string }).imagePath)
   return {
     id: flag.id,
@@ -77,7 +73,6 @@ function flagToPinData(
     lng: flag.lon,
     title: flag.title,
     description: flag.description ?? '',
-    distanceFeet: Math.round(distanceFeet),
     fullDescription: flag.description ?? flag.addressText ?? flag.city ?? flag.category ?? 'Flag',
     address: flag.addressText ?? flag.city,
     type: 'flag',
@@ -91,13 +86,8 @@ function flagToPinData(
 }
 
 /** Convert Event to PinData */
-function eventToPinData(event: Event, userLat: number, userLon: number): PinData {
+function eventToPinData(event: Event, _userLat: number, _userLon: number): PinData {
   // Calculate approximate distance in feet (rough calculation)
-  const latDiff = event.lat - userLat
-  const lonDiff = event.lon - userLon
-  const distanceKm = Math.sqrt(latDiff * latDiff + lonDiff * lonDiff) * 111 // rough km conversion
-  const distanceFeet = distanceKm * 3280.84 // km to feet
-
   const startDate = new Date(event.startTime)
   const expiresDate = new Date(event.expiresAt)
   const now = new Date()
@@ -112,13 +102,14 @@ function eventToPinData(event: Event, userLat: number, userLon: number): PinData
     lng: event.lon,
     title: event.title,
     description: event.description || event.category,
-    distanceFeet: Math.round(distanceFeet),
     fullDescription: event.description || `${event.category} event`,
     category: event.category,
     startTime: event.startTime,
     expiresAt: event.expiresAt,
     hours: `${startDate.toLocaleDateString()} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${expiresDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     tips: `Status: ${status}`,
+    status: status,
+    ownerDisplayName: event.owner,
     type: 'event',
     imageUrl: event.imagePath
   }
@@ -235,13 +226,7 @@ function buildPopupHtml(pin: PinData) {
   `
 }
 
-function formatDistance(feet: number): string {
-  if (feet < 1000) {
-    return `${Math.round(feet)} ft`
-  }
-  const miles = feet / 5280
-  return `${miles.toFixed(1)} mi`
-}
+
 
 const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(function InteractiveMap(
   { initialFindFriendsUsername, initialFocusFlag, onInitialFocusDone },
@@ -302,8 +287,40 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   const [appliedCategorySearch, setAppliedCategorySearch] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [highlightedSuggestionIndex, setHighlightedSuggestionIndex] = useState(0)
+
   const [isLocationPickerMode, setIsLocationPickerMode] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null)
+
+  // Track liked pins (session-only)
+  const [likedPinIds, setLikedPinIds] = useState<Set<string>>(new Set())
+  // Track saved pins (session-only)
+  const [savedPinIds, setSavedPinIds] = useState<Set<string>>(new Set())
+
+  const toggleLike = (e: React.MouseEvent, pinId: string) => {
+    e.stopPropagation()
+    setLikedPinIds(prev => {
+      const next = new Set(prev)
+      if (next.has(pinId)) {
+        next.delete(pinId)
+      } else {
+        next.add(pinId)
+      }
+      return next
+    })
+  }
+
+  const toggleSave = (e: React.MouseEvent, pinId: string) => {
+    e.stopPropagation()
+    setSavedPinIds(prev => {
+      const next = new Set(prev)
+      if (next.has(pinId)) {
+        next.delete(pinId)
+      } else {
+        next.add(pinId)
+      }
+      return next
+    })
+  }
 
   // Default map center (Penn State)
   const mapCenter = { lat: 40.7934, lng: -77.8616 }
@@ -839,6 +856,35 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     setFlagCarouselIndex(0)
   }, [selectedPin?.id])
 
+  // Reverse geocoding for events (missing address)
+  useEffect(() => {
+    if (selectedPin && selectedPin.type === 'event' && !selectedPin.address) {
+      const fetchAddress = async () => {
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${selectedPin.lat}&lon=${selectedPin.lng}`)
+          const data = await res.json()
+          if (data.display_name) {
+            const addr = data.address ? `${data.address.road || ''} ${data.address.house_number || ''}, ${data.address.city || data.address.town || ''}` : data.display_name;
+            // Remove leading/trailing commas/spaces if some fields are missing
+            const cleanAddr = addr.replace(/^[\s,]+|[\s,]+$/g, '').replace(/, ,/g, ',');
+
+            setSelectedPin(prev => {
+              if (prev && prev.id === selectedPin.id) {
+                return { ...prev, address: cleanAddr || data.display_name }
+              }
+              return prev
+            })
+          }
+        } catch (e) {
+          console.error("Failed to reverse geocode", e)
+        }
+      }
+      // Small timeout to avoid spamming if user clicks around fast
+      const t = setTimeout(fetchAddress, 500)
+      return () => clearTimeout(t)
+    }
+  }, [selectedPin?.id])
+
   // Update markers when visible pins change (filtered by category search)
   useEffect(() => {
     if (!map.current) return
@@ -1164,6 +1210,27 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
             <h3 className="pin-detail-title">
               {selectedPin?.title ?? ''}
             </h3>
+            {/* Header Action Buttons: Like & Save (Top Right) */}
+            <div className="pin-detail-header-actions">
+              <button
+                className={`pin-action-btn pin-action-btn--header ${selectedPin && likedPinIds.has(selectedPin.id) ? 'pin-action-btn--liked' : ''}`}
+                aria-label="Like"
+                onClick={(e) => selectedPin && toggleLike(e, selectedPin.id)}
+              >
+                <svg viewBox="0 0 24 24" fill={selectedPin && likedPinIds.has(selectedPin.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </button>
+              <button
+                className={`pin-action-btn pin-action-btn--header ${selectedPin && savedPinIds.has(selectedPin.id) ? 'pin-action-btn--saved' : ''}`}
+                aria-label="Save"
+                onClick={(e) => selectedPin && toggleSave(e, selectedPin.id)}
+              >
+                <svg viewBox="0 0 24 24" fill={selectedPin && savedPinIds.has(selectedPin.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+                </svg>
+              </button>
+            </div>
           </div>
           {!sidebarCollapsed && selectedPin && (
             <div className="pin-detail-body">
@@ -1257,38 +1324,51 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
                 </div>
               ) : (
                 <div className="pin-detail-card pin-detail-card--selected">
-                  <p className="pin-detail-desc">{selectedPin.fullDescription}</p>
-                  <span className="pin-detail-meta">
-                    {formatDistance(selectedPin.distanceFeet)}
-                  </span>
-                  {selectedPin.type === 'event' && selectedPin.category && (
+                  {selectedPin.ownerDisplayName && (
                     <div className="pin-detail-block">
-                      <span className="pin-detail-label">Category</span>
-                      <p className="pin-detail-text">{selectedPin.category}</p>
+                      <span className="pin-detail-label">Hosted by</span>
+                      <p className="pin-detail-text">{selectedPin.ownerDisplayName}</p>
                     </div>
                   )}
+
+                  {selectedPin.description && (
+                    <div className="pin-detail-block">
+                      <span className="pin-detail-label">Description</span>
+                      <p className="pin-detail-text">{selectedPin.description}</p>
+                    </div>
+                  )}
+
+                  {selectedPin.startTime && selectedPin.expiresAt && (
+                    <div className="pin-detail-block">
+                      <span className="pin-detail-label">Time</span>
+                      <p className="pin-detail-text">
+                        Start: {new Date(selectedPin.startTime).toLocaleDateString()} at {new Date(selectedPin.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <br />
+                        End: {new Date(selectedPin.expiresAt).toLocaleDateString()} at {new Date(selectedPin.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  )}
+
                   {selectedPin.address && (
                     <div className="pin-detail-block">
                       <span className="pin-detail-label">Address</span>
                       <p className="pin-detail-text">{selectedPin.address}</p>
                     </div>
                   )}
-                  {selectedPin.hours && (
+
+                  {selectedPin.status && (
                     <div className="pin-detail-block">
-                      <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Time' : 'Hours'}</span>
-                      <p className="pin-detail-text">{selectedPin.hours}</p>
-                    </div>
-                  )}
-                  {selectedPin.tips && (
-                    <div className="pin-detail-block">
-                      <span className="pin-detail-label">{selectedPin.type === 'event' ? 'Status' : 'Tips'}</span>
-                      <p className="pin-detail-text">{selectedPin.tips}</p>
+                      <span className="pin-detail-label">Status</span>
+                      <p className="pin-detail-text">{selectedPin.status}</p>
                     </div>
                   )}
                 </div>
               )}
             </div>
           )}
+
+
+
           <div className="pin-detail-footer">
             <button
               type="button"
