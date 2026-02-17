@@ -512,6 +512,7 @@ export const api = {
         addressText: request.addressText ?? null,
         category: request.category ?? null,
         imageUrl: request.imageUrl ?? null,
+        color: request.color ?? null,
         isPublic: request.isPublic ?? true
       })
     })

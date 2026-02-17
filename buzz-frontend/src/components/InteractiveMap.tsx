@@ -26,6 +26,14 @@ export type InteractiveMapProps = {
   onInitialFocusDone?: () => void
 }
 
+const FLAG_COLORS = ['#64B9D3', '#FF9B56', '#F7CA1D', '#FF5B59'] as const
+
+function defaultFlagColor(flagId: string): string {
+  let n = 0
+  for (let i = 0; i < flagId.length; i++) n += flagId.charCodeAt(i)
+  return FLAG_COLORS[n % FLAG_COLORS.length]
+}
+
 type PinData = {
   id: string
   lat: number
@@ -48,6 +56,8 @@ type PinData = {
   ownerDisplayName?: string
   /** For flags: all image URLs (comma-separated in API, parsed to array) */
   flagImageUrls?: string[]
+  /** For flags: hex color for the icon. If missing, derived from id. */
+  flagColor?: string
   /** Event status: Open, Expired, or Upcoming */
   status?: string
 }
@@ -81,7 +91,8 @@ function flagToPinData(
     userId: flag.userId,
     ownerProfileImageUrl,
     ownerDisplayName,
-    flagImageUrls: flagImageUrls.length > 0 ? flagImageUrls : undefined
+    flagImageUrls: flagImageUrls.length > 0 ? flagImageUrls : undefined,
+    flagColor: flag.color ?? defaultFlagColor(flag.id)
   }
 }
 
@@ -176,25 +187,29 @@ function pinIconForPin(pin: PinData, isSelected?: boolean) {
   })
 }
 
-/** Flag icon - rectangular flag on a pole with owner's profile picture */
+/** Flag icon - curved flag shape (IMG_0217 style) on a pole, creator's first initial, sway animation */
 function flagIconForFlag(pin: PinData, isSelected?: boolean) {
-  const letter = pin.title.charAt(0).toUpperCase()
+  const letter = (pin.ownerDisplayName || pin.title).charAt(0).toUpperCase()
   const selectedClass = isSelected ? ' buzz-flag-icon--selected' : ''
+  const color = pin.flagColor ?? FLAG_COLORS[0]
 
-  // Use profile image if available, otherwise fallback to letter
-  const flagContent = pin.ownerProfileImageUrl
-    ? `<img src="${pin.ownerProfileImageUrl}" alt="${pin.title}" class="buzz-flag-profile-image" 
-           onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\\'buzz-flag-letter\\'>${letter}</span>';" />`
-    : `<span class="buzz-flag-letter">${letter}</span>`
-
+  // Traditional flag: pole + banner (one peak, one low on top/bottom), higher on pole, slightly smaller
+  const escapedLetter = letter.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   return L.divIcon({
     className: `buzz-flag-icon${selectedClass}`,
     html: `<div class="buzz-flag-container">
-             <div class="buzz-flag-pole"></div>
-             <div class="buzz-flag-banner">${flagContent}</div>
+             <div class="buzz-flag-sway">
+               <svg class="buzz-flag-svg" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                 <path class="buzz-flag-pole" d="M10 6 L10 44" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
+                 <path class="buzz-flag-pole" d="M10 6 L10 44" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+                 <path class="buzz-flag-base" d="M6 45 A4 1.8 0 0 1 14 45 L10 45 Z" fill="#fff" stroke="#000" stroke-width="0.8"/>
+                 <path class="buzz-flag-cloth" d="M10 10 Q18 13 23 10 Q31 7 36 10 L36 24 Q31 21 23 24 Q18 27 10 24 Z" fill="${color}" stroke="${color}" stroke-width="0.5"/>
+                 <text x="23" y="17" class="buzz-flag-svg-letter" fill="white" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="700">${escapedLetter}</text>
+               </svg>
+             </div>
            </div>`,
-    iconSize: [40, 40],
-    iconAnchor: [8, 38]
+    iconSize: [48, 48],
+    iconAnchor: [10, 46]
   })
 }
 

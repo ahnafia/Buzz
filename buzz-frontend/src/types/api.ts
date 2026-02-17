@@ -93,6 +93,8 @@ export interface Flag {
   addressText?: string  // Human-readable address for display
   category: string
   imageUrl?: string
+  /** Hex color for the flag icon (e.g. #64B9D3, #FF9B56, #F7CA1D, #FF5B59) */
+  color?: string
   isPublic: boolean
   expiresAt?: string
   createdAt: string
@@ -108,6 +110,8 @@ export interface CreateFlagRequest {
   addressText?: string | null
   category?: string | null
   imageUrl?: string | null
+  /** Hex color for the flag icon. If omitted, frontend assigns one at random. */
+  color?: string | null
   isPublic?: boolean
 }
 

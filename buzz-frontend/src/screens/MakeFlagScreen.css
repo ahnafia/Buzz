@@ -327,6 +327,39 @@
   cursor: not-allowed;
 }
 
+.make-flag-color-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.make-flag-color-swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+.make-flag-color-swatch:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.make-flag-color-swatch--selected {
+  border-color: #333;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #333;
+}
+
+.make-flag-color-hint {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
 .make-flag-error {
   color: #c62828;
   font-size: 14px;

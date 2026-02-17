@@ -7,6 +7,8 @@ import { api } from '../utils/api'
 
 const ACCEPT_MEDIA = 'image/*,video/*'
 
+export const FLAG_COLORS = ['#64B9D3', '#FF9B56', '#F7CA1D', '#FF5B59'] as const
+
 export type FlagLocation = { lat: number; lng: number } | null
 
 const MakeFlagScreen = () => {
@@ -17,6 +19,7 @@ const MakeFlagScreen = () => {
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState('')
   const [mediaFiles, setMediaFiles] = useState<File[]>([])
+  const [flagColor, setFlagColor] = useState<string | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -82,6 +85,7 @@ const MakeFlagScreen = () => {
       setCreateError('Please choose a location on the map.')
       return
     }
+    const color = flagColor ?? FLAG_COLORS[Math.floor(Math.random() * FLAG_COLORS.length)]
     setCreating(true)
     try {
       await api.createFlag({
@@ -93,6 +97,7 @@ const MakeFlagScreen = () => {
         addressText: locationLabel.trim() || null,
         category: tags.trim() || null,
         imageUrl: null,
+        color,
         isPublic: true
       })
       navigate('/', { replace: true })
@@ -191,6 +196,24 @@ const MakeFlagScreen = () => {
               onChange={(e) => setTags(e.target.value)}
               placeholder="Enter tags (e.g. food, fun)"
             />
+          </div>
+
+          <div className="make-flag-field">
+            <label className="make-flag-label">Flag color:</label>
+            <div className="make-flag-color-options" role="group" aria-label="Choose flag color">
+              {FLAG_COLORS.map((hex) => (
+                <button
+                  key={hex}
+                  type="button"
+                  className={`make-flag-color-swatch ${flagColor === hex ? 'make-flag-color-swatch--selected' : ''}`}
+                  style={{ backgroundColor: hex }}
+                  onClick={() => setFlagColor(hex)}
+                  title={hex}
+                  aria-pressed={flagColor === hex}
+                />
+              ))}
+            </div>
+            <p className="make-flag-color-hint">Optional. If none chosen, a color is picked at random.</p>
           </div>
 
           {createError && (
