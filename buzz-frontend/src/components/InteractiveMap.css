@@ -1008,11 +1008,92 @@
 .pin-detail-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 20px 18px 16px;
+  padding: 16px 18px 12px;
   flex-shrink: 0;
   border-bottom: 1px solid rgba(255, 155, 86, 0.15);
 }
+
+.pin-detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  /* Push to right */
+}
+
+.pin-action-btn--header {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  border: 1px solid rgba(255, 155, 86, 0.2);
+  background: transparent;
+  color: #FF9B56;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.pin-action-btn--header svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pin-action-btn--header:hover {
+  background: rgba(255, 155, 86, 0.1);
+  transform: scale(1.1);
+  border-color: #FF9B56;
+}
+
+.pin-action-btn--liked {
+  color: #FF4444;
+  /* Use red/orange for the heart */
+  border-color: #FF4444;
+  background: rgba(255, 68, 68, 0.1);
+  animation: like-bounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pin-action-btn--saved {
+  color: #4CAF50;
+  /* Green for save */
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.1);
+  animation: like-bounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.pin-action-btn--saved svg {
+  fill: currentColor;
+}
+
+.pin-action-btn--liked svg {
+  fill: currentColor;
+}
+
+@keyframes like-bounce {
+  0% {
+    transform: scale(1);
+  }
+
+  25% {
+    transform: scale(1.2);
+  }
+
+  50% {
+    transform: scale(0.95);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Removed bottom actions styles as they moved to header */
+/*.pin-detail-actions { ... }*/
 
 .pin-detail-prev-btn,
 .pin-detail-next-btn {
@@ -1048,7 +1129,8 @@
 .pin-detail-title {
   margin: 0;
   min-width: 0;
-  font-size: 20px;
+  font-size: 18px;
+  /* Slightly smaller to fit buttons */
   font-weight: 600;
   color: #FF9B56;
   letter-spacing: -0.02em;
@@ -1056,7 +1138,10 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: center;
+  text-align: left;
+  /* Align left */
+  flex: 1;
+  /* Take up available space */
 }
 
 .pin-detail-sidebar--collapsed .pin-detail-title {
