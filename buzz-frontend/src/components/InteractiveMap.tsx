@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import './InteractiveMap.css'
@@ -230,6 +230,7 @@ function buildPopupHtml(pin: PinData) {
     <div class="buzz-popup-card">
       ${imageHtml}
       <h4 class="buzz-popup-title">${pin.title}</h4>
+      ${pin.type === 'event' ? `<button class="buzz-popup-details-btn" onclick="if(window.buzzNavigateToEvent) { window.buzzNavigateToEvent('${pin.id}'); }">View Details</button>` : ''}
     </div>
   `
 }
@@ -246,6 +247,19 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   { initialFindFriendsUsername, initialFocusFlag, onInitialFocusDone },
   ref
 ) {
+  const navigate = useNavigate()
+
+  // Expose navigation to global scope for Leaflet popups
+  useEffect(() => {
+    (window as any).buzzNavigateToEvent = (id: string) => {
+      navigate(`/event/${id}`)
+    }
+    return () => {
+      // Clean up (optional, but good practice)
+      delete (window as any).buzzNavigateToEvent
+    }
+  }, [navigate])
+
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const markersRef = useRef<L.Marker[]>([])

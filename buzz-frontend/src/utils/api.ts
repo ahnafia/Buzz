@@ -23,15 +23,15 @@ export const api = {
       console.log('🔍 Checking if user exists by email:', userData.email)
       const existingUser = await api.getUserByEmail(userData.email)
       console.log('🔍 getUserByEmail result:', existingUser)
-      
+
       if (existingUser) {
         console.log('✅ User already exists')
-        
+
         // Check if the existing user has a generic email-based username and we have a better one
         const emailUsername = userData.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '')
         if (existingUser.username === emailUsername && userData.username !== emailUsername) {
           console.log('🔄 Existing user has email-based username, updating to preferred username:', userData.username)
-          
+
           // Check if the new username is available
           const isAvailable = await api.checkUsernameAvailability(userData.username)
           if (isAvailable) {
@@ -44,7 +44,7 @@ export const api = {
             console.log('⚠️ Preferred username not available, keeping existing username')
           }
         }
-        
+
         return existingUser // User already exists, return it
       }
 
@@ -217,7 +217,7 @@ export const api = {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json'
       }
-      
+
       if (currentUserId) {
         headers['X-User-Id'] = currentUserId
       }
@@ -324,7 +324,7 @@ export const api = {
         radiusMiles: radiusMiles.toString(),
         limit: limit.toString()
       })
-      
+
       if (timeWindow) params.append('timeWindow', timeWindow)
       if (categories && categories.length > 0) {
         categories.forEach(cat => params.append('category', cat))
@@ -353,7 +353,7 @@ export const api = {
       // Set date range: now to now + 7 days
       const now = new Date()
       const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-      
+
       const params = new URLSearchParams({
         lat: lat.toString(),
         lon: lon.toString(),
@@ -362,7 +362,7 @@ export const api = {
         start: now.toISOString(),
         end: endDate.toISOString()
       })
-      
+
       if (timeWindow) params.append('timeWindow', timeWindow)
       if (categories && categories.length > 0) {
         categories.forEach(cat => params.append('category', cat))
@@ -390,9 +390,9 @@ export const api = {
       const currentUserId = getCurrentUserId()
       if (!currentUserId) return null
 
-      const params = new URLSearchParams({ 
+      const params = new URLSearchParams({
         status,
-        limit: limit.toString() 
+        limit: limit.toString()
       })
       if (cursor) params.append('cursor', cursor)
 
@@ -522,6 +522,44 @@ export const api = {
     return await response.json()
   },
 
+  getEvent: async (eventId: string): Promise<Event | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching event by ID:', error)
+      return null
+    }
+  },
+
+  getUserById: async (userId: string): Promise<UserProfile | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/id/${userId}`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching user by ID:', error)
+      return null
+    }
+  },
+
   // Places
   searchPlaces: async (query: string, location?: { lat: number; lng: number }) => {
     // TODO: Implement API call
@@ -531,12 +569,12 @@ export const api = {
 }
 
 // Re-export types for convenience
-export type { 
-  UserProfile, 
-  UsersResponse, 
-  Landmark, 
-  Flag, 
-  FlagWithLikeCount, 
+export type {
+  UserProfile,
+  UsersResponse,
+  Landmark,
+  Flag,
+  FlagWithLikeCount,
   Friend,
   Event,
   EventsResponse,

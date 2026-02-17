@@ -14,6 +14,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { useAppState } from './hooks/useAppState'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { UserProvider } from './contexts/UserContext'
+import EventDetailsScreen from './screens/EventDetailsScreen'
 
 function AppContent() {
   const { currentScreen, finishLoading } = useAppState()
@@ -35,45 +36,53 @@ function AppContent() {
 
   return (
     <Routes>
-      <Route 
-        path="/Profile" 
+      <Route
+        path="/Profile"
         element={
           <ProtectedRoute>
             <ProfileScreen />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/profile-viewer/:username" 
+      <Route
+        path="/profile-viewer/:username"
         element={
           <ProtectedRoute>
             <ProfileViewer />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/create-event" 
+      <Route
+        path="/create-event"
         element={
           <ProtectedRoute>
             <CreateEventScreen />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/edit-event/:eventId" 
+      <Route
+        path="/edit-event/:eventId"
         element={
           <ProtectedRoute>
             <EditEventScreen />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/make_flag" 
+      <Route
+        path="/make_flag"
         element={
           <ProtectedRoute>
             <MakeFlagScreen />
           </ProtectedRoute>
-        } 
+        }
+      />
+      <Route
+        path="/event/:eventId"
+        element={
+          <ProtectedRoute>
+            <EventDetailsScreen />
+          </ProtectedRoute>
+        }
       />
       <Route path="/info" element={<InfoScreen />} />
       <Route path="/login" element={<LoginScreen />} />
