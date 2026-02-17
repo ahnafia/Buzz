@@ -1,274 +1,200 @@
-.event-form {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px;
+.event-form-container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  margin: 0;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.event-form-map-column {
+  flex: 1;
+  /* Take up 50% or available space */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  /* Remove border-radius and shadow for seamless split look */
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+  border-right: 1px solid #e2e8f0;
+}
+
+.event-form-fields-column {
+  flex: 1;
+  /* Take up remaining space */
+  overflow-y: auto;
+  background: white;
+  padding: 2rem;
+  /* Remove border-radius and shadow */
+  border-radius: 0;
+  box-shadow: none;
+  min-width: 400px;
+}
+
+.map-wrapper {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border: none;
+}
+
+/* Overlay the map instruction and coordinates on the map */
+.map-instruction-overlay {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.map-instruction {
+  margin: 0;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.selected-coordinates {
+  display: block;
+  margin-top: 5px;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+
+.selected-coordinates {
+  margin-top: 0.5rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+/* Reuse existing form styles but adapt if needed */
+.event-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .form-group {
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .form-group label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 0.95rem;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
-  width: 100%;
-  padding: 12px;
-  border: 2px solid #e1e5e9;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.2s;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  width: 100%;
   box-sizing: border-box;
-  font-family: inherit;
+  /* Ensure padding doesn't affect width */
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
+  border-color: #3b82f6;
   outline: none;
-  border-color: #FF9B56;
-}
-
-.form-group input.error,
-.form-group select.error,
-.form-group textarea.error {
-  border-color: #e74c3c;
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 80px;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  display: flex;
+  gap: 1rem;
 }
 
-.error-message {
-  display: block;
-  color: #e74c3c;
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-.location-info {
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 2px solid #e1e5e9;
-}
-
-.location-info p {
-  margin: 0 0 4px 0;
-  font-family: monospace;
-  font-size: 14px;
-  color: #666;
-}
-
-.location-info small {
-  color: #888;
-  font-size: 12px;
+.form-row .form-group {
+  flex: 1;
 }
 
 .form-actions {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid #e1e5e9;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
 }
 
-.cancel-btn,
 .submit-btn {
-  padding: 12px 24px;
+  flex: 1;
+  padding: 0.875rem;
+  background: #3b82f6;
+  color: white;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
   font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
-  transition: all 0.2s;
-  min-width: 120px;
+  transition: background 0.2s;
+}
+
+.submit-btn:hover {
+  background: #2563eb;
+}
+
+.submit-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
 }
 
 .cancel-btn {
-  background: #f8f9fa;
-  color: #666;
-  border: 2px solid #e1e5e9;
-}
-
-.cancel-btn:hover:not(:disabled) {
-  background: #e9ecef;
-}
-
-.submit-btn {
-  background: #FF9B56;
-  color: white;
-}
-
-.submit-btn:hover:not(:disabled) {
-  background: #e8884a;
-}
-
-.cancel-btn:disabled,
-.submit-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-@media (max-width: 600px) {
-  .event-form {
-    margin: 0;
-    padding: 16px;
-    border-radius: 0;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-
-  .form-actions {
-    flex-direction: column;
-  }
-
-  .cancel-btn,
-  .submit-btn {
-    width: 100%;
-  }
-}
-
-/* Locati
-on Picker Styles */
-.location-section {
-  margin-bottom: 20px;
-}
-
-.location-picker-btn {
-  background: #FF9B56;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: background-color 0.2s;
-}
-
-.location-picker-btn:hover:not(:disabled) {
-  background: #e8884a;
-}
-
-.location-picker-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Location Picker Modal */
-.location-picker-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  padding: 20px;
-}
-
-.location-picker-content {
+  padding: 0.875rem 2rem;
   background: white;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 800px;
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
-.location-picker-header {
-  padding: 20px;
-  border-bottom: 1px solid #e1e5e9;
-}
-
-.location-picker-header h3 {
-  margin: 0 0 8px 0;
-  color: #333;
-  font-size: 18px;
-}
-
-.location-picker-header p {
-  margin: 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.location-picker-map {
-  flex: 1;
-  min-height: 400px;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-}
-
-.location-picker-actions {
-  padding: 20px;
-  border-top: 1px solid #e1e5e9;
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.confirm-btn {
-  background: #4CAF50;
-  color: white;
-  border: none;
-  padding: 12px 24px;
+  color: #64748b;
+  border: 2px solid #e2e8f0;
   border-radius: 8px;
-  font-size: 16px;
   font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s;
 }
 
-.confirm-btn:hover {
-  background: #45a049;
+.cancel-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
 }
 
-@media (max-width: 600px) {
-  .location-picker-modal {
-    padding: 10px;
-  }
+.error input,
+.error select {
+  border-color: #ef4444;
+}
 
-  .location-picker-content {
-    max-height: 95vh;
-  }
+.error-message {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
 
-  .location-picker-map {
-    min-height: 300px;
-  }
-
-  .location-picker-actions {
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .event-form-container {
     flex-direction: column;
+    height: auto;
   }
 
-  .cancel-btn,
-  .confirm-btn {
+  .event-form-map-column,
+  .event-form-fields-column {
     width: 100%;
+    min-width: 0;
+  }
+
+  .map-wrapper {
+    height: 300px;
   }
 }

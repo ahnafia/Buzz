@@ -37,6 +37,34 @@
   border: none !important;
 }
 
+@keyframes popIn {
+  0% {
+    transform: scale(0) rotate(-45deg);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.1) rotate(-45deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(-45deg);
+    opacity: 1;
+  }
+}
+
+@keyframes floatPin {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(-45deg);
+  }
+
+  50% {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+}
+
 .buzz-pin-dot {
   position: relative;
   display: block;
@@ -44,18 +72,27 @@
   height: 36px;
   margin: 0 auto;
   background: #FF9B56;
-  border: 2px solid #FFFBF5;
+  border: 3px solid #FFFBF5;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
   transform-origin: 50% 100%;
   box-shadow: 0 4px 14px rgba(255, 155, 86, 0.45);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards,
+    floatPin 3s ease-in-out infinite 0.6s;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-radius 0.2s ease;
 }
 
 .buzz-pin-icon:hover .buzz-pin-dot,
 .buzz-pin-icon--selected .buzz-pin-dot {
-  transform: rotate(-45deg) scale(1.28);
-  box-shadow: 0 6px 18px rgba(255, 155, 86, 0.5);
+  animation: none;
+  /* Stop floating on hover/select to steady it */
+  transform: rotate(-45deg) scale(1.35);
+  /* Enlarge significantly in place */
+  box-shadow: 0 12px 28px rgba(255, 155, 86, 0.6);
+  border-radius: 50% 50% 50% 10%;
+  /* Slightly rounded point on hover */
+  z-index: 100;
+  /* Ensure it's on top */
 }
 
 /* Event pins have a different color */
@@ -66,33 +103,40 @@
 
 .buzz-pin-logo {
   position: absolute;
-  top: 2px;
+  top: 50%;
   left: 50%;
-  transform: translate(-50%, 0) rotate(45deg);
-  width: 26px;
-  height: 26px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  /* Center perfectly and un-rotate */
+  width: 30px;
+  /* Increased from 26px to take up more space */
+  height: 30px;
   background: #fff;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  /* Ensure image stays inside */
 }
 
 .buzz-pin-letter {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 13px;
+  /* Slightly larger letter */
+  font-weight: 800;
+  /* Bolder */
   color: #FF9B56;
   line-height: 1;
   text-transform: uppercase;
 }
 
 .buzz-pin-image {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  border-radius: 50%;
   border: none;
+  display: block;
 }
 
 .buzz-pin-image-fallback {
@@ -157,18 +201,45 @@
   height: 100%;
   transform-origin: 8px 38px;
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-  animation: flagWave 3s ease-in-out infinite;
+  animation: plantFlag 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
 }
 
 @keyframes flagWave {
-  0%, 100% {
-    transform: rotate(0deg);
+
+  0%,
+  100% {
+    transform: rotate(0deg) skewY(0deg);
   }
+
   25% {
-    transform: rotate(2deg);
+    transform: rotate(5deg) skewY(4deg);
   }
+
+  /* Exaggerated wave */
+  50% {
+    transform: rotate(0deg) skewY(0deg);
+  }
+
   75% {
-    transform: rotate(-1deg);
+    transform: rotate(-4deg) skewY(-4deg);
+  }
+
+  /* Exaggerated wave */
+}
+
+@keyframes plantFlag {
+  0% {
+    transform: scale(0) translateY(20px);
+    opacity: 0;
+  }
+
+  60% {
+    transform: scale(1.1) translateY(-5px);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1) translateY(0);
   }
 }
 
@@ -192,6 +263,7 @@
     opacity: 0.6;
     transform: translate(-50%, -50%) scale(1);
   }
+
   100% {
     opacity: 0.8;
     transform: translate(-50%, -50%) scale(1.1);
@@ -212,19 +284,24 @@
 
 .buzz-flag-banner {
   position: absolute;
-  left: 7px;
+  left: 6px;
+  /* Optimized for pole width */
   top: 2px;
-  width: 28px;
-  height: 20px;
+  width: 30px;
+  height: 22px;
   background: #FFFBF5;
   border: 2px solid #FF9B56;
-  border-radius: 2px 2px 2px 0;
+  border-radius: 4px 6px 6px 2px;
+  /* Playful rounded corners */
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 14px rgba(255, 155, 86, 0.45);
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   overflow: hidden;
+  transform-origin: left center;
+  /* Wave from the pole */
+  animation: flagWave 3s ease-in-out infinite 0.5s;
 }
 
 .buzz-flag-letter {
@@ -549,7 +626,8 @@
 
 .map-search-bar {
   width: 100%;
-  padding: 12px 20px 12px 40px; /* left padding to make room for icon */
+  padding: 12px 20px 12px 40px;
+  /* left padding to make room for icon */
   border: none;
   border-radius: 25px;
   font-size: 16px;
@@ -854,7 +932,8 @@
   position: absolute;
   bottom: 30px;
   /* Center of button kept at same spot as 340px bar: 16 + 170 = 186px from right */
-  right: 146px; /* 186 - (80/2) so 80px-wide button center is at 186px from right */
+  right: 146px;
+  /* 186 - (80/2) so 80px-wide button center is at 186px from right */
   width: 80px;
   z-index: 902;
   display: flex;
@@ -1223,8 +1302,7 @@
   color: #2d2d2d;
 }
 
-* Location Picker Styles */
-.location-picker-indicator {
+* Location Picker Styles */ .location-picker-indicator {
   position: absolute;
   top: 80px;
   left: 50%;
@@ -1267,10 +1345,12 @@
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.2);
     opacity: 0.7;
   }
+
   100% {
     transform: scale(1);
     opacity: 1;

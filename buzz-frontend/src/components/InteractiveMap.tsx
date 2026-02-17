@@ -191,7 +191,7 @@ function flagIconForFlag(pin: PinData, isSelected?: boolean) {
   const selectedClass = isSelected ? ' buzz-flag-icon--selected' : ''
 
   // Use profile image if available, otherwise fallback to letter
-  const flagContent = pin.ownerProfileImageUrl 
+  const flagContent = pin.ownerProfileImageUrl
     ? `<img src="${pin.ownerProfileImageUrl}" alt="${pin.title}" class="buzz-flag-profile-image" 
            onerror="this.style.display='none'; this.parentElement.innerHTML='<span class=\\'buzz-flag-letter\\'>${letter}</span>';" />`
     : `<span class="buzz-flag-letter">${letter}</span>`
@@ -258,7 +258,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   const [events, setEvents] = useState<Event[]>([])
   const [eventPins, setEventPins] = useState<PinData[]>([])
   const [profileFlags, setProfileFlags] = useState<PinData[]>([])
-  const [friendFlags, setFriendFlags] = useState<PinData[]>([])
+  const [followingFlags, setFollowingFlags] = useState<PinData[]>([])
+  const [myEvents, setMyEvents] = useState<PinData[]>([])
   const [viewedUserFlags, setViewedUserFlags] = useState<PinData[]>([])
   const [viewedUsername, setViewedUsername] = useState<string | null>(null)
   const [userSuggestions, setUserSuggestions] = useState<UserProfile[]>([])
@@ -269,18 +270,19 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   const mapModeDropdownRef = useRef<HTMLDivElement>(null)
   const allPins = useMemo(() => {
     if (mapMode === 'My Map') {
-      const pins = [...profileFlags]
-      console.log('[Map] allPins (My Map): user flags only', { mapMode, count: pins.length, pins })
+      const pins = [...profileFlags, ...myEvents]
+      console.log('[Map] allPins (My Map): user flags & events', { mapMode, count: pins.length, pins })
       return pins
     }
     if (mapMode === 'Find Friends') {
       console.log('[Map] allPins (Find Friends): viewed user flags', { viewedUsername, count: viewedUserFlags.length })
       return [...viewedUserFlags]
     }
-    const pins = [...eventPins, ...friendFlags]
-    console.log('[Map] allPins', { mapMode, eventCount: eventPins.length, friendFlagCount: friendFlags.length, total: pins.length })
+    // Discover: Events (Global) + Following Flags + My Flags + My Events
+    const pins = [...eventPins, ...followingFlags, ...profileFlags, ...myEvents]
+    console.log('[Map] allPins', { mapMode, eventCount: eventPins.length, followingFlagCount: followingFlags.length, myFlagCount: profileFlags.length, myEventCount: myEvents.length, total: pins.length })
     return pins
-  }, [eventPins, profileFlags, friendFlags, viewedUserFlags, mapMode])
+  }, [eventPins, profileFlags, followingFlags, myEvents, viewedUserFlags, mapMode])
   const [categorySearch, setCategorySearch] = useState('')
   // Only apply category filter after user commits (Enter or blur) – keeps all pins visible while typing
   const [appliedCategorySearch, setAppliedCategorySearch] = useState('')
@@ -321,9 +323,9 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     allCategories.some((c) => c.toLowerCase() === applied)
 
   let filteredPins = allPins
+  // In My Map, we want to show everything in allPins (which is now flags + events), so we don't filter out events anymore.
   if (mapMode === 'My Map') {
-    filteredPins = allPins.filter((p) => p.type !== 'event')
-    console.log('[Map] filteredPins (My Map): flags only', { count: filteredPins.length, filteredPins })
+    console.log('[Map] filteredPins (My Map): showing all my content', { count: filteredPins.length, filteredPins })
   }
 
   const visiblePins = (() => {
@@ -457,7 +459,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     refreshEvents() {
       fetchEvents()
       fetchProfileFlags()
-      fetchFriendFlags()
+      fetchMyEvents()
+      fetchFollowingFlags()
     },
     enableLocationPicker() {
       setIsLocationPickerMode(true)
@@ -476,7 +479,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   const fetchEvents = async () => {
     try {
       console.log('InteractiveMap: Fetching events from API...')
-      const eventPins = await api.getEventPins(mapCenter.lat, mapCenter.lng, 10) // 10 mile radius
+      // Use a very large radius to get "all events that exist" (approx 10,000 miles covers most inhabited land)
+      const eventPins = await api.getEventPins(mapCenter.lat, mapCenter.lng, 10000)
       console.log('InteractiveMap: Received event pins:', eventPins)
 
       if (eventPins) {
@@ -511,23 +515,28 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     }
   }
 
-  // Load friends' flags for Discover map (each friend's profile recentFlags)
-  const fetchFriendFlags = async () => {
-    console.log('[Discover] fetchFriendFlags called', { currentUsername })
+  // Load followed users' flags for Discover map
+  const fetchFollowingFlags = async () => {
+    console.log('[Discover] fetchFollowingFlags called', { currentUsername })
     if (!currentUsername) {
-      console.log('[Discover] No currentUsername – not loading friend flags')
-      setFriendFlags([])
+      console.log('[Discover] No currentUsername – not loading following flags')
+      setFollowingFlags([])
       return
     }
     try {
-      const friendsRes = await api.getFriends(currentUsername)
-      const friends = friendsRes?.users ?? []
-      console.log('[Discover] getFriends result', { friendCount: friends.length, friends })
+      // Get users updates from "following" list
+      const followingRes = await api.getFollowing(currentUsername)
+      const following = followingRes?.users ?? []
+      console.log('[Discover] getFollowing result', { count: following.length, following })
+
       const allFlags: PinData[] = []
-      for (const friend of friends) {
-        const profile = await api.getEnhancedProfile(friend.username)
+      // For each followed user, get their profile/flags
+      // Note: This could be optimized on backend to "get flags from following"
+      for (const user of following) {
+        // We need enhanced profile to get recentFlags
+        const profile = await api.getEnhancedProfile(user.username)
         const flags = profile?.recentFlags ?? []
-        console.log('[Discover] Friend', friend.username, 'flags', { count: flags.length })
+        // console.log('[Discover] Followed', user.username, 'flags', { count: flags.length })
         for (const flag of flags) {
           allFlags.push(
             flagToPinData(
@@ -535,16 +544,38 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
               mapCenter.lat,
               mapCenter.lng,
               profile?.profileImageUrl,
-              profile?.displayName ?? friend.displayName ?? friend.username
+              profile?.displayName ?? user.displayName ?? user.username
             )
           )
         }
       }
-      setFriendFlags(allFlags)
-      console.log('[Discover] Set friendFlags', { count: allFlags.length, allFlags })
+      setFollowingFlags(allFlags)
+      console.log('[Discover] Set followingFlags', { count: allFlags.length })
     } catch (error) {
-      console.error('[Discover] Error fetching friend flags:', error)
-      setFriendFlags([])
+      console.error('[Discover] Error fetching following flags:', error)
+      setFollowingFlags([])
+    }
+  }
+
+  // Load current user's events for Discover & My Map
+  const fetchMyEvents = async () => {
+    console.log('[My Map] fetchMyEvents called', { currentUserId })
+    if (!currentUserId) {
+      setMyEvents([])
+      return
+    }
+    try {
+      const myEventsRes = await api.getMyEvents()
+      const events = myEventsRes?.events ?? []
+      console.log('[My Map] myEvents result', { count: events.length })
+
+      const pinData = events.map(event =>
+        eventToPinData(event, mapCenter.lat, mapCenter.lng)
+      )
+      setMyEvents(pinData)
+    } catch (error) {
+      console.error('[My Map] Error fetching my events:', error)
+      setMyEvents([])
     }
   }
 
@@ -590,7 +621,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       console.log('[My Map] Fetching flags for user:', currentUserId)
       let flags: Flag[] = []
       let userProfile: UserProfile | null = null
-      
+
       const directFlags = await api.getMyFlags()
       console.log('[My Map] api.getMyFlags() result', { count: directFlags?.length ?? 0, directFlags })
       if (directFlags && directFlags.length > 0) {
@@ -637,11 +668,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   // Load profile flags when user is logged in (and when username is available for fallback)
   useEffect(() => {
     fetchProfileFlags()
+    fetchMyEvents()
   }, [currentUserId, currentUsername])
 
-  // Load friends' flags for Discover map when username is available
+  // Load following flags for Discover map when username is available
   useEffect(() => {
-    fetchFriendFlags()
+    fetchFollowingFlags()
   }, [currentUsername])
 
   useEffect(() => {

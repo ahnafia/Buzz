@@ -15,7 +15,7 @@ import java.util.UUID;
 public class EventService {
 
     private static final Logger log = LoggerFactory.getLogger(EventService.class);
-    private static final int MAX_RADIUS_M = 40000; // ~25 mi
+    private static final int MAX_RADIUS_M = 40000000; // ~earth circumference
     private static final int MIN_RADIUS_M = 100;
     private static final int MAX_LIMIT = 500;
 

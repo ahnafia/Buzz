@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useBusinessEvents } from '../hooks/useProfile'
+import { useBusinessEvents, useProfile } from '../hooks/useProfile'
 import EventForm from '../components/EventForm'
 import type { CreateEventRequest } from '../types/api'
 import './CreateEventScreen.css'
@@ -8,12 +8,15 @@ import './CreateEventScreen.css'
 const CreateEventScreen = () => {
   const navigate = useNavigate()
   const { createEvent } = useBusinessEvents()
+  const { profile } = useProfile()
   const [isLoading, setIsLoading] = useState(false)
   const [location, setLocation] = useState<{ lat: number; lon: number } | null>(null)
 
-  // Get user's current location
+  // Get user's current location or business location
   useEffect(() => {
-    if (navigator.geolocation) {
+    if (profile?.lat && profile?.lon) {
+      setLocation({ lat: profile.lat, lon: profile.lon })
+    } else if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setLocation({
@@ -31,9 +34,9 @@ const CreateEventScreen = () => {
       // Geolocation not supported, use fallback
       setLocation({ lat: 40.7128, lon: -74.0060 })
     }
-  }, [])
+  }, [profile])
 
-  const handleSubmit = async (eventData: CreateEventRequest) => {
+  const handleSubmit = async (eventData: CreateEventRequest | unknown) => {
     if (!location) {
       alert('Location is required to create an event')
       return
@@ -41,7 +44,8 @@ const CreateEventScreen = () => {
 
     setIsLoading(true)
     try {
-      await createEvent(eventData)
+      // Cast to CreateEventRequest since we know this is a create flow
+      await createEvent(eventData as CreateEventRequest)
       navigate('/profile') // Navigate back to profile
     } catch (error) {
       console.error('Failed to create event:', error)

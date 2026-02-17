@@ -16,7 +16,14 @@ const LocationPickerMap = forwardRef<LocationPickerMapHandle, LocationPickerMapP
     const mapContainer = useRef<HTMLDivElement>(null)
     const map = useRef<L.Map | null>(null)
     const marker = useRef<L.Marker | null>(null)
-    const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null)
+    const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(initialLocation || null)
+
+    // Update internal state if prop changes
+    useEffect(() => {
+      if (initialLocation) {
+        setSelectedLocation(initialLocation)
+      }
+    }, [initialLocation])
 
     // Default center (Penn State area)
     const defaultCenter = initialLocation || { lat: 40.7934, lng: -77.8616 }
@@ -35,7 +42,7 @@ const LocationPickerMap = forwardRef<LocationPickerMapHandle, LocationPickerMapP
 
       // Ensure container has dimensions
       mapContainer.current.style.width = '100%'
-      mapContainer.current.style.height = '400px'
+      mapContainer.current.style.height = '100%'
 
       // Initialize map
       map.current = L.map(mapContainer.current, {
@@ -74,11 +81,11 @@ const LocationPickerMap = forwardRef<LocationPickerMapHandle, LocationPickerMapP
           className: 'location-picker-marker',
           html: '<div class="location-picker-dot"></div>',
           iconSize: [20, 20],
-          iconAnchor: [10, 10]
+          iconAnchor: [10, 10] // Center of the 20x20 icon
         })
 
-        marker.current = L.marker([location.lat, location.lng], { 
-          icon: locationIcon 
+        marker.current = L.marker([location.lat, location.lng], {
+          icon: locationIcon
         }).addTo(map.current!)
       })
 
@@ -103,6 +110,31 @@ const LocationPickerMap = forwardRef<LocationPickerMapHandle, LocationPickerMapP
         }
       }
     }, [defaultCenter.lat, defaultCenter.lng, onLocationSelect])
+
+    // Update marker when selectedLocation changes (e.g. from props)
+    useEffect(() => {
+      if (!map.current || !selectedLocation) return;
+
+      // Remove existing marker
+      if (marker.current) {
+        marker.current.remove()
+      }
+
+      const locationIcon = L.divIcon({
+        className: 'location-picker-marker',
+        html: '<div class="location-picker-dot"></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      })
+
+      marker.current = L.marker([selectedLocation.lat, selectedLocation.lng], {
+        icon: locationIcon
+      }).addTo(map.current)
+
+      // Pan to new location
+      map.current.setView([selectedLocation.lat, selectedLocation.lng], map.current.getZoom())
+
+    }, [selectedLocation])
 
     return (
       <div className="location-picker-map-container">
