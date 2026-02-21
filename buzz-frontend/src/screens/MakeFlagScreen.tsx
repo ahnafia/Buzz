@@ -1,11 +1,11 @@
-import { useState, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import LocationPickerMap from '../components/LocationPickerMap'
+import ImageUpload from '../components/ImageUpload'
 import '../components/LocationPickerMap.css'
 import './MakeFlagScreen.css'
 import { api } from '../utils/api'
-
-const ACCEPT_MEDIA = 'image/*,video/*'
+import { uploadFlagImages } from '../utils/storage'
 
 export const FLAG_COLORS = ['#64B9D3', '#FF9B56', '#F7CA1D', '#FF5B59'] as const
 
@@ -18,61 +18,14 @@ const MakeFlagScreen = () => {
   const [locationLabel, setLocationLabel] = useState('')
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState('')
-  const [mediaFiles, setMediaFiles] = useState<File[]>([])
+  const [imageUrls, setImageUrls] = useState<string[]>([])
   const [flagColor, setFlagColor] = useState<string | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const updatePreview = (files: File[]) => {
-    const first = files[0]
-    if (!first?.type.startsWith('image/') && !first?.type.startsWith('video/')) return
-    setPreviewUrl(prev => {
-      URL.revokeObjectURL(prev ?? '')
-      return URL.createObjectURL(first)
-    })
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files?.length) return
-    const next = Array.from(files)
-    const combined = [...mediaFiles, ...next]
-    setMediaFiles(combined)
-    updatePreview(combined)
-    e.target.value = ''
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragging(false)
-    const files = Array.from(e.dataTransfer.files).filter(
-      f => f.type.startsWith('image/') || f.type.startsWith('video/')
-    )
-    if (!files.length) return
-    const combined = [...mediaFiles, ...files]
-    setMediaFiles(combined)
-    updatePreview(combined)
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragging(false)
-  }
-
-  const clearMedia = () => {
-    setMediaFiles([])
-    setPreviewUrl(prev => { URL.revokeObjectURL(prev ?? ''); return null })
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
+  const handleImagesChange = useCallback((urls: string[]) => {
+    setImageUrls(urls)
+  }, [])
 
   const handleGenerate = async () => {
     setCreateError(null)
@@ -85,9 +38,33 @@ const MakeFlagScreen = () => {
       setCreateError('Please choose a location on the map.')
       return
     }
+    
     const color = flagColor ?? FLAG_COLORS[Math.floor(Math.random() * FLAG_COLORS.length)]
     setCreating(true)
+    
     try {
+      // Extract files from blob URLs for upload
+      const filesToUpload: File[] = []
+      for (const url of imageUrls) {
+        if (url.startsWith('blob:')) {
+          // This is a local file that needs to be uploaded
+          const response = await fetch(url)
+          const blob = await response.blob()
+          const file = new File([blob], `image_${Date.now()}.jpg`, { type: blob.type })
+          filesToUpload.push(file)
+        }
+      }
+
+      // Upload images if any
+      let uploadedImageUrls: string[] = []
+      if (filesToUpload.length > 0) {
+        uploadedImageUrls = await uploadFlagImages(filesToUpload)
+      }
+
+      // Include already uploaded images (non-blob URLs)
+      const existingUrls = imageUrls.filter(url => !url.startsWith('blob:'))
+      const allImageUrls = [...existingUrls, ...uploadedImageUrls]
+
       await api.createFlag({
         title: name,
         description: caption.trim() || null,
@@ -96,7 +73,7 @@ const MakeFlagScreen = () => {
         city: locationLabel.trim() || null,
         addressText: locationLabel.trim() || null,
         category: tags.trim() || null,
-        imageUrl: null,
+        imagePaths: allImageUrls.length > 0 ? allImageUrls : null,
         color,
         isPublic: true
       })
@@ -117,43 +94,15 @@ const MakeFlagScreen = () => {
 
       <div className="make-flag-body">
         <div className="make-flag-form-column">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={ACCEPT_MEDIA}
-            multiple
-            className="make-flag-file-input"
-            aria-label="Upload images or videos"
-            onChange={handleFileChange}
-          />
-          <div
-            className={`make-flag-square-area ${isDragging ? 'make-flag-square-area--dragging' : ''} ${mediaFiles.length ? 'make-flag-square-area--has-files' : ''}`}
-            onClick={() => fileInputRef.current?.click()}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            role="button"
-            tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInputRef.current?.click() } }}
-            aria-label="Upload images or videos. Click or drop files here."
-          >
-            {previewUrl ? (
-              <div className="make-flag-upload-preview">
-                {mediaFiles[0]?.type.startsWith('video/') ? (
-                  <video src={previewUrl} className="make-flag-upload-preview-media" muted playsInline />
-                ) : (
-                  <img src={previewUrl} alt="" className="make-flag-upload-preview-media" />
-                )}
-                <span className="make-flag-upload-count">{mediaFiles.length} file{mediaFiles.length !== 1 ? 's' : ''}</span>
-                <button type="button" className="make-flag-upload-clear" onClick={e => { e.stopPropagation(); clearMedia() }} aria-label="Remove uploads">✕</button>
-              </div>
-            ) : (
-              <>
-                <span className="make-flag-upload-placeholder-text">Drop images or videos here</span>
-                <span className="make-flag-upload-placeholder-sub">or click to browse</span>
-              </>
-            )}
+          <div className="make-flag-image-upload-section">
+            <ImageUpload
+              mode="multiple"
+              maxFiles={10}
+              onImagesChange={handleImagesChange}
+              className="make-flag-image-upload"
+            />
           </div>
+
           <div className="make-flag-field">
             <label className="make-flag-label">Flag Name:</label>
             <input

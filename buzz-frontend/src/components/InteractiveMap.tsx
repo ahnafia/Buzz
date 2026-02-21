@@ -214,29 +214,114 @@ function flagIconForFlag(pin: PinData, isSelected?: boolean) {
 }
 
 function buildPopupHtml(pin: PinData) {
-  console.log('Building popup for pin:', pin.title, 'imageUrl:', pin.imageUrl, 'type:', pin.type)
+  console.log('Building popup for pin:', pin.title, 'imageUrl:', pin.imageUrl, 'type:', pin.type, 'flagImageUrls:', pin.flagImageUrls)
 
-  const imageHtml = pin.imageUrl && pin.type === 'event'
-    ? `<div class="buzz-popup-image-container">
-         <img src="${pin.imageUrl}" alt="${pin.title}" class="buzz-popup-image" 
-              onerror="console.error('Popup image failed to load:', '${pin.imageUrl}'); this.style.display='none'; this.parentElement.innerHTML='<div class=\\'buzz-popup-image-fallback\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'#FF9B56\\' style=\\'width:48px;height:48px;\\'><path d=\\'M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z\\'/></svg></div>';" 
-              onload="console.log('Popup image loaded successfully:', '${pin.imageUrl}');" />
-       </div>`
-    : pin.type === 'event'
-      ? `<div class="buzz-popup-image-container">
-         <div class="buzz-popup-image-fallback">
-           <svg viewBox="0 0 24 24" fill="#FF9B56" style="width:48px;height:48px;">
-             <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
-           </svg>
+  // Helper function to escape HTML to prevent XSS
+  const escapeHtml = (text: string): string => {
+    const div = document.createElement('div')
+    div.textContent = text
+    return div.innerHTML
+  }
+
+  // Enhanced event image handling with better fallback and error states
+  const eventImageHtml = pin.type === 'event' 
+    ? pin.imageUrl 
+      ? `<div class="buzz-popup-image-container buzz-popup-image-container--event">
+           <img src="${escapeHtml(pin.imageUrl)}" 
+                alt="${escapeHtml(pin.title)} banner image" 
+                class="buzz-popup-image buzz-popup-image--event" 
+                onerror="console.error('Event banner image failed to load:', '${escapeHtml(pin.imageUrl)}'); this.style.display='none'; this.parentElement.classList.add('buzz-popup-image-container--error');" 
+                onload="console.log('Event banner image loaded successfully:', '${escapeHtml(pin.imageUrl)}'); this.parentElement.classList.add('buzz-popup-image-container--loaded');" />
+           <div class="buzz-popup-image-fallback buzz-popup-image-fallback--event">
+             <svg viewBox="0 0 24 24" fill="#FF9B56" style="width:48px;height:48px;">
+               <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+             </svg>
+             <span class="buzz-popup-image-fallback-text">Image unavailable</span>
+           </div>
+         </div>`
+      : '' // No image section when no banner image exists (Requirement 4.3)
+    : ''
+
+  // Flag image carousel HTML for multiple images (Requirements 2.1, 2.2, 2.3)
+  const flagImageHtml = pin.type === 'flag' && pin.flagImageUrls && pin.flagImageUrls.length > 0
+    ? `<div class="buzz-popup-flag-carousel" data-pin-id="${escapeHtml(pin.id)}">
+         <div class="buzz-popup-flag-carousel-main">
+           <div class="buzz-popup-flag-carousel-track" style="transform: translateX(0%)">
+             ${pin.flagImageUrls.map((imageUrl, index) => `
+               <div class="buzz-popup-flag-carousel-slide">
+                 <img src="${escapeHtml(imageUrl)}" 
+                      alt="Flag image ${index + 1} of ${pin.flagImageUrls!.length}" 
+                      class="buzz-popup-flag-carousel-image"
+                      onerror="console.error('Flag image failed to load:', '${escapeHtml(imageUrl)}'); this.style.display='none'; this.nextElementSibling.style.display='flex';" 
+                      onload="this.nextElementSibling.style.display='none';" />
+                 <div class="buzz-popup-flag-carousel-error" style="display: none;">
+                   <div class="buzz-popup-flag-carousel-error-icon">⚠️</div>
+                   <div class="buzz-popup-flag-carousel-error-text">Failed to load image</div>
+                 </div>
+               </div>
+             `).join('')}
+           </div>
+           ${pin.flagImageUrls.length > 1 ? `
+             <button class="buzz-popup-flag-carousel-nav buzz-popup-flag-carousel-nav--prev" 
+                     onclick="window.buzzFlagCarouselPrev && window.buzzFlagCarouselPrev('${escapeHtml(pin.id)}')"
+                     aria-label="Previous image">
+               <span class="buzz-popup-flag-carousel-nav-icon">‹</span>
+             </button>
+             <button class="buzz-popup-flag-carousel-nav buzz-popup-flag-carousel-nav--next" 
+                     onclick="window.buzzFlagCarouselNext && window.buzzFlagCarouselNext('${escapeHtml(pin.id)}')"
+                     aria-label="Next image">
+               <span class="buzz-popup-flag-carousel-nav-icon">›</span>
+             </button>
+             <div class="buzz-popup-flag-carousel-counter">
+               <span class="buzz-popup-flag-carousel-counter-current">1</span> / ${pin.flagImageUrls.length}
+             </div>
+           ` : ''}
          </div>
+         ${pin.flagImageUrls.length > 1 && pin.flagImageUrls.length <= 5 ? `
+           <div class="buzz-popup-flag-carousel-thumbnails">
+             ${pin.flagImageUrls.map((imageUrl, index) => `
+               <button class="buzz-popup-flag-carousel-thumbnail ${index === 0 ? 'buzz-popup-flag-carousel-thumbnail--active' : ''}" 
+                       onclick="window.buzzFlagCarouselGoTo && window.buzzFlagCarouselGoTo('${escapeHtml(pin.id)}', ${index})"
+                       aria-label="Go to image ${index + 1}">
+                 <img src="${escapeHtml(imageUrl)}" alt="Thumbnail ${index + 1}" class="buzz-popup-flag-carousel-thumbnail-image" />
+               </button>
+             `).join('')}
+           </div>
+         ` : pin.flagImageUrls.length > 1 ? `
+           <div class="buzz-popup-flag-carousel-dots">
+             ${pin.flagImageUrls.map((_, index) => `
+               <button class="buzz-popup-flag-carousel-dot ${index === 0 ? 'buzz-popup-flag-carousel-dot--active' : ''}" 
+                       onclick="window.buzzFlagCarouselGoTo && window.buzzFlagCarouselGoTo('${escapeHtml(pin.id)}', ${index})"
+                       aria-label="Go to image ${index + 1}"></button>
+             `).join('')}
+           </div>
+         ` : ''}
        </div>`
-      : ''
+    : '' // No image section when no flag images exist (Requirement 2.4)
 
+  // Enhanced popup content with better structure
   return `
-    <div class="buzz-popup-card">
-      ${imageHtml}
-      <h4 class="buzz-popup-title">${pin.title}</h4>
-      ${pin.type === 'event' ? `<button class="buzz-popup-details-btn" onclick="if(window.buzzNavigateToEvent) { window.buzzNavigateToEvent('${pin.id}'); }">View Details</button>` : ''}
+    <div class="buzz-popup-card ${pin.type === 'event' ? 'buzz-popup-card--event' : pin.type === 'flag' ? 'buzz-popup-card--flag' : ''}">
+      ${eventImageHtml}
+      ${flagImageHtml}
+      <div class="buzz-popup-content">
+        <h4 class="buzz-popup-title">${escapeHtml(pin.title)}</h4>
+        ${pin.description ? `<p class="buzz-popup-description">${escapeHtml(pin.description)}</p>` : ''}
+        ${pin.type === 'event' ? `
+          <div class="buzz-popup-event-details">
+            ${pin.hours ? `<div class="buzz-popup-event-time">${escapeHtml(pin.hours)}</div>` : ''}
+            ${pin.status ? `<div class="buzz-popup-event-status buzz-popup-event-status--${escapeHtml(pin.status.toLowerCase())}">${escapeHtml(pin.status)}</div>` : ''}
+          </div>
+          <button class="buzz-popup-details-btn" onclick="if(window.buzzNavigateToEvent) { window.buzzNavigateToEvent('${escapeHtml(pin.id)}'); }">
+            View Event Details
+          </button>
+        ` : pin.type === 'flag' && pin.ownerDisplayName ? `
+          <div class="buzz-popup-flag-details">
+            <div class="buzz-popup-flag-owner">By ${escapeHtml(pin.ownerDisplayName)}</div>
+            ${pin.address ? `<div class="buzz-popup-flag-location">${escapeHtml(pin.address)}</div>` : ''}
+          </div>
+        ` : ''}
+      </div>
     </div>
   `
 }
@@ -254,9 +339,95 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     (window as any).buzzNavigateToEvent = (id: string) => {
       navigate(`/event/${id}`)
     }
+
+    // Flag carousel navigation functions for popup context
+    const carouselStates = new Map<string, { currentIndex: number; totalImages: number }>()
+
+    const updateCarouselDisplay = (pinId: string, newIndex: number) => {
+      const carousel = document.querySelector(`[data-pin-id="${pinId}"]`)
+      if (!carousel) return
+
+      const track = carousel.querySelector('.buzz-popup-flag-carousel-track') as HTMLElement
+      const counter = carousel.querySelector('.buzz-popup-flag-carousel-counter-current')
+      const thumbnails = carousel.querySelectorAll('.buzz-popup-flag-carousel-thumbnail')
+      const dots = carousel.querySelectorAll('.buzz-popup-flag-carousel-dot')
+
+      if (track) {
+        track.style.transform = `translateX(-${newIndex * 100}%)`
+      }
+      if (counter) {
+        counter.textContent = (newIndex + 1).toString()
+      }
+
+      // Update thumbnail active state
+      thumbnails.forEach((thumb, index) => {
+        thumb.classList.toggle('buzz-popup-flag-carousel-thumbnail--active', index === newIndex)
+      })
+
+      // Update dot active state
+      dots.forEach((dot, index) => {
+        dot.classList.toggle('buzz-popup-flag-carousel-dot--active', index === newIndex)
+      })
+
+      // Update carousel state
+      const state = carouselStates.get(pinId)
+      if (state) {
+        state.currentIndex = newIndex
+      }
+    }
+
+    ;(window as any).buzzFlagCarouselPrev = (pinId: string) => {
+      const carousel = document.querySelector(`[data-pin-id="${pinId}"]`)
+      if (!carousel) return
+
+      let state = carouselStates.get(pinId)
+      if (!state) {
+        const images = carousel.querySelectorAll('.buzz-popup-flag-carousel-slide')
+        state = { currentIndex: 0, totalImages: images.length }
+        carouselStates.set(pinId, state)
+      }
+
+      const newIndex = state.currentIndex > 0 ? state.currentIndex - 1 : state.totalImages - 1
+      updateCarouselDisplay(pinId, newIndex)
+    }
+
+    ;(window as any).buzzFlagCarouselNext = (pinId: string) => {
+      const carousel = document.querySelector(`[data-pin-id="${pinId}"]`)
+      if (!carousel) return
+
+      let state = carouselStates.get(pinId)
+      if (!state) {
+        const images = carousel.querySelectorAll('.buzz-popup-flag-carousel-slide')
+        state = { currentIndex: 0, totalImages: images.length }
+        carouselStates.set(pinId, state)
+      }
+
+      const newIndex = state.currentIndex < state.totalImages - 1 ? state.currentIndex + 1 : 0
+      updateCarouselDisplay(pinId, newIndex)
+    }
+
+    ;(window as any).buzzFlagCarouselGoTo = (pinId: string, index: number) => {
+      const carousel = document.querySelector(`[data-pin-id="${pinId}"]`)
+      if (!carousel) return
+
+      let state = carouselStates.get(pinId)
+      if (!state) {
+        const images = carousel.querySelectorAll('.buzz-popup-flag-carousel-slide')
+        state = { currentIndex: 0, totalImages: images.length }
+        carouselStates.set(pinId, state)
+      }
+
+      if (index >= 0 && index < state.totalImages) {
+        updateCarouselDisplay(pinId, index)
+      }
+    }
+
     return () => {
-      // Clean up (optional, but good practice)
+      // Clean up
       delete (window as any).buzzNavigateToEvent
+      delete (window as any).buzzFlagCarouselPrev
+      delete (window as any).buzzFlagCarouselNext
+      delete (window as any).buzzFlagCarouselGoTo
     }
   }, [navigate])
 

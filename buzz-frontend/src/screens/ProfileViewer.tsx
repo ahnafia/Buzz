@@ -130,35 +130,36 @@ const ProfileViewer = () => {
                     profile.recentFlags.map((flag: Flag) => {
                       const flagThumb = getFlagFirstImage(flag)
                       return (
-                      <button
-                        key={flag.id}
-                        type="button"
-                        className={`list-item-btn ${pressedItem === flag.id ? 'pressed' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          navigate('/', {
-                            state: {
-                              findFriendsUsername: profile.username,
-                              focusFlag: { id: flag.id, lat: flag.lat, lon: flag.lon }
-                            }
-                          })
-                        }}
-                      >
-                        <span className="list-item-icon flag-icon">
-                          {flagThumb ? (
-                            <img src={flagThumb} alt="" className="list-item-flag-thumb" />
-                          ) : (
-                            <svg viewBox="0 0 24 24" fill="#FF9B56" width="20" height="20">
-                              <path d="M5 2v20h2V2H5zm4 2h11l-4 6 4 6H9V4z" />
-                            </svg>
-                          )}
-                        </span>
-                        <div className="list-item-text">
-                          <span className="list-item-title">{flag.title}</span>
-                          <span className="list-item-location">{flag.addressText || flag.city || 'Location not set'}</span>
-                        </div>
-                      </button>
-                    )})
+                        <button
+                          key={flag.id}
+                          type="button"
+                          className={`list-item-btn ${pressedItem === flag.id ? 'pressed' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate('/', {
+                              state: {
+                                findFriendsUsername: profile.username,
+                                focusFlag: { id: flag.id, lat: flag.lat, lon: flag.lon }
+                              }
+                            })
+                          }}
+                        >
+                          <span className="list-item-icon flag-icon">
+                            {flagThumb ? (
+                              <img src={flagThumb} alt="" className="list-item-flag-thumb" />
+                            ) : (
+                              <svg viewBox="0 0 24 24" fill="#FF9B56" width="20" height="20">
+                                <path d="M5 2v20h2V2H5zm4 2h11l-4 6 4 6H9V4z" />
+                              </svg>
+                            )}
+                          </span>
+                          <div className="list-item-text">
+                            <span className="list-item-title">{flag.title}</span>
+                            <span className="list-item-location">{flag.addressText || flag.city || 'Location not set'}</span>
+                          </div>
+                        </button>
+                      )
+                    })
                   ) : (
                     <div className="empty-state">No flags yet</div>
                   )}

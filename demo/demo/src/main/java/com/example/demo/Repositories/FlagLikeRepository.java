@@ -120,6 +120,7 @@ public class FlagLikeRepository {
                 rs.getString("address_text"),
                 rs.getString("category"),
                 rs.getString("image_url"),
+                new String[]{}, // imagePaths - empty array for now
                 rs.getBoolean("is_public"),
                 rs.getObject("expires_at", OffsetDateTime.class),
                 rs.getObject("created_at", OffsetDateTime.class),

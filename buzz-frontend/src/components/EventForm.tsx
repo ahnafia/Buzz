@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import LocationPickerMap, { type LocationPickerMapHandle } from './LocationPickerMap'
+import ImageUpload from './ImageUpload'
 import type { Event, CreateEventRequest, UpdateEventRequest } from '../types/api'
+import { uploadEventImage } from '../utils/storage'
 import './EventForm.css'
 import './LocationPickerMap.css'
 
@@ -24,6 +26,8 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [bannerImage, setBannerImage] = useState<string[]>(event?.imagePath ? [event.imagePath] : [])
+  const [imageUploading, setImageUploading] = useState(false)
   const mapRef = useRef<LocationPickerMapHandle>(null)
 
   // Update formData when location prop changes (initial load or profile fetch)
@@ -89,6 +93,29 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
     }
 
     try {
+      setImageUploading(true)
+      
+      // Handle image upload if there's a new image
+      let imagePath: string | undefined = undefined
+      
+      if (bannerImage.length > 0) {
+        const imageUrl = bannerImage[0]
+        
+        // Check if it's a blob URL (new upload) or existing URL
+        if (imageUrl.startsWith('blob:')) {
+          // Convert blob URL back to File for upload
+          const response = await fetch(imageUrl)
+          const blob = await response.blob()
+          const file = new File([blob], 'banner-image.jpg', { type: blob.type })
+          
+          // Upload the image
+          imagePath = await uploadEventImage(file)
+        } else {
+          // Use existing image URL
+          imagePath = imageUrl
+        }
+      }
+
       const eventData = {
         title: formData.title.trim(),
         category: formData.category.trim(),
@@ -96,12 +123,16 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
         startTime: new Date(formData.startTime).toISOString(),
         endTime: new Date(formData.endTime).toISOString(),
         lat: formData.lat,
-        lon: formData.lon
+        lon: formData.lon,
+        imagePath
       }
 
       await onSubmit(eventData)
     } catch (error) {
       console.error('Error submitting event:', error)
+      setErrors({ submit: 'Failed to create event. Please try again.' })
+    } finally {
+      setImageUploading(false)
     }
   }
 
@@ -119,6 +150,14 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
       lat: selectedLocation.lat,
       lon: selectedLocation.lng
     }))
+  }
+
+  const handleImageChange = (urls: string[]) => {
+    setBannerImage(urls)
+    // Clear any image-related errors
+    if (errors.image) {
+      setErrors(prev => ({ ...prev, image: '' }))
+    }
   }
 
   return (
@@ -189,6 +228,19 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
             />
           </div>
 
+          <div className="form-group">
+            <label>Banner Image</label>
+            <ImageUpload
+              mode="single"
+              onImagesChange={handleImageChange}
+              initialImages={bannerImage}
+              disabled={isLoading || imageUploading}
+              className="event-form__image-upload"
+              maxSizeBytes={10 * 1024 * 1024} // 10MB
+            />
+            {errors.image && <span className="error-message">{errors.image}</span>}
+          </div>
+
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="startTime">Start Time *</label>
@@ -222,18 +274,24 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
               type="button"
               onClick={onCancel}
               className="cancel-btn"
-              disabled={isLoading}
+              disabled={isLoading || imageUploading}
             >
               Cancel
             </button>
             <button
               type="submit"
               className="submit-btn"
-              disabled={isLoading}
+              disabled={isLoading || imageUploading}
             >
-              {isLoading ? 'Saving...' : event ? 'Update Event' : 'Create Event'}
+              {isLoading || imageUploading ? 'Saving...' : event ? 'Update Event' : 'Create Event'}
             </button>
           </div>
+
+          {errors.submit && (
+            <div className="error-message" role="alert">
+              {errors.submit}
+            </div>
+          )}
         </form>
       </div>
     </div>

@@ -6,4 +6,9 @@ export default defineConfig({
   plugins: [react()],
   // Ensure environment variables are properly loaded
   envPrefix: 'VITE_',
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+  },
 })

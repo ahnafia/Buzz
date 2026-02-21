@@ -471,6 +471,9 @@ export const api = {
 
       console.log('Deleting event:', eventId, 'with user ID:', currentUserId)
 
+      // First, get the event to retrieve image URLs for cleanup
+      const event = await api.getEvent(eventId)
+      
       const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
         method: 'DELETE',
         headers: {
@@ -485,6 +488,18 @@ export const api = {
         const errorText = await response.text()
         console.error('Delete error response:', errorText)
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`)
+      }
+
+      // Clean up associated images after successful deletion
+      if (event?.imagePath) {
+        try {
+          const { deleteImages } = await import('./storage')
+          await deleteImages([event.imagePath])
+          console.log('Successfully cleaned up event image:', event.imagePath)
+        } catch (imageError) {
+          console.error('Failed to clean up event image:', imageError)
+          // Don't fail the entire operation if image cleanup fails
+        }
       }
 
       return true
@@ -512,6 +527,7 @@ export const api = {
         addressText: request.addressText ?? null,
         category: request.category ?? null,
         imageUrl: request.imageUrl ?? null,
+        imagePaths: request.imagePaths ?? null,
         color: request.color ?? null,
         isPublic: request.isPublic ?? true
       })
@@ -521,6 +537,79 @@ export const api = {
       throw new Error(response.status === 401 ? 'Not logged in' : `Failed to create flag: ${response.status} ${text}`)
     }
     return await response.json()
+  },
+
+  deleteFlag: async (flagId: string): Promise<boolean> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      if (!currentUserId) throw new Error('No user ID available')
+
+      console.log('Deleting flag:', flagId, 'with user ID:', currentUserId)
+
+      // First, get the flag to retrieve image URLs for cleanup
+      // Note: This assumes there's a getFlag endpoint - if not, we'll handle gracefully
+      let flag: Flag | null = null
+      try {
+        const flagResponse = await fetch(`${API_BASE_URL}/flags/${flagId}`, {
+          headers: {
+            'X-User-Id': currentUserId,
+            'Content-Type': 'application/json'
+          }
+        })
+        if (flagResponse.ok) {
+          flag = await flagResponse.json()
+        }
+      } catch (error) {
+        console.warn('Could not fetch flag for cleanup:', error)
+      }
+
+      const response = await fetch(`${API_BASE_URL}/flags/${flagId}`, {
+        method: 'DELETE',
+        headers: {
+          'X-User-Id': currentUserId,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      console.log('Delete flag response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Delete flag error response:', errorText)
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`)
+      }
+
+      // Clean up associated images after successful deletion
+      if (flag) {
+        const imagesToDelete: string[] = []
+        
+        // Handle legacy imageUrl field
+        if (flag.imageUrl) {
+          imagesToDelete.push(flag.imageUrl)
+        }
+        
+        // Handle new imagePaths array
+        if (flag.imagePaths && flag.imagePaths.length > 0) {
+          imagesToDelete.push(...flag.imagePaths)
+        }
+
+        if (imagesToDelete.length > 0) {
+          try {
+            const { deleteImages } = await import('./storage')
+            await deleteImages(imagesToDelete)
+            console.log('Successfully cleaned up flag images:', imagesToDelete)
+          } catch (imageError) {
+            console.error('Failed to clean up flag images:', imageError)
+            // Don't fail the entire operation if image cleanup fails
+          }
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error deleting flag:', error)
+      throw error
+    }
   },
 
   getEvent: async (eventId: string): Promise<Event | null> => {

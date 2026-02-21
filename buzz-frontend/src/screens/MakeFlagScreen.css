@@ -65,6 +65,70 @@
   border-right: 1px solid rgba(255, 155, 86, 0.12);
 }
 
+.make-flag-image-upload-section {
+  width: 100%;
+  max-width: min(400px, 100%);
+  margin-bottom: 20px;
+}
+
+.make-flag-image-upload {
+  width: 100%;
+}
+
+/* Override ImageUpload styles to match MakeFlag design */
+.make-flag-image-upload .image-upload__drop-zone {
+  background: rgba(255, 155, 86, 0.12);
+  border: 2px dashed rgba(255, 155, 86, 0.4);
+  border-radius: 12px;
+  min-height: 140px;
+}
+
+.make-flag-image-upload .image-upload__drop-zone:hover {
+  background: rgba(255, 155, 86, 0.18);
+  border-color: rgba(255, 155, 86, 0.55);
+}
+
+.make-flag-image-upload .image-upload__drop-zone--dragging {
+  background: rgba(255, 155, 86, 0.22);
+  border-color: #FF9B56;
+  border-style: solid;
+}
+
+.make-flag-image-upload .image-upload__placeholder-text {
+  color: #b85e2a;
+  font-weight: 600;
+}
+
+.make-flag-image-upload .image-upload__placeholder-sub {
+  color: rgba(184, 94, 42, 0.8);
+}
+
+.make-flag-image-upload .image-upload__info {
+  color: #666;
+  font-size: 13px;
+}
+
+.make-flag-image-upload .image-upload__error {
+  color: #c62828;
+  font-size: 14px;
+}
+
+.make-flag-image-upload .image-upload__clear-all {
+  background: #FF9B56;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.make-flag-image-upload .image-upload__clear-all:hover {
+  background: #e8884a;
+}
+
 .make-flag-map-column {
   flex: 1 1 0%;
   min-width: 0;

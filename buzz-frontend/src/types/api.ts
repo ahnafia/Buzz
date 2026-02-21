@@ -92,7 +92,8 @@ export interface Flag {
   city?: string
   addressText?: string  // Human-readable address for display
   category: string
-  imageUrl?: string
+  imageUrl?: string // Legacy field for backward compatibility
+  imagePaths?: string[] // Array of image URLs (preferred)
   /** Hex color for the flag icon (e.g. #64B9D3, #FF9B56, #F7CA1D, #FF5B59) */
   color?: string
   isPublic: boolean
@@ -109,7 +110,8 @@ export interface CreateFlagRequest {
   city?: string | null
   addressText?: string | null
   category?: string | null
-  imageUrl?: string | null
+  imageUrl?: string | null // Legacy field for backward compatibility
+  imagePaths?: string[] | null // Array of image URLs (preferred)
   /** Hex color for the flag icon. If omitted, frontend assigns one at random. */
   color?: string | null
   isPublic?: boolean

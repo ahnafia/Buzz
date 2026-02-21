@@ -129,6 +129,7 @@ public class ProfileFeaturesTest {
                 "Madison Square Garden, New York, NY",
                 "event",
                 "https://example.com/concert.jpg",
+                new String[]{}, // imagePaths - empty array for now
                 true
         );
         
@@ -143,6 +144,7 @@ public class ProfileFeaturesTest {
                 "Madison Square Garden, New York, NY",
                 "event",
                 "https://example.com/concert.jpg",
+                new String[]{}, // imagePaths - empty array for now
                 true,
                 OffsetDateTime.now().plusDays(7),
                 OffsetDateTime.now(),
