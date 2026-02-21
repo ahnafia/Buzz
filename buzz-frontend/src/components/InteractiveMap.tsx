@@ -105,8 +105,8 @@ function flagToPinData(
   }
 }
 
-/** Convert Event to PinData */
-function eventToPinData(event: Event, _userLat: number, _userLon: number): PinData {
+/** Convert Event to PinData. Use ownerDisplayName when provided so the pin shows display name instead of owner ID. */
+function eventToPinData(event: Event, _userLat: number, _userLon: number, ownerDisplayName?: string): PinData {
   // Calculate approximate distance in feet (rough calculation)
   const startDate = new Date(event.startTime)
   const expiresDate = new Date(event.expiresAt)
@@ -129,7 +129,7 @@ function eventToPinData(event: Event, _userLat: number, _userLon: number): PinDa
     hours: `${startDate.toLocaleDateString()} at ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${expiresDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
     tips: `Status: ${status}`,
     status: status,
-    ownerDisplayName: event.owner,
+    ownerDisplayName: ownerDisplayName ?? event.owner,
     type: 'event',
     imageUrl: event.imagePath
   }
@@ -458,7 +458,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   const [viewedUsername, setViewedUsername] = useState<string | null>(null)
   const [userSuggestions, setUserSuggestions] = useState<UserProfile[]>([])
   const [userSuggestionsLoading, setUserSuggestionsLoading] = useState(false)
-  const { currentUserId, currentUsername } = useUser()
+  const { currentUserId, currentUsername, backendUser } = useUser()
   const [mapMode, setMapMode] = useState<'Discover' | 'Find Friends' | 'My Map'>('Discover')
   const [mapModeDropdownOpen, setMapModeDropdownOpen] = useState(false)
   const mapModeDropdownRef = useRef<HTMLDivElement>(null)
@@ -725,9 +725,20 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
         console.log('[Events] Converted to events', { count: events.length, events })
         setEvents(events)
 
+        // Resolve owner IDs to display names (business name for businesses, else display name)
+        const ownerIds = [...new Set(events.map(e => e.owner).filter(Boolean))]
+        const ownerDisplayNames = new Map<string, string>()
+        await Promise.all(
+          ownerIds.map(async (id) => {
+            const user = await api.getUserById(id)
+            const name = user?.businessName ?? user?.displayName ?? user?.username
+            if (name) ownerDisplayNames.set(id, name)
+          })
+        )
+
         // Convert events to pins (flags come from user profile)
         const eventPinData = events.map(event =>
-          eventToPinData(event, mapCenter.lat, mapCenter.lng)
+          eventToPinData(event, mapCenter.lat, mapCenter.lng, ownerDisplayNames.get(event.owner))
         )
         setEventPins(eventPinData)
         console.log('[Events] Set eventPins', { count: eventPinData.length, eventPinData })
@@ -795,8 +806,9 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       const events = myEventsRes?.events ?? []
       console.log('[My Map] myEvents result', { count: events.length })
 
+      const myDisplayName = backendUser?.businessName ?? backendUser?.displayName ?? backendUser?.username
       const pinData = events.map(event =>
-        eventToPinData(event, mapCenter.lat, mapCenter.lng)
+        eventToPinData(event, mapCenter.lat, mapCenter.lng, myDisplayName)
       )
       setMyEvents(pinData)
     } catch (error) {

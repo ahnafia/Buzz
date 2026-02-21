@@ -940,6 +940,17 @@
   background: #e8894d;
 }
 
+.save-settings-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.settings-save-error {
+  color: #c00;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .business-profile-body {

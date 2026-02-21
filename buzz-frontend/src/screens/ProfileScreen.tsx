@@ -78,38 +78,97 @@ const EventCard = ({ event, onEdit, onDelete, onCopyLink }: {
   )
 }
 
-const BusinessSettings = ({ profile, isOpen, onToggle }: { 
+const BusinessSettings = ({ profile, isOpen, onToggle, onSaveSuccess }: { 
   profile: any, 
   isOpen: boolean, 
-  onToggle: () => void 
-}) => (
-  <div className="business-settings">
-    <button className="settings-toggle" onClick={onToggle}>
-      Business Settings {isOpen ? '▼' : '▶'}
-    </button>
-    {isOpen && (
-      <div className="settings-content">
-        <div className="setting-field">
-          <label>Business Name</label>
-          <input type="text" defaultValue={profile.businessName || profile.displayName} />
+  onToggle: () => void,
+  onSaveSuccess?: () => void | Promise<void>
+}) => {
+  const [businessName, setBusinessName] = useState(profile.businessName || profile.displayName || '')
+  const [businessCategory, setBusinessCategory] = useState(profile.businessCategory || '')
+  const [location, setLocation] = useState(profile.addressText || profile.city || '')
+  const [contactEmail, setContactEmail] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Sync local state when profile changes (e.g. after refetch)
+  useEffect(() => {
+    setBusinessName(profile.businessName || profile.displayName || '')
+    setBusinessCategory(profile.businessCategory || '')
+    setLocation(profile.addressText || profile.city || '')
+  }, [profile.businessName, profile.displayName, profile.businessCategory, profile.addressText, profile.city])
+
+  const handleSave = async () => {
+    setSaveError(null)
+    setSaving(true)
+    try {
+      await api.updateCurrentUserProfile({
+        businessName: businessName.trim() || undefined,
+        businessCategory: businessCategory.trim() || undefined,
+        addressText: location.trim() || undefined
+      })
+      await onSaveSuccess?.()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="business-settings">
+      <button className="settings-toggle" onClick={onToggle}>
+        Business Settings {isOpen ? '▼' : '▶'}
+      </button>
+      {isOpen && (
+        <div className="settings-content">
+          <div className="setting-field">
+            <label>Business Name</label>
+            <input
+              type="text"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+            />
+          </div>
+          <div className="setting-field">
+            <label>Category</label>
+            <input
+              type="text"
+              value={businessCategory}
+              onChange={(e) => setBusinessCategory(e.target.value)}
+            />
+          </div>
+          <div className="setting-field">
+            <label>Location</label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="setting-field">
+            <label>Contact Email</label>
+            <input
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="business@example.com"
+            />
+          </div>
+          {saveError && <div className="settings-save-error" role="alert">{saveError}</div>}
+          <button
+            type="button"
+            className="save-settings-btn"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
         </div>
-        <div className="setting-field">
-          <label>Category</label>
-          <input type="text" defaultValue={profile.businessCategory || ''} />
-        </div>
-        <div className="setting-field">
-          <label>Location</label>
-          <input type="text" defaultValue={profile.addressText || profile.city || ''} />
-        </div>
-        <div className="setting-field">
-          <label>Contact Email</label>
-          <input type="email" defaultValue="" placeholder="business@example.com" />
-        </div>
-        <button className="save-settings-btn">Save Changes</button>
-      </div>
-    )}
-  </div>
-)
+      )}
+    </div>
+  )
+}
 
 const ProfileAvatar = ({ profileImageUrl, displayName }: { profileImageUrl?: string, displayName?: string }) => (
   <div className="list-item-avatar">
@@ -144,7 +203,7 @@ const ProfileScreen = () => {
     }
   }, [username, navigate])
 
-  const { profile, loading, error } = useProfile(username || undefined)
+  const { profile, loading, error, refetch } = useProfile(username || undefined)
   const { friends, refetch: refetchFriends } = useFriends(profile?.username || '')
 
   const [activeTab, setActiveTab] = useState<'flag' | 'friends' | 'likes' | 'find-friends' | null>('flag')
@@ -416,6 +475,7 @@ const ProfileScreen = () => {
             profile={profile}
             isOpen={businessSettingsOpen}
             onToggle={() => setBusinessSettingsOpen(!businessSettingsOpen)}
+            onSaveSuccess={refetch}
           />
         </div>
       </div>
