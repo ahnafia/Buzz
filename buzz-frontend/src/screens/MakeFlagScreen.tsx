@@ -28,44 +28,67 @@ const MakeFlagScreen = () => {
   }, [])
 
   const handleGenerate = async () => {
+    console.log('🚀 handleGenerate started')
     setCreateError(null)
     const name = flagName.trim()
+    console.log('📝 Flag name:', name)
+    
     if (!name) {
+      console.error('❌ No flag name provided')
       setCreateError('Please enter a flag name.')
       return
     }
     if (!location) {
+      console.error('❌ No location selected')
       setCreateError('Please choose a location on the map.')
       return
     }
     
+    console.log('📍 Selected location:', location)
+    console.log('🏷️ Location label:', locationLabel)
+    console.log('💬 Caption:', caption)
+    console.log('🏷️ Tags:', tags)
+    console.log('🖼️ Image URLs:', imageUrls)
+    
     const color = flagColor ?? FLAG_COLORS[Math.floor(Math.random() * FLAG_COLORS.length)]
+    console.log('🎨 Selected color:', color)
+    
     setCreating(true)
     
     try {
+      console.log('🔄 Processing images...')
       // Extract files from blob URLs for upload
       const filesToUpload: File[] = []
       for (const url of imageUrls) {
         if (url.startsWith('blob:')) {
+          console.log('📤 Processing blob URL for upload:', url)
           // This is a local file that needs to be uploaded
           const response = await fetch(url)
           const blob = await response.blob()
           const file = new File([blob], `image_${Date.now()}.jpg`, { type: blob.type })
           filesToUpload.push(file)
+          console.log('✅ Created file for upload:', { name: file.name, size: file.size, type: file.type })
         }
       }
 
       // Upload images if any
       let uploadedImageUrls: string[] = []
       if (filesToUpload.length > 0) {
+        console.log('📤 Uploading', filesToUpload.length, 'files...')
         uploadedImageUrls = await uploadFlagImages(filesToUpload)
+        console.log('✅ Images uploaded successfully:', uploadedImageUrls)
+      } else {
+        console.log('ℹ️ No files to upload')
       }
 
       // Include already uploaded images (non-blob URLs)
       const existingUrls = imageUrls.filter(url => !url.startsWith('blob:'))
+      console.log('🔗 Existing URLs (non-blob):', existingUrls)
+      
       const allImageUrls = [...existingUrls, ...uploadedImageUrls]
+      console.log('🖼️ All image URLs combined:', allImageUrls)
 
-      await api.createFlag({
+      const flagRequest = {
         title: name,
         description: caption.trim() || null,
         lat: location.lat,
@@ -76,12 +99,26 @@ const MakeFlagScreen = () => {
         imagePaths: allImageUrls.length > 0 ? allImageUrls : null,
         color,
         isPublic: true
-      })
+      }
+      
+      console.log('📋 Final flag request object:', flagRequest)
+      console.log('🚀 Calling api.createFlag...')
+
+      await api.createFlag(flagRequest)
+      
+      console.log('✅ Flag created successfully, navigating to home')
       navigate('/', { replace: true })
     } catch (e) {
+      console.error('❌ Error creating flag:', e)
+      console.error('❌ Error details:', {
+        message: e instanceof Error ? e.message : 'Unknown error',
+        stack: e instanceof Error ? e.stack : undefined,
+        error: e
+      })
       setCreateError(e instanceof Error ? e.message : 'Failed to create flag.')
     } finally {
       setCreating(false)
+      console.log('🏁 handleGenerate finished')
     }
   }
 

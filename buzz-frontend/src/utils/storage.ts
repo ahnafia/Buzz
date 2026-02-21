@@ -153,24 +153,44 @@ export const uploadEventImage = async (file: File, bucket: string = 'Media'): Pr
  * @returns Promise<string[]> Array of public URLs for uploaded images
  */
 export const uploadFlagImages = async (files: File[], bucket: string = 'Media'): Promise<string[]> => {
-  if (!files.length) return []
+  console.log('🚀 uploadFlagImages called with', files.length, 'files')
+  console.log('📁 Files to upload:', files.map(f => ({ name: f.name, size: f.size, type: f.type })))
+
+  if (!files.length) {
+    console.log('ℹ️ No files to upload, returning empty array')
+    return []
+  }
 
   // Check if user is authenticated
+  console.log('🔐 Checking user authentication...')
   const { data: { user } } = await supabase.auth.getUser()
+  console.log('👤 User authentication result:', user ? 'authenticated' : 'not authenticated')
+
   if (!user) {
+    console.error('❌ User not authenticated')
     throw new Error('User must be authenticated to upload images')
   }
 
-  const uploadPromises = files.map(async (file) => {
+  const uploadPromises = files.map(async (file, index) => {
     try {
+      console.log(`🔄 Processing file ${index + 1}/${files.length}: ${file.name}`)
+
       // Compress the image before upload with optimized settings for flags
+      console.log('🗜️ Compressing image...')
       const compressedFile = await compressImage(file, 1600, 1600, 0.8)
+      console.log('✅ Image compressed:', {
+        originalSize: file.size,
+        compressedSize: compressedFile.size,
+        reduction: `${((1 - compressedFile.size / file.size) * 100).toFixed(1)}%`
+      })
 
       // Generate unique filename and organize in flags subdirectory
       const fileName = generateFileName(file.name)
       const filePath = `flags/${fileName}`
+      console.log('📝 Generated file path:', filePath)
 
       // Upload file to Supabase storage with enhanced caching
+      console.log('📤 Uploading to Supabase storage...')
       const { error } = await supabase.storage
         .from(bucket)
         .upload(filePath, compressedFile, {
@@ -180,27 +200,32 @@ export const uploadFlagImages = async (files: File[], bucket: string = 'Media'):
         })
 
       if (error) {
-        console.error('Error uploading flag image:', error)
+        console.error('❌ Error uploading flag image:', error)
         throw new Error(`Failed to upload ${file.name}: ${error.message}`)
       }
+
+      console.log('✅ File uploaded successfully to:', filePath)
 
       // Get public URL for the uploaded file
       const { data: urlData } = supabase.storage
         .from(bucket)
         .getPublicUrl(filePath)
 
+      console.log('🔗 Generated public URL:', urlData.publicUrl)
       return urlData.publicUrl
     } catch (error) {
-      console.error(`Error uploading flag image ${file.name}:`, error)
+      console.error(`❌ Error uploading flag image ${file.name}:`, error)
       throw error
     }
   })
 
   try {
+    console.log('⏳ Waiting for all uploads to complete...')
     const urls = await Promise.all(uploadPromises)
+    console.log('✅ All uploads completed successfully:', urls)
     return urls
   } catch (error) {
-    console.error('Error uploading flag images:', error)
+    console.error('❌ Error uploading flag images:', error)
     throw error
   }
 }

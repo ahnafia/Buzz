@@ -7,6 +7,7 @@ public record UpdateFlagRequest(
         String addressText,  // Human-readable address for display
         String category,
         String imageUrl,
+        String color,        // Hex color for flag display
         Boolean isPublic
 ) {
 }

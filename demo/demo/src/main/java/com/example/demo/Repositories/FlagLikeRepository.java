@@ -80,6 +80,7 @@ public class FlagLikeRepository {
               f.address_text,
               f.category,
               f.image_url,
+              f.color,
               f.is_public,
               f.expires_at,
               f.created_at,
@@ -121,6 +122,7 @@ public class FlagLikeRepository {
                 rs.getString("category"),
                 rs.getString("image_url"),
                 new String[]{}, // imagePaths - empty array for now
+                rs.getString("color"),
                 rs.getBoolean("is_public"),
                 rs.getObject("expires_at", OffsetDateTime.class),
                 rs.getObject("created_at", OffsetDateTime.class),

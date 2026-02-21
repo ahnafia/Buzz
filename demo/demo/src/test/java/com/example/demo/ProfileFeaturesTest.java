@@ -130,6 +130,7 @@ public class ProfileFeaturesTest {
                 "event",
                 "https://example.com/concert.jpg",
                 new String[]{}, // imagePaths - empty array for now
+                "#FF9B56", // color
                 true
         );
         
@@ -145,6 +146,7 @@ public class ProfileFeaturesTest {
                 "event",
                 "https://example.com/concert.jpg",
                 new String[]{}, // imagePaths - empty array for now
+                "#FF9B56", // color
                 true,
                 OffsetDateTime.now().plusDays(7),
                 OffsetDateTime.now(),
@@ -161,6 +163,8 @@ public class ProfileFeaturesTest {
                 eq("Madison Square Garden, New York, NY"),
                 eq("event"),
                 eq("https://example.com/concert.jpg"),
+                eq(new String[]{}), // imagePaths
+                eq("#FF9B56"), // color
                 eq(true),
                 any(OffsetDateTime.class)
         )).thenReturn(testFlagId);

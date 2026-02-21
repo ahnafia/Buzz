@@ -15,6 +15,7 @@ public record Flag(
         String category,
         String imageUrl,     // Legacy field for backward compatibility
         String[] imagePaths, // Array of image URLs (preferred)
+        String color,        // Hex color for flag display
         boolean isPublic,
         OffsetDateTime expiresAt,
         OffsetDateTime createdAt,

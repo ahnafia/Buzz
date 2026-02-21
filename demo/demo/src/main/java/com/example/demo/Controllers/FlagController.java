@@ -24,15 +24,34 @@ public class FlagController {
             @RequestBody CreateFlagRequest request,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     ) {
+        System.out.println("🚀 createFlag endpoint called");
+        System.out.println("📋 Request: " + request);
+        System.out.println("👤 User ID Header: " + userIdHeader);
+        
         if (userIdHeader == null || userIdHeader.isBlank()) {
+            System.out.println("❌ No user ID header provided");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         try {
             UUID userId = UUID.fromString(userIdHeader);
+            System.out.println("✅ Parsed user ID: " + userId);
+            
+            System.out.println("🔄 Calling service.createFlag...");
             Flag flag = service.createFlag(request, userId);
+            System.out.println("✅ Flag created successfully: " + flag);
             return ResponseEntity.status(HttpStatus.CREATED).body(flag);
+        } catch (IllegalArgumentException e) {
+            System.out.println("❌ IllegalArgumentException: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (org.springframework.dao.DataAccessException e) {
+            System.out.println("❌ Database error: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            System.out.println("❌ Unexpected exception: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 

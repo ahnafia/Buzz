@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>API Test</h1>
+    <button onclick="testFlagsEndpoint()">Test Flags Endpoint</button>
+    <div id="result"></div>
+
+    <script>
+        async function testFlagsEndpoint() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Test GET request first
+                console.log('Testing GET /flags/nearby...');
+                const getResponse = await fetch('http://localhost:8080/flags/nearby?lat=40.7128&lon=-74.0060&radiusMiles=5.0');
+                console.log('GET Response:', getResponse.status, getResponse.statusText);
+                
+                // Test POST request with minimal data
+                console.log('Testing POST /flags...');
+                const postResponse = await fetch('http://localhost:8080/flags', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': 'test-user-id'
+                    },
+                    body: JSON.stringify({
+                        title: 'Test Flag',
+                        description: 'Test Description',
+                        lat: 40.7128,
+                        lon: -74.0060,
+                        city: 'New York',
+                        addressText: 'Test Address',
+                        category: 'test',
+                        imageUrl: null,
+                        imagePaths: null,
+                        color: '#64B9D3',
+                        isPublic: true
+                    })
+                });
+                
+                console.log('POST Response:', postResponse.status, postResponse.statusText);
+                const responseText = await postResponse.text();
+                console.log('POST Response Body:', responseText);
+                
+                resultDiv.innerHTML = `
+                    <h3>Results:</h3>
+                    <p>GET Status: ${getResponse.status}</p>
+                    <p>POST Status: ${postResponse.status}</p>
+                    <p>POST Response: ${responseText}</p>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

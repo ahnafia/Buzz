@@ -3,10 +3,19 @@ import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequ
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
+console.log('🌐 API Configuration:', {
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  API_BASE_URL,
+  NODE_ENV: import.meta.env.NODE_ENV,
+  MODE: import.meta.env.MODE
+})
+
 // Helper function to get current user ID (you might want to implement proper auth later)
 const getCurrentUserId = (): string | null => {
   // For now, return a mock user ID - in a real app this would come from auth
-  return localStorage.getItem('currentUserId')
+  const userId = localStorage.getItem('currentUserId')
+  console.log('🔍 getCurrentUserId called, returning:', userId)
+  return userId
 }
 
 export const api = {
@@ -52,11 +61,10 @@ export const api = {
       const createUserData = {
         username: userData.username,
         email: userData.email,
-        password: 'supabase-auth', // Placeholder since we're using Supabase auth
+        password: 'supabase-auth-placeholder', // Placeholder since we're using Supabase auth
         displayName: userData.displayName,
-        userType: 'PERSONAL', // Default user type
-        businessName: null,
-        businessCategory: null
+        userType: 'PERSONAL' // Default user type
+        // Omit businessName and businessCategory for PERSONAL users
       }
 
       console.log('📤 Creating new user with data:', createUserData)
@@ -510,33 +518,65 @@ export const api = {
   },
 
   createFlag: async (request: CreateFlagRequest): Promise<Flag> => {
+    console.log('🚀 createFlag called with request:', request)
+    
     const currentUserId = getCurrentUserId()
-    if (!currentUserId) throw new Error('Not logged in')
+    console.log('🔍 Current user ID:', currentUserId)
+    
+    if (!currentUserId) {
+      console.error('❌ No current user ID found')
+      throw new Error('Not logged in')
+    }
+
+    const requestBody = {
+      title: request.title,
+      description: request.description ?? null,
+      lat: request.lat,
+      lon: request.lon,
+      city: request.city ?? null,
+      addressText: request.addressText ?? null,
+      category: request.category ?? null,
+      imageUrl: request.imageUrl ?? null,
+      imagePaths: request.imagePaths ?? null,
+      color: request.color ?? null,
+      isPublic: request.isPublic ?? true
+    }
+    
+    console.log('📤 Request body to be sent:', requestBody)
+    console.log('📡 Making POST request to:', `${API_BASE_URL}/flags`)
+    console.log('📡 Request headers:', {
+      'Content-Type': 'application/json',
+      'X-User-Id': currentUserId
+    })
+
     const response = await fetch(`${API_BASE_URL}/flags`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-User-Id': currentUserId
       },
-      body: JSON.stringify({
-        title: request.title,
-        description: request.description ?? null,
-        lat: request.lat,
-        lon: request.lon,
-        city: request.city ?? null,
-        addressText: request.addressText ?? null,
-        category: request.category ?? null,
-        imageUrl: request.imageUrl ?? null,
-        imagePaths: request.imagePaths ?? null,
-        color: request.color ?? null,
-        isPublic: request.isPublic ?? true
-      })
+      body: JSON.stringify(requestBody)
     })
+    
+    console.log('📡 Response status:', response.status)
+    console.log('📡 Response ok:', response.ok)
+    console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()))
+    
     if (!response.ok) {
       const text = await response.text()
+      console.error('❌ Backend error response:', text)
+      console.error('❌ Full response details:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        body: text
+      })
       throw new Error(response.status === 401 ? 'Not logged in' : `Failed to create flag: ${response.status} ${text}`)
     }
-    return await response.json()
+    
+    const result = await response.json()
+    console.log('✅ Successfully created flag:', result)
+    return result
   },
 
   deleteFlag: async (flagId: string): Promise<boolean> => {

@@ -27,18 +27,20 @@ public class FlagRepository {
             String addressText,
             String category,
             String imageUrl,
+            String[] imagePaths,
+            String color,
             boolean isPublic,
             OffsetDateTime expiresAt
     ) {
         UUID flagId = UUID.randomUUID();
         String sql = """
             INSERT INTO flags (id, user_id, title, description, location, lat, lon, 
-                              city, address_text, category, image_url, is_public, expires_at)
+                              city, address_text, category, image_paths, color, is_public, expires_at)
             VALUES (?, ?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, 
-                   ?, ?, ?, ?, ?, ?)
+                   ?, ?, ?, ?, ?, ?, ?)
         """;
         jdbc.update(sql, flagId, userId, title, description, lon, lat, lat, lon, city, 
-                   addressText, category, imageUrl, isPublic, expiresAt);
+                   addressText, category, imagePaths, color, isPublic, expiresAt);
         return flagId;
     }
 
@@ -46,7 +48,7 @@ public class FlagRepository {
         String sql = """
             SELECT id, user_id, title, description,
                    st_y(location::geometry) as lat, st_x(location::geometry) as lon,
-                   city, address_text, category, image_url, is_public, expires_at, created_at, updated_at
+                   city, address_text, category, image_paths, color, is_public, expires_at, created_at, updated_at
             FROM flags WHERE id = ? AND (expires_at IS NULL OR expires_at > NOW())
         """;
         List<Flag> results = jdbc.query(sql, this::mapFlag, id);
@@ -57,7 +59,7 @@ public class FlagRepository {
         String sql = """
             SELECT id, user_id, title, description,
                    st_y(location::geometry) as lat, st_x(location::geometry) as lon,
-                   city, address_text, category, image_url, is_public, expires_at, created_at, updated_at
+                   city, address_text, category, image_paths, color, is_public, expires_at, created_at, updated_at
             FROM flags WHERE user_id = ? AND is_public = true 
                    AND (expires_at IS NULL OR expires_at > NOW())
             ORDER BY created_at DESC
@@ -75,7 +77,7 @@ public class FlagRepository {
         String sql = """
             SELECT id, user_id, title, description,
                    st_y(location::geometry) as lat, st_x(location::geometry) as lon,
-                   city, address_text, category, image_url, is_public, expires_at, created_at, updated_at
+                   city, address_text, category, image_paths, color, is_public, expires_at, created_at, updated_at
             FROM flags WHERE is_public = true 
                    AND (expires_at IS NULL OR expires_at > NOW())
                    AND st_dwithin(location, 
@@ -93,7 +95,7 @@ public class FlagRepository {
             String city,
             String addressText,
             String category,
-            String imageUrl,
+            String color,
             Boolean isPublic
     ) {
         StringBuilder sql = new StringBuilder("UPDATE flags SET updated_at = NOW()");
@@ -119,9 +121,9 @@ public class FlagRepository {
             sql.append(", category = ?");
             params.add(category);
         }
-        if (imageUrl != null) {
-            sql.append(", image_url = ?");
-            params.add(imageUrl);
+        if (color != null) {
+            sql.append(", color = ?");
+            params.add(color);
         }
         if (isPublic != null) {
             sql.append(", is_public = ?");
@@ -148,6 +150,17 @@ public class FlagRepository {
     }
 
     private Flag mapFlag(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        // Handle image_paths array from database
+        java.sql.Array imagePathsArray = rs.getArray("image_paths");
+        String[] imagePaths = new String[]{};
+        if (imagePathsArray != null) {
+            Object[] arrayData = (Object[]) imagePathsArray.getArray();
+            imagePaths = new String[arrayData.length];
+            for (int i = 0; i < arrayData.length; i++) {
+                imagePaths[i] = arrayData[i] != null ? arrayData[i].toString() : null;
+            }
+        }
+        
         return new Flag(
                 UUID.fromString(rs.getString("id")),
                 UUID.fromString(rs.getString("user_id")),
@@ -158,8 +171,9 @@ public class FlagRepository {
                 rs.getString("city"),
                 rs.getString("address_text"),
                 rs.getString("category"),
-                rs.getString("image_url"),
-                new String[]{}, // imagePaths - empty array for now
+                null, // imageUrl is legacy, set to null
+                imagePaths,
+                rs.getString("color"),
                 rs.getBoolean("is_public"),
                 rs.getObject("expires_at", OffsetDateTime.class),
                 rs.getObject("created_at", OffsetDateTime.class),

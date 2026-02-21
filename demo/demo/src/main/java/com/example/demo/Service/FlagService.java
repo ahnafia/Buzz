@@ -23,6 +23,9 @@ public class FlagService {
     }
 
     public Flag createFlag(CreateFlagRequest request, UUID userId) {
+        System.out.println("🚀 FlagService.createFlag called with request: " + request);
+        System.out.println("👤 User ID: " + userId);
+        
         OffsetDateTime expiresAt = request.isPublic() != null ? 
                 OffsetDateTime.now().plusDays(7) : null;
 
@@ -35,6 +38,19 @@ public class FlagService {
             imageUrl = request.imageUrl();
         }
 
+        System.out.println("📋 Creating flag with parameters:");
+        System.out.println("  - title: " + request.title());
+        System.out.println("  - description: " + request.description());
+        System.out.println("  - lat: " + request.lat());
+        System.out.println("  - lon: " + request.lon());
+        System.out.println("  - city: " + request.city());
+        System.out.println("  - addressText: " + request.addressText());
+        System.out.println("  - category: " + request.category());
+        System.out.println("  - imageUrl: " + imageUrl);
+        System.out.println("  - color: " + request.color());
+        System.out.println("  - isPublic: " + (request.isPublic() != null ? request.isPublic() : true));
+        System.out.println("  - expiresAt: " + expiresAt);
+
         UUID flagId = repo.createFlag(
                 userId,
                 request.title(),
@@ -45,10 +61,16 @@ public class FlagService {
                 request.addressText(),
                 request.category(),
                 imageUrl,
+                request.imagePaths(),
+                request.color(),
                 request.isPublic() != null ? request.isPublic() : true,
                 expiresAt
         );
-        return repo.fetchFlagById(flagId);
+        
+        System.out.println("✅ Flag created with ID: " + flagId);
+        Flag result = repo.fetchFlagById(flagId);
+        System.out.println("✅ Fetched created flag: " + result);
+        return result;
     }
 
     public Flag getFlagById(UUID id) {
@@ -75,7 +97,7 @@ public class FlagService {
                 request.city(),
                 request.addressText(),
                 request.category(),
-                request.imageUrl(),
+                request.color(),
                 request.isPublic()
         );
         return updated ? repo.fetchFlagById(flagId) : null;
