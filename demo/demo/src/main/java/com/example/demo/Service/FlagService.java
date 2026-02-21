@@ -14,7 +14,7 @@ import com.example.demo.Models.Flag;
 public class FlagService {
     private final FlagRepository repo;
     private final FlagLikeRepository likeRepo;
-    private static final int MAX_LIMIT = 100;
+    private static final int MAX_LIMIT = 1000;
     private static final int MAX_RADIUS_M = 40000; // ~25 miles
 
     public FlagService(FlagRepository repo, FlagLikeRepository likeRepo) {
@@ -26,6 +26,15 @@ public class FlagService {
         OffsetDateTime expiresAt = request.isPublic() != null ? 
                 OffsetDateTime.now().plusDays(7) : null;
 
+        // Handle image paths - prefer imagePaths over imageUrl
+        String imageUrl = null;
+        if (request.imagePaths() != null && request.imagePaths().length > 0) {
+            // Use the first image as the primary image for backward compatibility
+            imageUrl = request.imagePaths()[0];
+        } else if (request.imageUrl() != null) {
+            imageUrl = request.imageUrl();
+        }
+
         UUID flagId = repo.createFlag(
                 userId,
                 request.title(),
@@ -35,7 +44,7 @@ public class FlagService {
                 request.city(),
                 request.addressText(),
                 request.category(),
-                request.imageUrl(),
+                imageUrl,
                 request.isPublic() != null ? request.isPublic() : true,
                 expiresAt
         );

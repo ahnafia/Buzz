@@ -322,7 +322,7 @@ public EnhancedUserProfile getEnhancedPublicProfile(String username, UUID curren
     int totalLikesGiven = flagService.getUserLikeCount(user.id());
 
     List<Landmark> landmarks = landmarkService.getUserLandmarks(user.id(), 10);
-    List<Flag> recentFlags = flagService.getUserFlags(user.id(), 10);
+    List<Flag> recentFlags = flagService.getUserFlags(user.id(), 1000);
 
     // Attach like counts to flags
     List<FlagWithLikeCount> flagsWithLikeCounts = recentFlags.stream()

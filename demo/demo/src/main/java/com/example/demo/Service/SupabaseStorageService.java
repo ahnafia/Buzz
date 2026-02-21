@@ -33,7 +33,7 @@ public class SupabaseStorageService {
     
     /**
      * Generate a signed URL for a file in Supabase Storage
-     * @param bucketName The storage bucket name (e.g., "media")
+     * @param bucketName The storage bucket name (e.g., "Media")
      * @param filePath The file path (e.g., "profiles/167501_00_2x.jpg")
      * @param expiresInSeconds How long the URL should be valid (60-300 seconds)
      * @return The signed URL or null if generation fails
@@ -50,9 +50,9 @@ public class SupabaseStorageService {
             
             Map<String, Object> requestBody = Map.of("expiresIn", expiresInSeconds);
             
-            log.info("Attempting to generate signed URL for: {}/{}", bucketName, filePath);
-            log.info("Request URL: {}", url);
-            log.info("Service role key starts with: {}", serviceRoleKey != null && serviceRoleKey.length() > 10 ? serviceRoleKey.substring(0, 10) + "..." : "null or too short");
+            log.debug("Attempting to generate signed URL for: {}/{}", bucketName, filePath);
+            log.debug("Request URL: {}", url);
+            log.debug("Service role key starts with: {}", serviceRoleKey != null && serviceRoleKey.length() > 10 ? serviceRoleKey.substring(0, 10) + "..." : "null or too short");
             
             Mono<Map> response = webClient.post()
                     .uri(url)
@@ -62,9 +62,15 @@ public class SupabaseStorageService {
                     .bodyValue(requestBody)
                     .retrieve()
                     .onStatus(status -> !status.is2xxSuccessful(), clientResponse -> {
-                        log.error("HTTP error response: {}", clientResponse.statusCode());
                         return clientResponse.bodyToMono(String.class)
-                                .doOnNext(body -> log.error("Error response body: {}", body))
+                                .doOnNext(body -> {
+                                    // Only log as error if it's not a "not found" case
+                                    if (body.contains("not_found")) {
+                                        log.debug("File not found in storage: {}/{} - {}", bucketName, filePath, body);
+                                    } else {
+                                        log.error("HTTP error response: {} - {}", clientResponse.statusCode(), body);
+                                    }
+                                })
                                 .then(Mono.error(new RuntimeException("HTTP " + clientResponse.statusCode())));
                     })
                     .bodyToMono(Map.class)
@@ -76,7 +82,7 @@ public class SupabaseStorageService {
                 String signedUrlPath = result.get("signedURL").toString();
                 // The signedURL from Supabase is a relative path, we need to add the full storage URL
                 String signedUrl = supabaseUrl + "/storage/v1" + signedUrlPath;
-                log.info("Generated signed URL successfully: {}", signedUrl);
+                log.debug("Generated signed URL successfully for: {}/{}", bucketName, filePath);
                 return signedUrl;
             } else {
                 log.error("Failed to generate signed URL - no signedURL in response: {}", result);
@@ -84,15 +90,15 @@ public class SupabaseStorageService {
             }
             
         } catch (Exception e) {
+            // Handle "not found" errors more gracefully
+            if (e.getMessage() != null && e.getMessage().contains("not_found")) {
+                log.debug("File not found in storage: {}/{} - this is expected for missing profile images", bucketName, filePath);
+                return null;
+            }
+            
             log.error("Error generating signed URL for {}/{}: {} - {}", bucketName, filePath, e.getClass().getSimpleName(), e.getMessage());
             if (e.getCause() != null) {
                 log.error("Caused by: {} - {}", e.getCause().getClass().getSimpleName(), e.getCause().getMessage());
-            }
-            
-            // For development: if file doesn't exist, return a placeholder URL or null
-            if (e.getMessage() != null && e.getMessage().contains("not_found")) {
-                log.info("File not found in storage, this is expected for testing. Returning null.");
-                return null;
             }
             
             return null;

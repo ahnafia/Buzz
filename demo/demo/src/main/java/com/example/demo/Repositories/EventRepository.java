@@ -47,7 +47,7 @@ public List<EventPin> fetchPins(
           st_y(location::geometry) as lat,
           st_x(location::geometry) as lon,
           description,
-          image_path
+          event_image_path as image_path
         from events
         where st_dwithin(
           location,
@@ -124,7 +124,7 @@ public List<EventPin> fetchPins(
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
               description,
-              image_path
+              event_image_path as image_path
             from events
             where id = ?
             limit 1;
@@ -162,7 +162,7 @@ public List<EventPin> fetchPins(
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
               description,
-              image_path
+              event_image_path as image_path
             from events
             where owner = ?
             order by start_time asc
@@ -224,7 +224,7 @@ public List<EventPin> fetchPins(
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
               description,
-              image_path
+              event_image_path as image_path
             from events
             where expires_at > now()
               and st_dwithin(
@@ -294,7 +294,7 @@ public List<EventPin> fetchPins(
     ) {
         UUID eventId = UUID.randomUUID();
         String sql = """
-            insert into events (id, title, category, location, start_time, expires_at, owner, description, image_path)
+            insert into events (id, title, category, location, start_time, expires_at, owner, description, event_image_path)
             values (?, ?, ?, st_setsrid(st_makepoint(?, ?), 4326)::geography, ?, ?, ?, ?, ?)
         """;
 
@@ -350,7 +350,7 @@ public List<EventPin> fetchPins(
             hasUpdate = true;
         }
         if (imagePath != null) {
-            sql.append("image_path = ?, ");
+            sql.append("event_image_path = ?, ");
             params.add(imagePath);
             hasUpdate = true;
         }
@@ -387,7 +387,7 @@ public List<EventPin> fetchPins(
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
               description,
-              image_path
+              event_image_path as image_path
             from events
             where id = ? and expires_at > now()
             limit 1;
@@ -430,7 +430,7 @@ public List<EventPin> fetchPins(
               st_y(location::geometry) as lat,
               st_x(location::geometry) as lon,
               description,
-              image_path
+              event_image_path as image_path
             from events
             where owner = ?
         """);
