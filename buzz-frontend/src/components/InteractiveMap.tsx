@@ -62,10 +62,19 @@ type PinData = {
   status?: string
 }
 
-/** Parse comma-separated image URL string into array (empty if none). */
-function parseFlagImageUrls(imageUrl?: string): string[] {
-  if (!imageUrl || !imageUrl.trim()) return []
-  return imageUrl.split(',').map((s) => s.trim()).filter(Boolean)
+/** Parse flag image URLs from both legacy imageUrl and new imagePaths fields */
+function parseFlagImageUrls(flag: Flag): string[] {
+  // Prefer the new imagePaths array if it exists and has content
+  if (flag.imagePaths && flag.imagePaths.length > 0) {
+    return flag.imagePaths.filter(Boolean)
+  }
+  
+  // Fall back to legacy imageUrl field (could be comma-separated)
+  if (flag.imageUrl && flag.imageUrl.trim()) {
+    return flag.imageUrl.split(',').map((s) => s.trim()).filter(Boolean)
+  }
+  
+  return []
 }
 
 /** Convert profile Flag (has lat, lon) to PinData for map */
@@ -76,7 +85,7 @@ function flagToPinData(
   ownerProfileImageUrl?: string,
   ownerDisplayName?: string
 ): PinData {
-  const flagImageUrls = parseFlagImageUrls(flag.imageUrl ?? (flag as { imagePath?: string }).imagePath)
+  const flagImageUrls = parseFlagImageUrls(flag)
   return {
     id: flag.id,
     lat: flag.lat,
