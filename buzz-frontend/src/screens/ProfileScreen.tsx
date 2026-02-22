@@ -12,7 +12,7 @@ import type { Event, UserProfile, Friend } from '../types/api'
 import './ProfileScreen.css'
 
 // Business Profile Components
-const BusinessHeader = ({ profile, hasActiveEvents }: { profile: any, hasActiveEvents: boolean }) => (
+const BusinessHeader = ({ profile, hasActiveEvents, onLogoClick }: { profile: any, hasActiveEvents: boolean, onLogoClick?: () => void }) => (
   <div className="business-header" data-has-events={hasActiveEvents}>
     <div className="business-info">
       <div className="business-name-row">
@@ -28,13 +28,28 @@ const BusinessHeader = ({ profile, hasActiveEvents }: { profile: any, hasActiveE
         </span>
       </div>
     </div>
-    <div className="business-logo">
-      <ProfileImage 
-        src={profile.profileImageUrl} 
-        alt={`${profile.businessName || profile.displayName} logo`}
-        size="large"
-      />
-    </div>
+    {onLogoClick ? (
+      <button
+        type="button"
+        className="business-logo business-logo-clickable"
+        onClick={onLogoClick}
+        aria-label="Enlarge profile picture"
+      >
+        <ProfileImage 
+          src={profile.profileImageUrl} 
+          alt={`${profile.businessName || profile.displayName} logo`}
+          size="large"
+        />
+      </button>
+    ) : (
+      <div className="business-logo">
+        <ProfileImage 
+          src={profile.profileImageUrl} 
+          alt={`${profile.businessName || profile.displayName} logo`}
+          size="large"
+        />
+      </div>
+    )}
   </div>
 )
 
@@ -217,6 +232,7 @@ const ProfileScreen = () => {
   const [friendRequests, setFriendRequests] = useState<Friend[]>([])
   const [friendRequestsLoading, setFriendRequestsLoading] = useState(false)
   const [acceptingFriendId, setAcceptingFriendId] = useState<string | null>(null)
+  const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
 
   // Business events hook - only used for business profiles
   const businessEvents = useBusinessEvents()
@@ -271,6 +287,15 @@ const ProfileScreen = () => {
       refetchFriendRequests()
     }
   }, [activeTab, currentUsername])
+
+  useEffect(() => {
+    if (!avatarLightboxOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAvatarLightboxOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [avatarLightboxOpen])
 
   const handleSendFriendRequest = async (user: UserProfile) => {
     if (addingFriendId) return
@@ -436,8 +461,57 @@ const ProfileScreen = () => {
         </div>
 
         <div className="business-profile-body">
-          <BusinessHeader profile={profile} hasActiveEvents={businessEvents.events.length > 0} />
-          
+          <BusinessHeader
+            profile={profile}
+            hasActiveEvents={businessEvents.events.length > 0}
+            onLogoClick={() => setAvatarLightboxOpen(true)}
+          />
+          {avatarLightboxOpen && (
+            <div
+              className="profile-avatar-lightbox-backdrop"
+              onClick={() => setAvatarLightboxOpen(false)}
+              role="button"
+              tabIndex={0}
+              aria-label="Close profile picture"
+            >
+              <div
+                className="profile-avatar-lightbox-wrap"
+                onClick={(e) => e.stopPropagation()}
+                role="presentation"
+              >
+                <div className="profile-avatar-lightbox-content">
+                  {profile.profileImageUrl ? (
+                    <img
+                      src={profile.profileImageUrl}
+                      alt={`${profile.businessName || profile.displayName} logo`}
+                      className="profile-avatar-lightbox-img"
+                    />
+                  ) : (
+                    <div className="profile-avatar-lightbox-default">
+                      <svg
+                        viewBox="0 0 100 100"
+                        fill="none"
+                        stroke="#FF9B56"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        className="profile-avatar-lightbox-default-svg"
+                      >
+                        <circle cx="50" cy="40" r="22" />
+                        <path d="M 15 98 Q 50 45 85 98" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="profile-avatar-lightbox-change-btn"
+                  aria-label="Change profile picture"
+                >
+                  Change profile picture
+                </button>
+              </div>
+            </div>
+          )}
           <button className="post-event-btn" onClick={handlePostEvent}>
             + Post Event
           </button>
@@ -544,13 +618,64 @@ const ProfileScreen = () => {
         {/* Left: Circle, meta, Landmarks */}
         <div className="profile-info-section">
           <div className="profile-avatar-row">
-            <div className="profile-circle">
+            <button
+              type="button"
+              className="profile-circle profile-circle-clickable"
+              onClick={() => setAvatarLightboxOpen(true)}
+              aria-label="Enlarge profile picture"
+            >
               <ProfileImage 
                 src={profile.profileImageUrl} 
                 alt={`${profile.displayName} profile`}
                 size="large"
               />
-            </div>
+            </button>
+            {avatarLightboxOpen && (
+              <div
+                className="profile-avatar-lightbox-backdrop"
+                onClick={() => setAvatarLightboxOpen(false)}
+                role="button"
+                tabIndex={0}
+                aria-label="Close profile picture"
+              >
+                <div
+                  className="profile-avatar-lightbox-wrap"
+                  onClick={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <div className="profile-avatar-lightbox-content">
+                    {profile.profileImageUrl ? (
+                      <img
+                        src={profile.profileImageUrl}
+                        alt={`${profile.displayName} profile`}
+                        className="profile-avatar-lightbox-img"
+                      />
+                    ) : (
+                      <div className="profile-avatar-lightbox-default">
+                        <svg
+                          viewBox="0 0 100 100"
+                          fill="none"
+                          stroke="#FF9B56"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          className="profile-avatar-lightbox-default-svg"
+                        >
+                          <circle cx="50" cy="40" r="22" />
+                          <path d="M 15 98 Q 50 45 85 98" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="profile-avatar-lightbox-change-btn"
+                    aria-label="Change profile picture"
+                  >
+                    Change profile picture
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="profile-meta">
               <div className="profile-underline name-box">{profile.displayName}</div>
               <div className="profile-underline city-box">{profile.addressText || profile.city || 'Location not set'}</div>
