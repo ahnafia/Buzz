@@ -213,7 +213,6 @@ function flagIconForFlag(pin: PinData, isSelected?: boolean) {
                <svg class="buzz-flag-svg" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                  <path class="buzz-flag-pole" d="M10 6 L10 44" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
                  <path class="buzz-flag-pole" d="M10 6 L10 44" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
-                 <path class="buzz-flag-base" d="M6 45 A4 1.8 0 0 1 14 45 L10 45 Z" fill="#fff" stroke="#000" stroke-width="0.8"/>
                  <path class="buzz-flag-cloth" d="M10 10 Q18 13 23 10 Q31 7 36 10 L36 24 Q31 21 23 24 Q18 27 10 24 Z" fill="${color}" stroke="${color}" stroke-width="0.5"/>
                  <text x="23" y="17" class="buzz-flag-svg-letter" fill="white" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="700">${escapedLetter}</text>
                </svg>
@@ -503,6 +502,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   const [likedPinIds, setLikedPinIds] = useState<Set<string>>(new Set())
   // Track saved pins (session-only)
   const [savedPinIds, setSavedPinIds] = useState<Set<string>>(new Set())
+  // Flag viewer sidebar: which image is shown (one at a time, with prev/next)
+  const [flagDetailImageIndex, setFlagDetailImageIndex] = useState(0)
 
   const toggleLike = (e: React.MouseEvent, pinId: string) => {
     e.stopPropagation()
@@ -1071,6 +1072,11 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     }
   }, [visiblePins, selectedPin])
 
+  // Reset flag image index when a different flag is selected
+  useEffect(() => {
+    setFlagDetailImageIndex(0)
+  }, [selectedPin?.id])
+
   // Reverse geocoding for events (missing address)
   useEffect(() => {
     if (selectedPin && selectedPin.type === 'event' && !selectedPin.address) {
@@ -1458,23 +1464,42 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
                 <div className="pin-detail-flag-content">
                   <div className="pin-detail-flag-image-wrap">
                     {selectedPin.flagImageUrls && selectedPin.flagImageUrls.length > 0 ? (
-                      <div className="pin-detail-flag-images-grid">
-                        {selectedPin.flagImageUrls.map((imageUrl, index) => (
-                          <div key={index} className="pin-detail-flag-image-container">
-                            <img
-                              src={imageUrl}
-                              alt={`Flag image ${index + 1} of ${selectedPin.flagImageUrls!.length}`}
-                              className="pin-detail-flag-image"
-                              onError={(e) => {
-                                console.error('Failed to load flag image:', imageUrl)
-                                ;(e.target as HTMLImageElement).style.display = 'none'
-                              }}
-                              onLoad={() => {
-                                console.log('Flag image loaded successfully:', imageUrl)
-                              }}
-                            />
+                      <div className={`pin-detail-flag-single-carousel${selectedPin.flagImageUrls.length === 1 ? ' pin-detail-flag-single-carousel--one' : ''}`}>
+                        <div className="pin-detail-flag-single-image-container">
+                          <img
+                            key={flagDetailImageIndex}
+                            src={selectedPin.flagImageUrls[flagDetailImageIndex]}
+                            alt={`Flag image ${flagDetailImageIndex + 1} of ${selectedPin.flagImageUrls.length}`}
+                            className="pin-detail-flag-image"
+                            onError={(e) => {
+                              console.error('Failed to load flag image:', selectedPin.flagImageUrls![flagDetailImageIndex])
+                              ;(e.target as HTMLImageElement).style.display = 'none'
+                            }}
+                          />
+                        </div>
+                        {selectedPin.flagImageUrls.length > 1 && (
+                          <div className="pin-detail-flag-carousel-nav">
+                            <button
+                              type="button"
+                              className="pin-detail-flag-carousel-btn"
+                              onClick={() => setFlagDetailImageIndex((i) => (i <= 0 ? selectedPin.flagImageUrls!.length - 1 : i - 1))}
+                              aria-label="Previous image"
+                            >
+                              ‹
+                            </button>
+                            <span className="pin-detail-flag-carousel-counter">
+                              {flagDetailImageIndex + 1} / {selectedPin.flagImageUrls.length}
+                            </span>
+                            <button
+                              type="button"
+                              className="pin-detail-flag-carousel-btn"
+                              onClick={() => setFlagDetailImageIndex((i) => (i >= selectedPin.flagImageUrls!.length - 1 ? 0 : i + 1))}
+                              aria-label="Next image"
+                            >
+                              ›
+                            </button>
                           </div>
-                        ))}
+                        )}
                       </div>
                     ) : (
                       <div className="pin-detail-flag-image-placeholder">
@@ -1510,7 +1535,24 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
                   )}
                 </div>
               ) : (
-                <div className="pin-detail-card pin-detail-card--selected">
+                <div className="pin-detail-card pin-detail-card--selected pin-detail-card--event">
+                  {selectedPin.imageUrl && (
+                    <div className="pin-detail-event-banner-wrap">
+                      <img
+                        src={selectedPin.imageUrl}
+                        alt=""
+                        className="pin-detail-event-banner"
+                        onError={(e) => (e.target as HTMLImageElement).style.display = 'none'}
+                      />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className="pin-detail-view-event-btn"
+                    onClick={() => navigate(`/event/${selectedPin.id}`)}
+                  >
+                    View Event
+                  </button>
                   {selectedPin.ownerDisplayName && (
                     <div className="pin-detail-block">
                       <span className="pin-detail-label">Hosted by</span>

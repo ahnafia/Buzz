@@ -1412,7 +1412,55 @@
   min-height: 140px;
 }
 
-/* Grid layout for multiple flag images */
+/* Single-image carousel for flag viewer (one at a time with prev/next) */
+.pin-detail-flag-single-carousel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.pin-detail-flag-single-image-container {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 251, 245, 0.5);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+.pin-detail-flag-single-carousel--one .pin-detail-flag-single-image-container {
+  border-radius: 8px;
+}
+
+.pin-detail-flag-single-carousel .pin-detail-flag-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pin-detail-flag-single-carousel .pin-detail-flag-carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px;
+  background: rgba(255, 155, 86, 0.08);
+  border-top: 1px solid rgba(255, 155, 86, 0.15);
+  border-radius: 0 0 8px 8px;
+}
+
+.pin-detail-flag-carousel-counter {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2d2d2d;
+  min-width: 3em;
+  text-align: center;
+}
+
+/* Grid layout for multiple flag images (legacy, kept for popup if needed) */
 .pin-detail-flag-images-grid {
   display: grid;
   gap: 8px;
@@ -1594,6 +1642,46 @@
 
 .pin-detail-card--selected {
   box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.6);
+}
+
+/* Event pin view: banner at top, title below, View Event button */
+.pin-detail-card--event {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pin-detail-event-banner-wrap {
+  width: 100%;
+  margin: 0 0 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 251, 245, 0.5);
+}
+
+.pin-detail-event-banner {
+  width: 100%;
+  display: block;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  vertical-align: top;
+}
+
+.pin-detail-view-event-btn {
+  margin-bottom: 12px;
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: white;
+  background: #FF9B56;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.pin-detail-view-event-btn:hover {
+  background: #e8894d;
 }
 
 .pin-detail-card-title {
