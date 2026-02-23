@@ -39,12 +39,15 @@ function buildPopupHtml(pin: PinData) {
   // Enhanced event image handling with better fallback and error states
   const eventImageHtml = pin.type === 'event' 
     ? pin.imageUrl 
-      ? `<div class="buzz-popup-image-container buzz-popup-image-container--event">
-           <img src="${escapeHtml(pin.imageUrl)}" 
+      ? (() => {
+          const safeImageUrl = escapeHtml(pin.imageUrl)
+          const safeImageUrlForJs = pin.imageUrl.replace(/'/g, "\\'").replace(/"/g, '\\"')
+          return `<div class="buzz-popup-image-container buzz-popup-image-container--event">
+           <img src="${safeImageUrl}" 
                 alt="${escapeHtml(pin.title)} banner image" 
                 class="buzz-popup-image buzz-popup-image--event" 
-                onerror="console.error('Event banner image failed to load:', '${escapeHtml(pin.imageUrl)}'); this.style.display='none'; this.parentElement.classList.add('buzz-popup-image-container--error');" 
-                onload="console.log('Event banner image loaded successfully:', '${escapeHtml(pin.imageUrl)}'); this.parentElement.classList.add('buzz-popup-image-container--loaded');" />
+                onerror="console.error('Event banner image failed to load:', '${safeImageUrlForJs}'); this.style.display='none'; this.parentElement.classList.add('buzz-popup-image-container--error');" 
+                onload="console.log('Event banner image loaded successfully:', '${safeImageUrlForJs}'); this.parentElement.classList.add('buzz-popup-image-container--loaded');" />
            <div class="buzz-popup-image-fallback buzz-popup-image-fallback--event">
              <svg viewBox="0 0 24 24" fill="#FF9B56" style="width:48px;height:48px;">
                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
@@ -52,6 +55,7 @@ function buildPopupHtml(pin: PinData) {
              <span class="buzz-popup-image-fallback-text">Image unavailable</span>
            </div>
          </div>`
+        })()
       : '' // No image section when no banner image exists (Requirement 4.3)
     : ''
 
@@ -60,19 +64,23 @@ function buildPopupHtml(pin: PinData) {
     ? `<div class="buzz-popup-flag-carousel" data-pin-id="${escapeHtml(pin.id)}">
          <div class="buzz-popup-flag-carousel-main">
            <div class="buzz-popup-flag-carousel-track" style="transform: translateX(0%)">
-             ${pin.flagImageUrls.map((imageUrl, index) => `
+             ${pin.flagImageUrls.map((imageUrl, index) => {
+               const safeImageUrl = escapeHtml(imageUrl)
+               const safeImageUrlForJs = imageUrl.replace(/'/g, "\\'").replace(/"/g, '\\"')
+               return `
                <div class="buzz-popup-flag-carousel-slide">
-                 <img src="${escapeHtml(imageUrl)}" 
+                 <img src="${safeImageUrl}" 
                       alt="Flag image ${index + 1} of ${pin.flagImageUrls!.length}" 
                       class="buzz-popup-flag-carousel-image"
-                      onerror="console.error('Flag image failed to load:', '${escapeHtml(imageUrl)}'); this.style.display='none'; this.nextElementSibling.style.display='flex';" 
+                      onerror="console.error('Flag image failed to load:', '${safeImageUrlForJs}'); this.style.display='none'; this.nextElementSibling.style.display='flex';" 
                       onload="this.nextElementSibling.style.display='none';" />
                  <div class="buzz-popup-flag-carousel-error" style="display: none;">
                    <div class="buzz-popup-flag-carousel-error-icon">⚠️</div>
                    <div class="buzz-popup-flag-carousel-error-text">Failed to load image</div>
                  </div>
                </div>
-             `).join('')}
+               `
+             }).join('')}
            </div>
            ${pin.flagImageUrls.length > 1 ? `
              <button class="buzz-popup-flag-carousel-nav buzz-popup-flag-carousel-nav--prev" 
