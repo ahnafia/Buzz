@@ -1,5 +1,5 @@
 // API utility functions - backend integration
-import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest, Flag, CreateFlagRequest } from '../types/api'
+import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest, Flag, CreateFlagRequest, Landmark, CreateLandmarkRequest, UpdateLandmarkRequest } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -735,6 +735,56 @@ export const api = {
     console.log('Searching places:', query, location)
     return []
   },
+
+  // Landmarks (per README/database: name, description, lat, lon, city, address_text, category)
+  createLandmark: async (request: CreateLandmarkRequest): Promise<Landmark> => {
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId) throw new Error('Not authenticated')
+    const response = await fetch(`${API_BASE_URL}/landmarks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': currentUserId
+      },
+      body: JSON.stringify(request)
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(text || `HTTP ${response.status}`)
+    }
+    return await response.json()
+  },
+
+  updateLandmark: async (landmarkId: string, request: UpdateLandmarkRequest): Promise<Landmark> => {
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId) throw new Error('Not authenticated')
+    const response = await fetch(`${API_BASE_URL}/landmarks/${landmarkId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': currentUserId
+      },
+      body: JSON.stringify(request)
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(text || `HTTP ${response.status}`)
+    }
+    return await response.json()
+  },
+
+  deleteLandmark: async (landmarkId: string): Promise<void> => {
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId) throw new Error('Not authenticated')
+    const response = await fetch(`${API_BASE_URL}/landmarks/${landmarkId}`, {
+      method: 'DELETE',
+      headers: { 'X-User-Id': currentUserId }
+    })
+    if (!response.ok && response.status !== 204) {
+      const text = await response.text()
+      throw new Error(text || `HTTP ${response.status}`)
+    }
+  },
 }
 
 // Re-export types for convenience
@@ -742,6 +792,8 @@ export type {
   UserProfile,
   UsersResponse,
   Landmark,
+  CreateLandmarkRequest,
+  UpdateLandmarkRequest,
   Flag,
   FlagWithLikeCount,
   Friend,

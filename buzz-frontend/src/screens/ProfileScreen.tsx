@@ -8,7 +8,7 @@ import BusinessMapView from '../components/BusinessMapView'
 import ProfileImage from '../components/ProfileImage'
 import '../components/BusinessMapView.css'
 import { api } from '../utils/api'
-import type { Event, UserProfile, Friend } from '../types/api'
+import type { Event, UserProfile, Friend, Landmark } from '../types/api'
 import './ProfileScreen.css'
 
 // Business Profile Components
@@ -233,6 +233,16 @@ const ProfileScreen = () => {
   const [friendRequestsLoading, setFriendRequestsLoading] = useState(false)
   const [acceptingFriendId, setAcceptingFriendId] = useState<string | null>(null)
   const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
+  const [editProfileOpen, setEditProfileOpen] = useState(false)
+  const [editDisplayName, setEditDisplayName] = useState('')
+  const [editLocation, setEditLocation] = useState('')
+  const [editProfileSaving, setEditProfileSaving] = useState(false)
+  const [editProfileError, setEditProfileError] = useState<string | null>(null)
+  const [landmarkFormOpen, setLandmarkFormOpen] = useState(false)
+  const [editingLandmarkId, setEditingLandmarkId] = useState<string | null>(null)
+  const [landmarkFormName, setLandmarkFormName] = useState('')
+  const [landmarkSaving, setLandmarkSaving] = useState(false)
+  const [landmarkError, setLandmarkError] = useState<string | null>(null)
 
   // Business events hook - only used for business profiles
   const businessEvents = useBusinessEvents()
@@ -296,6 +306,100 @@ const ProfileScreen = () => {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [avatarLightboxOpen])
+
+  useEffect(() => {
+    if (editProfileOpen && profile) {
+      setEditDisplayName(profile.displayName ?? '')
+      setEditLocation(profile.addressText || profile.city || '')
+      setEditProfileError(null)
+    }
+  }, [editProfileOpen, profile])
+
+  useEffect(() => {
+    if (!editProfileOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (landmarkFormOpen) closeLandmarkForm()
+        else setEditProfileOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [editProfileOpen, landmarkFormOpen])
+
+  const handleSaveProfile = async () => {
+    if (!profile) return
+    setEditProfileError(null)
+    setEditProfileSaving(true)
+    try {
+      await api.updateCurrentUserProfile({
+        displayName: editDisplayName.trim() || undefined,
+        addressText: editLocation.trim() || undefined,
+        city: editLocation.trim() || undefined
+      })
+      await refetch()
+      setEditProfileOpen(false)
+    } catch (err) {
+      setEditProfileError(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setEditProfileSaving(false)
+    }
+  }
+
+  const openLandmarkForm = (landmark?: Landmark) => {
+    if (landmark) {
+      setEditingLandmarkId(landmark.id)
+      setLandmarkFormName(landmark.name)
+    } else {
+      setEditingLandmarkId(null)
+      setLandmarkFormName('')
+    }
+    setLandmarkFormOpen(true)
+    setLandmarkError(null)
+  }
+
+  const closeLandmarkForm = () => {
+    setLandmarkFormOpen(false)
+    setEditingLandmarkId(null)
+    setLandmarkError(null)
+  }
+
+  const handleSaveLandmark = async () => {
+    const name = landmarkFormName.trim()
+    if (!name) {
+      setLandmarkError('Name is required')
+      return
+    }
+    setLandmarkError(null)
+    setLandmarkSaving(true)
+    try {
+      if (editingLandmarkId) {
+        await api.updateLandmark(editingLandmarkId, { name })
+      } else {
+        await api.createLandmark({
+          name,
+          lat: 0,
+          lon: 0
+        })
+      }
+      await refetch()
+      closeLandmarkForm()
+    } catch (err) {
+      setLandmarkError(err instanceof Error ? err.message : 'Failed to save landmark')
+    } finally {
+      setLandmarkSaving(false)
+    }
+  }
+
+  const handleDeleteLandmark = async (landmarkId: string) => {
+    if (!confirm('Remove this landmark?')) return
+    try {
+      await api.deleteLandmark(landmarkId)
+      await refetch()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete')
+    }
+  }
 
   const handleSendFriendRequest = async (user: UserProfile) => {
     if (addingFriendId) return
@@ -683,6 +787,16 @@ const ProfileScreen = () => {
             </div>
           </div>
 
+          {currentUsername === profile.username && (
+            <button
+              type="button"
+              className="edit-profile-btn"
+              onClick={() => setEditProfileOpen(true)}
+            >
+              Edit Profile
+            </button>
+          )}
+
           <div className="landmarks-block">
             <div className="profile-underline landmarks-label">Landmarks ({profile.landmarkCount})</div>
             <div className="landmark-names">
@@ -919,6 +1033,114 @@ const ProfileScreen = () => {
           </div>
         </div>
       </div>
+
+      {editProfileOpen && (
+        <div
+          className="edit-profile-backdrop"
+          onClick={() => !landmarkFormOpen && setEditProfileOpen(false)}
+          role="presentation"
+        >
+          <div
+            className="edit-profile-modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-labelledby="edit-profile-title"
+          >
+            <h3 id="edit-profile-title">Edit Profile</h3>
+            <div className="edit-profile-field">
+              <label htmlFor="edit-display-name">Display name</label>
+              <input
+                id="edit-display-name"
+                type="text"
+                value={editDisplayName}
+                onChange={(e) => setEditDisplayName(e.target.value)}
+                placeholder="Display name"
+              />
+            </div>
+            <div className="edit-profile-field">
+              <label htmlFor="edit-location">Location</label>
+              <input
+                id="edit-location"
+                type="text"
+                value={editLocation}
+                onChange={(e) => setEditLocation(e.target.value)}
+                placeholder="City or address"
+              />
+            </div>
+            {editProfileError && (
+              <div className="settings-save-error" role="alert">{editProfileError}</div>
+            )}
+            <div className="edit-profile-actions">
+              <button
+                type="button"
+                className="save-profile-btn"
+                onClick={handleSaveProfile}
+                disabled={editProfileSaving}
+              >
+                {editProfileSaving ? 'Saving…' : 'Save profile'}
+              </button>
+              <button
+                type="button"
+                className="cancel-profile-btn"
+                onClick={() => setEditProfileOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
+
+            <div className="edit-profile-landmarks-section">
+              <h4>Landmarks</h4>
+              <div className="edit-profile-landmark-list">
+                {profile.landmarks.map((lm) => (
+                  <div key={lm.id} className="edit-profile-landmark-item">
+                    <span>{lm.name}</span>
+                    <div className="edit-profile-landmark-item-actions">
+                      <button type="button" onClick={() => openLandmarkForm(lm)}>Edit</button>
+                      <button type="button" className="delete-landmark-btn" onClick={() => handleDeleteLandmark(lm.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))}
+                {profile.landmarks.length === 0 && !landmarkFormOpen && (
+                  <div className="empty-state" style={{ padding: '0.5rem 0' }}>No landmarks yet</div>
+                )}
+              </div>
+              {!landmarkFormOpen ? (
+                <button type="button" className="add-landmark-btn" onClick={() => openLandmarkForm()}>
+                  + Add landmark
+                </button>
+              ) : (
+                <div className="landmark-form-in-modal">
+                  <div className="edit-profile-field">
+                    <label>Name of place</label>
+                    <input
+                      type="text"
+                      value={landmarkFormName}
+                      onChange={(e) => setLandmarkFormName(e.target.value)}
+                      placeholder="e.g. Central Park, Joe's Coffee"
+                    />
+                  </div>
+                  {landmarkError && (
+                    <div className="settings-save-error" role="alert">{landmarkError}</div>
+                  )}
+                  <div className="edit-profile-actions" style={{ marginTop: '0.75rem' }}>
+                    <button
+                      type="button"
+                      className="save-profile-btn"
+                      onClick={handleSaveLandmark}
+                      disabled={landmarkSaving}
+                    >
+                      {landmarkSaving ? 'Saving…' : editingLandmarkId ? 'Update' : 'Add place'}
+                    </button>
+                    <button type="button" className="cancel-profile-btn" onClick={closeLandmarkForm}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Orange plus FAB - bottom left (same as Main Map Screen style) */}
       <Link

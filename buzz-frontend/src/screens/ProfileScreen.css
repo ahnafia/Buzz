@@ -283,11 +283,41 @@
   border-bottom: none;
 }
 
-/* Landmarks block - under the circle */
+/* Edit profile button - between meta and landmarks */
+.edit-profile-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 2px solid #FF9B56;
+  background: #FFF7eb;
+  color: #FF9B56;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  width: fit-content;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.edit-profile-btn:hover,
+.edit-profile-btn:focus,
+.edit-profile-btn:focus-visible,
+.edit-profile-btn:active {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+  background: #FF9B56;
+  color: white;
+}
+
+/* Landmarks block - moved down a bit */
 .landmarks-block {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  margin-top: 1.5rem;
 }
 
 .landmarks-label {
@@ -1101,4 +1131,210 @@
 .profile-fab-icon {
   font-size: 1.5rem;
   font-weight: bold;
+}
+
+/* Edit profile modal */
+.edit-profile-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.edit-profile-modal {
+  background: #FFF7eb;
+  border: 2px solid #FF9B56;
+  border-radius: 12px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.edit-profile-modal h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.2rem;
+  color: #FF9B56;
+}
+
+.edit-profile-field {
+  margin-bottom: 1rem;
+}
+
+.edit-profile-field label {
+  display: block;
+  font-weight: 500;
+  color: #FF9B56;
+  font-size: 0.9rem;
+  margin-bottom: 0.35rem;
+}
+
+.edit-profile-field input,
+.edit-profile-field textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #FF9B56;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #FFFBF5;
+  color: #FF9B56;
+  box-sizing: border-box;
+}
+
+.edit-profile-field input::placeholder,
+.edit-profile-field textarea::placeholder {
+  color: rgba(255, 155, 86, 0.7);
+}
+
+.edit-profile-field input:focus,
+.edit-profile-field textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(255, 155, 86, 0.3);
+}
+
+.edit-profile-field textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.edit-profile-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.edit-profile-actions .save-profile-btn {
+  background: #FF9B56;
+  color: white;
+  border: none;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.save-profile-btn:hover:not(:disabled) {
+  background: #e8894d;
+}
+
+.save-profile-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.edit-profile-actions .cancel-profile-btn {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ccc;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.cancel-profile-btn:hover {
+  background: #f5f0e8;
+}
+
+.edit-profile-landmarks-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 155, 86, 0.4);
+}
+
+.edit-profile-landmarks-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #FF9B56;
+}
+
+.edit-profile-landmark-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.edit-profile-landmark-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #FFFBF5;
+  border: 1px solid #FFE2B7;
+  border-radius: 6px;
+}
+
+.edit-profile-landmark-item span {
+  font-size: 0.9rem;
+  color: #FF9B56;
+}
+
+.edit-profile-landmark-item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-profile-landmark-item-actions button {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  border: 1px solid #FF9B56;
+  background: transparent;
+  color: #FF9B56;
+  cursor: pointer;
+}
+
+.edit-profile-landmark-item-actions button:hover {
+  background: #FF9B56;
+  color: white;
+}
+
+.edit-profile-landmark-item-actions button.delete-landmark-btn:hover {
+  border-color: #c00;
+  background: #c00;
+  color: white;
+}
+
+.add-landmark-btn {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border: 2px dashed #FF9B56;
+  background: transparent;
+  color: #FF9B56;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.add-landmark-btn:hover {
+  background: #FFE2B7;
+}
+
+.landmark-form-in-modal {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #FFFBF5;
+  border: 1px solid #FFE2B7;
+  border-radius: 8px;
+}
+
+.landmark-form-in-modal .edit-profile-field {
+  margin-bottom: 0.75rem;
+}
+
+.landmark-form-in-modal .edit-profile-field input {
+  font-size: 0.9rem;
+}
+
+.landmark-form-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }

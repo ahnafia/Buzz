@@ -82,6 +82,25 @@ export interface Landmark {
   updatedAt: string
 }
 
+export interface CreateLandmarkRequest {
+  name: string
+  description?: string | null
+  lat: number
+  lon: number
+  city?: string | null
+  addressText?: string | null
+  category?: string | null
+}
+
+export interface UpdateLandmarkRequest {
+  name?: string | null
+  description?: string | null
+  city?: string | null
+  addressText?: string | null
+  category?: string | null
+  incrementVisit?: boolean
+}
+
 export interface Flag {
   id: string
   userId: string

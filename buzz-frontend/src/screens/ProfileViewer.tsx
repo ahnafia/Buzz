@@ -211,7 +211,6 @@ const ProfileViewer = () => {
                         </span>
                         <div className="list-item-text">
                           <span className="list-item-title">{landmark.name}</span>
-                          <span className="list-item-location">{landmark.addressText || landmark.city || 'Location not set'}</span>
                         </div>
                       </button>
                     ))
