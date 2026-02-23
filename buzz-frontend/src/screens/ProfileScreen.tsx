@@ -847,25 +847,52 @@ const ProfileScreen = () => {
                 <div className="tab-list">
                   {profile.recentFlags.length > 0 ? (
                     profile.recentFlags.map((flag) => (
-                      <button
-                        key={flag.id}
-                        type="button"
-                        className={`list-item-btn ${pressedItem === flag.id ? 'pressed' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setPressedItem(pressedItem === flag.id ? null : flag.id)
-                        }}
-                      >
-                        <span className="list-item-icon flag-icon">
-                          <svg viewBox="0 0 24 24" fill="#FF9B56" width="20" height="20">
-                            <path d="M5 2v20h2V2H5zm4 2h11l-4 6 4 6H9V4z" />
-                          </svg>
-                        </span>
-                        <div className="list-item-text">
-                          <span className="list-item-title">{flag.title}</span>
-                          <span className="list-item-location">{flag.addressText || flag.city || 'Location not set'}</span>
+                      <div key={flag.id} className="profile-flag-row">
+                        <button
+                          type="button"
+                          className={`list-item-btn ${pressedItem === flag.id ? 'pressed' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPressedItem(pressedItem === flag.id ? null : flag.id)
+                          }}
+                        >
+                          <span className="list-item-icon flag-icon">
+                            <svg viewBox="0 0 24 24" fill="#FF9B56" width="20" height="20">
+                              <path d="M5 2v20h2V2H5zm4 2h11l-4 6 4 6H9V4z" />
+                            </svg>
+                          </span>
+                          <div className="list-item-text">
+                            <span className="list-item-title">{flag.title}</span>
+                            <span className="list-item-location">{flag.addressText || flag.city || 'Location not set'}</span>
+                          </div>
+                        </button>
+                        <div className="profile-flag-actions">
+                          <button
+                            type="button"
+                            className="profile-flag-edit-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              // TODO: edit flag
+                            }}
+                            aria-label={`Edit ${flag.title}`}
+                          >
+                            Edit Flag
+                          </button>
+                          <button
+                            type="button"
+                            className="profile-flag-trash-btn"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              // TODO: delete flag
+                            }}
+                            aria-label={`Delete ${flag.title}`}
+                          >
+                            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden>
+                              <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                            </svg>
+                          </button>
                         </div>
-                      </button>
+                      </div>
                     ))
                   ) : (
                     <div className="empty-state">No flags yet</div>

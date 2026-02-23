@@ -585,6 +585,62 @@
   background: #d4d4d4;
 }
 
+.profile-flag-row {
+  position: relative;
+}
+
+.profile-flag-actions {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-flag-edit-btn {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid #FF9B56;
+  border-radius: 6px;
+  background: #FF9B56;
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+.profile-flag-edit-btn:hover {
+  background: #e8894d;
+  border-color: #e8894d;
+}
+
+.profile-flag-trash-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #c62828;
+  cursor: pointer;
+  outline: none;
+}
+
+.profile-flag-trash-btn:hover {
+  background: rgba(198, 40, 40, 0.12);
+  color: #b71c1c;
+}
+
+.profile-flag-row .list-item-btn {
+  padding-right: 8rem;
+}
+
 .list-item-btn {
   display: flex;
   align-items: center;
