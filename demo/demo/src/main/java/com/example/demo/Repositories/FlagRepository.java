@@ -138,9 +138,17 @@ public class FlagRepository {
     }
 
     public boolean deleteFlag(UUID flagId) {
-        String sql = "UPDATE flags SET expires_at = NOW() WHERE id = ?";
+        System.out.println("🗑️ FlagRepository.deleteFlag called with ID: " + flagId);
+        
+        // With CASCADE delete, this will automatically delete all related flag_likes
+        String sql = "DELETE FROM flags WHERE id = ?";
+        System.out.println("📝 Executing SQL: " + sql);
         int rows = jdbc.update(sql, flagId);
-        return rows > 0;
+        System.out.println("📊 Rows affected: " + rows);
+        
+        boolean result = rows > 0;
+        System.out.println("✅ Hard delete result: " + result + " (CASCADE will handle related records)");
+        return result;
     }
 
     public int countUserFlags(UUID userId) {

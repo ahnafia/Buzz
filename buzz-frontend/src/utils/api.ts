@@ -631,12 +631,13 @@ export const api = {
       const currentUserId = getCurrentUserId()
       if (!currentUserId) throw new Error('No user ID available')
 
-      console.log('Deleting flag:', flagId, 'with user ID:', currentUserId)
+      console.log('🗑️ Deleting flag:', flagId, 'with user ID:', currentUserId)
 
       // First, get the flag to retrieve image URLs for cleanup
       // Note: This assumes there's a getFlag endpoint - if not, we'll handle gracefully
       let flag: Flag | null = null
       try {
+        console.log('📄 Fetching flag data for cleanup...')
         const flagResponse = await fetch(`${API_BASE_URL}/flags/${flagId}`, {
           headers: {
             'X-User-Id': currentUserId,
@@ -645,11 +646,15 @@ export const api = {
         })
         if (flagResponse.ok) {
           flag = await flagResponse.json()
+          console.log('📄 Flag data retrieved:', flag)
+        } else {
+          console.warn('⚠️ Could not fetch flag data for cleanup, status:', flagResponse.status)
         }
       } catch (error) {
-        console.warn('Could not fetch flag for cleanup:', error)
+        console.warn('⚠️ Could not fetch flag for cleanup:', error)
       }
 
+      console.log('🚀 Sending DELETE request to backend...')
       const response = await fetch(`${API_BASE_URL}/flags/${flagId}`, {
         method: 'DELETE',
         headers: {
@@ -658,13 +663,15 @@ export const api = {
         }
       })
 
-      console.log('Delete flag response status:', response.status)
+      console.log('📡 Delete flag response status:', response.status)
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('Delete flag error response:', errorText)
+        console.error('❌ Delete flag error response:', errorText)
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`)
       }
+
+      console.log('✅ Flag deleted from database successfully')
 
       // Clean up associated images after successful deletion
       if (flag) {
@@ -681,20 +688,25 @@ export const api = {
         }
 
         if (imagesToDelete.length > 0) {
+          console.log('🧹 Starting image cleanup for:', imagesToDelete)
           try {
             const { deleteImages } = await import('./storage')
             await deleteImages(imagesToDelete)
-            console.log('Successfully cleaned up flag images:', imagesToDelete)
+            console.log('✅ Successfully cleaned up flag images:', imagesToDelete)
           } catch (imageError) {
-            console.error('Failed to clean up flag images:', imageError)
+            console.error('❌ Failed to clean up flag images:', imageError)
             // Don't fail the entire operation if image cleanup fails
           }
+        } else {
+          console.log('ℹ️ No images to clean up for this flag')
         }
+      } else {
+        console.log('ℹ️ No flag data available for image cleanup')
       }
 
       return true
     } catch (error) {
-      console.error('Error deleting flag:', error)
+      console.error('❌ Error deleting flag:', error)
       throw error
     }
   },

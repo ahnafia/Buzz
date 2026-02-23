@@ -114,14 +114,30 @@ public class FlagController {
             @PathVariable String flagId,
             @RequestHeader(value = "X-User-Id", required = false) String userIdHeader
     ) {
+        System.out.println("🗑️ DELETE /flags/" + flagId + " called with user ID: " + userIdHeader);
+        
         if (userIdHeader == null || userIdHeader.isBlank()) {
+            System.out.println("❌ No user ID header provided");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         try {
             UUID id = UUID.fromString(flagId);
+            System.out.println("✅ Parsed flag ID: " + id);
+            
+            System.out.println("🔄 Calling service.deleteFlag...");
             boolean deleted = service.deleteFlag(id);
-            return deleted ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+            System.out.println("📊 Delete result: " + deleted);
+            
+            if (deleted) {
+                System.out.println("✅ Flag deleted successfully");
+                return ResponseEntity.noContent().build();
+            } else {
+                System.out.println("❌ Flag not found or could not be deleted");
+                return ResponseEntity.notFound().build();
+            }
         } catch (Exception e) {
+            System.out.println("❌ Exception during flag deletion: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
     }

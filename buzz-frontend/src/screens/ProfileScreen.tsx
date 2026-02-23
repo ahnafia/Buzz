@@ -401,6 +401,20 @@ const ProfileScreen = () => {
     }
   }
 
+  const handleDeleteFlag = async (flagId: string, flagTitle: string) => {
+    if (!confirm(`Delete "${flagTitle}"? This will permanently remove the flag and its images.`)) return
+    try {
+      console.log('🗑️ Starting flag deletion:', { flagId, flagTitle })
+      await api.deleteFlag(flagId)
+      console.log('✅ Flag deleted successfully, refreshing profile...')
+      await refetch() // Refresh profile to update flag list
+      console.log('✅ Profile refreshed after flag deletion')
+    } catch (err) {
+      console.error('❌ Failed to delete flag:', err)
+      alert(err instanceof Error ? err.message : 'Failed to delete flag')
+    }
+  }
+
   const handleSendFriendRequest = async (user: UserProfile) => {
     if (addingFriendId) return
     setAddingFriendId(user.id)
@@ -883,7 +897,7 @@ const ProfileScreen = () => {
                             className="profile-flag-trash-btn"
                             onClick={(e) => {
                               e.stopPropagation()
-                              // TODO: delete flag
+                              handleDeleteFlag(flag.id, flag.title)
                             }}
                             aria-label={`Delete ${flag.title}`}
                           >

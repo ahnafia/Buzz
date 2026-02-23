@@ -104,7 +104,10 @@ public class FlagService {
     }
 
     public boolean deleteFlag(UUID flagId) {
-        return repo.deleteFlag(flagId);
+        System.out.println("🗑️ FlagService.deleteFlag called with ID: " + flagId);
+        boolean result = repo.deleteFlag(flagId);
+        System.out.println("📊 Repository delete result: " + result);
+        return result;
     }
 
     public int countUserFlags(UUID userId) {
