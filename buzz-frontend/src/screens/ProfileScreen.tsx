@@ -12,7 +12,7 @@ import type { Event, UserProfile, Friend } from '../types/api'
 import './ProfileScreen.css'
 
 // Business Profile Components
-const BusinessHeader = ({ profile, hasActiveEvents }: { profile: any, hasActiveEvents: boolean }) => (
+const BusinessHeader = ({ profile, hasActiveEvents, onLogoClick }: { profile: any, hasActiveEvents: boolean, onLogoClick?: () => void }) => (
   <div className="business-header" data-has-events={hasActiveEvents}>
     <div className="business-info">
       <div className="business-name-row">
@@ -28,13 +28,28 @@ const BusinessHeader = ({ profile, hasActiveEvents }: { profile: any, hasActiveE
         </span>
       </div>
     </div>
-    <div className="business-logo">
-      <ProfileImage 
-        src={profile.profileImageUrl} 
-        alt={`${profile.businessName || profile.displayName} logo`}
-        size="large"
-      />
-    </div>
+    {onLogoClick ? (
+      <button
+        type="button"
+        className="business-logo business-logo-clickable"
+        onClick={onLogoClick}
+        aria-label="Enlarge profile picture"
+      >
+        <ProfileImage 
+          src={profile.profileImageUrl} 
+          alt={`${profile.businessName || profile.displayName} logo`}
+          size="large"
+        />
+      </button>
+    ) : (
+      <div className="business-logo">
+        <ProfileImage 
+          src={profile.profileImageUrl} 
+          alt={`${profile.businessName || profile.displayName} logo`}
+          size="large"
+        />
+      </div>
+    )}
   </div>
 )
 
@@ -78,38 +93,97 @@ const EventCard = ({ event, onEdit, onDelete, onCopyLink }: {
   )
 }
 
-const BusinessSettings = ({ profile, isOpen, onToggle }: { 
+const BusinessSettings = ({ profile, isOpen, onToggle, onSaveSuccess }: { 
   profile: any, 
   isOpen: boolean, 
-  onToggle: () => void 
-}) => (
-  <div className="business-settings">
-    <button className="settings-toggle" onClick={onToggle}>
-      Business Settings {isOpen ? '▼' : '▶'}
-    </button>
-    {isOpen && (
-      <div className="settings-content">
-        <div className="setting-field">
-          <label>Business Name</label>
-          <input type="text" defaultValue={profile.businessName || profile.displayName} />
+  onToggle: () => void,
+  onSaveSuccess?: () => void | Promise<void>
+}) => {
+  const [businessName, setBusinessName] = useState(profile.businessName || profile.displayName || '')
+  const [businessCategory, setBusinessCategory] = useState(profile.businessCategory || '')
+  const [location, setLocation] = useState(profile.addressText || profile.city || '')
+  const [contactEmail, setContactEmail] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Sync local state when profile changes (e.g. after refetch)
+  useEffect(() => {
+    setBusinessName(profile.businessName || profile.displayName || '')
+    setBusinessCategory(profile.businessCategory || '')
+    setLocation(profile.addressText || profile.city || '')
+  }, [profile.businessName, profile.displayName, profile.businessCategory, profile.addressText, profile.city])
+
+  const handleSave = async () => {
+    setSaveError(null)
+    setSaving(true)
+    try {
+      await api.updateCurrentUserProfile({
+        businessName: businessName.trim() || undefined,
+        businessCategory: businessCategory.trim() || undefined,
+        addressText: location.trim() || undefined
+      })
+      await onSaveSuccess?.()
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="business-settings">
+      <button className="settings-toggle" onClick={onToggle}>
+        Business Settings {isOpen ? '▼' : '▶'}
+      </button>
+      {isOpen && (
+        <div className="settings-content">
+          <div className="setting-field">
+            <label>Business Name</label>
+            <input
+              type="text"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+            />
+          </div>
+          <div className="setting-field">
+            <label>Category</label>
+            <input
+              type="text"
+              value={businessCategory}
+              onChange={(e) => setBusinessCategory(e.target.value)}
+            />
+          </div>
+          <div className="setting-field">
+            <label>Location</label>
+            <input
+              type="text"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="setting-field">
+            <label>Contact Email</label>
+            <input
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder="business@example.com"
+            />
+          </div>
+          {saveError && <div className="settings-save-error" role="alert">{saveError}</div>}
+          <button
+            type="button"
+            className="save-settings-btn"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
         </div>
-        <div className="setting-field">
-          <label>Category</label>
-          <input type="text" defaultValue={profile.businessCategory || ''} />
-        </div>
-        <div className="setting-field">
-          <label>Location</label>
-          <input type="text" defaultValue={profile.addressText || profile.city || ''} />
-        </div>
-        <div className="setting-field">
-          <label>Contact Email</label>
-          <input type="email" defaultValue="" placeholder="business@example.com" />
-        </div>
-        <button className="save-settings-btn">Save Changes</button>
-      </div>
-    )}
-  </div>
-)
+      )}
+    </div>
+  )
+}
 
 const ProfileAvatar = ({ profileImageUrl, displayName }: { profileImageUrl?: string, displayName?: string }) => (
   <div className="list-item-avatar">
@@ -144,7 +218,7 @@ const ProfileScreen = () => {
     }
   }, [username, navigate])
 
-  const { profile, loading, error } = useProfile(username || undefined)
+  const { profile, loading, error, refetch } = useProfile(username || undefined)
   const { friends, refetch: refetchFriends } = useFriends(profile?.username || '')
 
   const [activeTab, setActiveTab] = useState<'flag' | 'friends' | 'likes' | 'find-friends' | null>('flag')
@@ -158,6 +232,7 @@ const ProfileScreen = () => {
   const [friendRequests, setFriendRequests] = useState<Friend[]>([])
   const [friendRequestsLoading, setFriendRequestsLoading] = useState(false)
   const [acceptingFriendId, setAcceptingFriendId] = useState<string | null>(null)
+  const [avatarLightboxOpen, setAvatarLightboxOpen] = useState(false)
 
   // Business events hook - only used for business profiles
   const businessEvents = useBusinessEvents()
@@ -212,6 +287,15 @@ const ProfileScreen = () => {
       refetchFriendRequests()
     }
   }, [activeTab, currentUsername])
+
+  useEffect(() => {
+    if (!avatarLightboxOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAvatarLightboxOpen(false)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [avatarLightboxOpen])
 
   const handleSendFriendRequest = async (user: UserProfile) => {
     if (addingFriendId) return
@@ -377,8 +461,57 @@ const ProfileScreen = () => {
         </div>
 
         <div className="business-profile-body">
-          <BusinessHeader profile={profile} hasActiveEvents={businessEvents.events.length > 0} />
-          
+          <BusinessHeader
+            profile={profile}
+            hasActiveEvents={businessEvents.events.length > 0}
+            onLogoClick={() => setAvatarLightboxOpen(true)}
+          />
+          {avatarLightboxOpen && (
+            <div
+              className="profile-avatar-lightbox-backdrop"
+              onClick={() => setAvatarLightboxOpen(false)}
+              role="button"
+              tabIndex={0}
+              aria-label="Close profile picture"
+            >
+              <div
+                className="profile-avatar-lightbox-wrap"
+                onClick={(e) => e.stopPropagation()}
+                role="presentation"
+              >
+                <div className="profile-avatar-lightbox-content">
+                  {profile.profileImageUrl ? (
+                    <img
+                      src={profile.profileImageUrl}
+                      alt={`${profile.businessName || profile.displayName} logo`}
+                      className="profile-avatar-lightbox-img"
+                    />
+                  ) : (
+                    <div className="profile-avatar-lightbox-default">
+                      <svg
+                        viewBox="0 0 100 100"
+                        fill="none"
+                        stroke="#FF9B56"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        className="profile-avatar-lightbox-default-svg"
+                      >
+                        <circle cx="50" cy="40" r="22" />
+                        <path d="M 15 98 Q 50 45 85 98" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="profile-avatar-lightbox-change-btn"
+                  aria-label="Change profile picture"
+                >
+                  Change profile picture
+                </button>
+              </div>
+            </div>
+          )}
           <button className="post-event-btn" onClick={handlePostEvent}>
             + Post Event
           </button>
@@ -416,6 +549,7 @@ const ProfileScreen = () => {
             profile={profile}
             isOpen={businessSettingsOpen}
             onToggle={() => setBusinessSettingsOpen(!businessSettingsOpen)}
+            onSaveSuccess={refetch}
           />
         </div>
       </div>
@@ -484,13 +618,64 @@ const ProfileScreen = () => {
         {/* Left: Circle, meta, Landmarks */}
         <div className="profile-info-section">
           <div className="profile-avatar-row">
-            <div className="profile-circle">
+            <button
+              type="button"
+              className="profile-circle profile-circle-clickable"
+              onClick={() => setAvatarLightboxOpen(true)}
+              aria-label="Enlarge profile picture"
+            >
               <ProfileImage 
                 src={profile.profileImageUrl} 
                 alt={`${profile.displayName} profile`}
                 size="large"
               />
-            </div>
+            </button>
+            {avatarLightboxOpen && (
+              <div
+                className="profile-avatar-lightbox-backdrop"
+                onClick={() => setAvatarLightboxOpen(false)}
+                role="button"
+                tabIndex={0}
+                aria-label="Close profile picture"
+              >
+                <div
+                  className="profile-avatar-lightbox-wrap"
+                  onClick={(e) => e.stopPropagation()}
+                  role="presentation"
+                >
+                  <div className="profile-avatar-lightbox-content">
+                    {profile.profileImageUrl ? (
+                      <img
+                        src={profile.profileImageUrl}
+                        alt={`${profile.displayName} profile`}
+                        className="profile-avatar-lightbox-img"
+                      />
+                    ) : (
+                      <div className="profile-avatar-lightbox-default">
+                        <svg
+                          viewBox="0 0 100 100"
+                          fill="none"
+                          stroke="#FF9B56"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          className="profile-avatar-lightbox-default-svg"
+                        >
+                          <circle cx="50" cy="40" r="22" />
+                          <path d="M 15 98 Q 50 45 85 98" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="profile-avatar-lightbox-change-btn"
+                    aria-label="Change profile picture"
+                  >
+                    Change profile picture
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="profile-meta">
               <div className="profile-underline name-box">{profile.displayName}</div>
               <div className="profile-underline city-box">{profile.addressText || profile.city || 'Location not set'}</div>

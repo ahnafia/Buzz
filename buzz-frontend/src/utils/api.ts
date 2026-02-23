@@ -204,6 +204,45 @@ export const api = {
     }
   },
 
+  /** Update current user profile (PATCH /users/me). Only provided fields are updated. */
+  updateCurrentUserProfile: async (updates: {
+    displayName?: string
+    bio?: string
+    profileImagePath?: string
+    lat?: number
+    lon?: number
+    city?: string
+    addressText?: string
+    businessName?: string
+    businessCategory?: string
+    locationVisible?: boolean
+    profilePublic?: boolean
+  }): Promise<UserProfile | null> => {
+    try {
+      const currentUserId = getCurrentUserId()
+      if (!currentUserId) return null
+
+      const response = await fetch(`${API_BASE_URL}/users/me`, {
+        method: 'PATCH',
+        headers: {
+          'X-User-Id': currentUserId,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updates)
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || `HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error updating current user profile:', error)
+      throw error
+    }
+  },
+
   /** Current user's flags (for map). Tries GET /users/me/flags; if missing, returns null so caller can use profile.recentFlags. */
   getMyFlags: async (): Promise<Flag[] | null> => {
     try {

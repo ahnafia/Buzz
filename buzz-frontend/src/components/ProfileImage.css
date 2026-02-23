@@ -44,14 +44,15 @@
   height: 70%;
 }
 
-/* Business profile specific styling */
+/* Business profile specific styling - circular like personal profile */
 .business-logo .profile-image {
-  border-radius: 8px; /* Less rounded for business logos */
+  border-radius: 50%;
+  border: 2px solid #FF9B56;
 }
 
 .business-logo .profile-image.large {
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
 }
 
 /* List item avatar styling */
