@@ -62,6 +62,22 @@ public class EventController {
         }
     }
 
+    @GetMapping("/{eventId}/original")
+    public ResponseEntity<EventPin> getEventByIdOriginal(@PathVariable String eventId) {
+        try {
+            UUID id = UUID.fromString(eventId);
+            EventPin event = service.getEventByIdForDeletion(id);
+            
+            if (event == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            return ResponseEntity.ok(event);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PostMapping
     public ResponseEntity<EventPin> createEvent(
             @RequestBody CreateEventRequest request,

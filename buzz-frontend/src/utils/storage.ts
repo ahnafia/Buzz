@@ -134,12 +134,17 @@ export const uploadEventImage = async (file: File, bucket: string = 'Media'): Pr
       throw new Error(`Failed to upload event image: ${error.message}`)
     }
 
-    // Get public URL for the uploaded file
-    const { data: urlData } = supabase.storage
+    // Get signed URL for the uploaded file (expires in 7 days)
+    const { data: urlData, error: signError } = await supabase.storage
       .from(bucket)
-      .getPublicUrl(filePath)
+      .createSignedUrl(filePath, 604800) // 7 days in seconds
 
-    return urlData.publicUrl
+    if (signError) {
+      console.error('Error creating signed URL:', signError)
+      throw new Error(`Failed to create signed URL: ${signError.message}`)
+    }
+
+    return urlData.signedUrl
   } catch (error) {
     console.error('Error uploading event image:', error)
     throw error
@@ -206,13 +211,18 @@ export const uploadFlagImages = async (files: File[], bucket: string = 'Media'):
 
       console.log('✅ File uploaded successfully to:', filePath)
 
-      // Get public URL for the uploaded file
-      const { data: urlData } = supabase.storage
+      // Get signed URL for the uploaded file (expires in 7 days)
+      const { data: urlData, error: signError } = await supabase.storage
         .from(bucket)
-        .getPublicUrl(filePath)
+        .createSignedUrl(filePath, 604800) // 7 days in seconds
 
-      console.log('🔗 Generated public URL:', urlData.publicUrl)
-      return urlData.publicUrl
+      if (signError) {
+        console.error('❌ Error creating signed URL:', signError)
+        throw new Error(`Failed to create signed URL for ${file.name}: ${signError.message}`)
+      }
+
+      console.log('🔗 Generated signed URL:', urlData.signedUrl)
+      return urlData.signedUrl
     } catch (error) {
       console.error(`❌ Error uploading flag image ${file.name}:`, error)
       throw error
@@ -237,31 +247,67 @@ export const uploadFlagImages = async (files: File[], bucket: string = 'Media'):
  * @returns Promise<void>
  */
 export const deleteImages = async (urls: string[], bucket: string = 'Media'): Promise<void> => {
-  if (!urls.length) return
+  console.log('🗑️ deleteImages called with:', { urls, bucket })
+  
+  if (!urls.length) {
+    console.log('ℹ️ No URLs provided, skipping deletion')
+    return
+  }
 
   try {
     // Extract file paths from URLs
+    console.log('🔍 Extracting file paths from URLs...')
     const filePaths = urls.map(url => {
-      // Extract the path after the bucket name from the URL
-      const urlParts = url.split('/')
-      const bucketIndex = urlParts.findIndex(part => part === bucket)
-      if (bucketIndex === -1) {
-        throw new Error(`Invalid URL format: ${url}`)
+      console.log('🔗 Processing URL:', url)
+      
+      // Handle different URL formats
+      if (url.includes('/storage/v1/object/sign/')) {
+        // Signed URL format: extract path after bucket name
+        const urlParts = url.split('/')
+        const bucketIndex = urlParts.findIndex(part => part === bucket)
+        if (bucketIndex === -1) {
+          console.error('❌ Could not find bucket in URL:', url)
+          throw new Error(`Invalid URL format: ${url}`)
+        }
+        const path = urlParts.slice(bucketIndex + 1).join('/')
+        // Remove query parameters from signed URLs
+        const cleanPath = path.split('?')[0]
+        console.log('📁 Extracted path from signed URL:', cleanPath)
+        return cleanPath
+      } else if (url.includes('/storage/v1/object/public/')) {
+        // Public URL format
+        const urlParts = url.split('/')
+        const bucketIndex = urlParts.findIndex(part => part === bucket)
+        if (bucketIndex === -1) {
+          console.error('❌ Could not find bucket in public URL:', url)
+          throw new Error(`Invalid URL format: ${url}`)
+        }
+        const path = urlParts.slice(bucketIndex + 1).join('/')
+        console.log('📁 Extracted path from public URL:', path)
+        return path
+      } else {
+        // Assume it's already a file path
+        console.log('📁 Using URL as file path:', url)
+        return url
       }
-      return urlParts.slice(bucketIndex + 1).join('/')
     })
 
+    console.log('📂 File paths to delete:', filePaths)
+
     // Delete files from Supabase storage
+    console.log('🚀 Attempting to delete files from Supabase storage...')
     const { error } = await supabase.storage
       .from(bucket)
       .remove(filePaths)
 
     if (error) {
-      console.error('Error deleting images:', error)
+      console.error('❌ Supabase storage deletion error:', error)
       throw new Error(`Failed to delete images: ${error.message}`)
     }
+
+    console.log('✅ Successfully deleted images from storage')
   } catch (error) {
-    console.error('Error deleting images:', error)
+    console.error('❌ Error deleting images:', error)
     throw error
   }
 }
@@ -421,14 +467,21 @@ export const cleanupOrphanedImages = async (
       return { deleted: [], errors: [] }
     }
 
-    // Get all file URLs in storage
-    const allStorageUrls = files.map(file => {
-      const { data } = supabase.storage.from(bucket).getPublicUrl(file.name)
-      return data.publicUrl
-    })
+    // Get all file URLs in storage (using signed URLs for consistency)
+    const allStorageUrls = await Promise.all(files.map(async file => {
+      const { data, error } = await supabase.storage.from(bucket).createSignedUrl(file.name, 3600) // 1 hour for cleanup check
+      if (error) {
+        console.warn(`Failed to create signed URL for ${file.name}:`, error)
+        return null
+      }
+      return data.signedUrl
+    }))
+
+    // Filter out failed URL generations
+    const validStorageUrls = allStorageUrls.filter((url): url is string => url !== null)
 
     // Find orphaned URLs (in storage but not referenced)
-    const orphanedUrls = allStorageUrls.filter(url => !referencedUrls.includes(url))
+    const orphanedUrls = validStorageUrls.filter(url => !referencedUrls.includes(url))
 
     if (dryRun) {
       console.log('Dry run - would delete:', orphanedUrls)

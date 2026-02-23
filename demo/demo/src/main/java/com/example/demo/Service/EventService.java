@@ -109,6 +109,13 @@ public class EventService {
         return withSignedImageUrl(repo.fetchEventByIdActive(id));
     }
 
+    /**
+     * Get event by ID without converting imagePath to signed URL - used for deletion
+     */
+    public EventPin getEventByIdForDeletion(UUID id) {
+        return repo.fetchEventByIdActive(id);
+    }
+
     public EventPin createEvent(CreateEventRequest request, String owner) {
         // Compute expires_at: if end_time provided, use it; otherwise use start_time + 24 hours
         OffsetDateTime expiresAt = request.endTime() != null 

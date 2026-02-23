@@ -516,10 +516,12 @@ export const api = {
       const currentUserId = getCurrentUserId()
       if (!currentUserId) throw new Error('No user ID available')
 
-      console.log('Deleting event:', eventId, 'with user ID:', currentUserId)
+      console.log('🗑️ Deleting event:', eventId, 'with user ID:', currentUserId)
 
-      // First, get the event to retrieve image URLs for cleanup
-      const event = await api.getEvent(eventId)
+      // First, get the event with original image path for cleanup
+      const event = await api.getEventForDeletion(eventId)
+      console.log('📄 Event data retrieved for deletion:', event)
+      console.log('🖼️ Event imagePath (original):', event?.imagePath)
       
       const response = await fetch(`${API_BASE_URL}/events/${eventId}`, {
         method: 'DELETE',
@@ -529,29 +531,35 @@ export const api = {
         }
       })
 
-      console.log('Delete response status:', response.status)
+      console.log('📡 Delete response status:', response.status)
 
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('Delete error response:', errorText)
+        console.error('❌ Delete error response:', errorText)
         throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`)
       }
 
+      console.log('✅ Event deleted from database successfully')
+
       // Clean up associated images after successful deletion
       if (event?.imagePath) {
+        console.log('🧹 Starting image cleanup for:', event.imagePath)
         try {
           const { deleteImages } = await import('./storage')
           await deleteImages([event.imagePath])
-          console.log('Successfully cleaned up event image:', event.imagePath)
+          console.log('✅ Successfully cleaned up event image:', event.imagePath)
         } catch (imageError) {
-          console.error('Failed to clean up event image:', imageError)
+          console.error('❌ Failed to clean up event image:', imageError)
+          console.error('❌ Image cleanup error details:', imageError)
           // Don't fail the entire operation if image cleanup fails
         }
+      } else {
+        console.log('ℹ️ No imagePath found in event data, skipping image cleanup')
       }
 
       return true
     } catch (error) {
-      console.error('Error deleting event:', error)
+      console.error('❌ Error deleting event:', error)
       throw error
     }
   },
@@ -706,6 +714,25 @@ export const api = {
       return await response.json()
     } catch (error) {
       console.error('Error fetching event by ID:', error)
+      return null
+    }
+  },
+
+  getEventForDeletion: async (eventId: string): Promise<Event | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/events/${eventId}/original`, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error('Error fetching event for deletion:', error)
       return null
     }
   },

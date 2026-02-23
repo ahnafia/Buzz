@@ -107,13 +107,19 @@ public class SupabaseStorageService {
     
     /**
      * Generate a signed URL for a profile image with default 5-minute expiry
-     * Handles paths in format "BucketName/filename.jpg"
+     * Handles paths in format "BucketName/filename.jpg" or full Supabase URLs
      */
     public String generateProfileImageUrl(String profileImagePath) {
         log.info("generateProfileImageUrl called with path: '{}'", profileImagePath);
         if (profileImagePath == null) {
             log.info("Profile image path is null, returning null");
             return null;
+        }
+        
+        // Check if this is already a full Supabase URL
+        if (profileImagePath.startsWith("https://") && profileImagePath.contains("supabase.co")) {
+            log.info("Path appears to be a full Supabase URL, returning as-is: '{}'", profileImagePath);
+            return profileImagePath;
         }
         
         // Parse bucket and file path from format "BucketName/filename.jpg"
@@ -133,11 +139,11 @@ public class SupabaseStorageService {
         String result = generateSignedUrl(bucketName, filePath, 300); // 5 minutes
         log.info("Generated signed URL result: {}", result != null ? "Success" : "Failed");
         
-        // For development: if signed URL generation fails, return a placeholder
+        // For development: if signed URL generation fails, return null to let frontend handle gracefully
         if (result == null) {
-            log.info("Signed URL generation failed, returning placeholder URL for development");
-            // Return a placeholder image URL for development
-            return "https://via.placeholder.com/150x150/cccccc/666666?text=No+Image";
+            log.info("Signed URL generation failed, returning null to let frontend handle missing image");
+            // Return null so frontend can show its own placeholder/fallback
+            return null;
         }
         
         return result;

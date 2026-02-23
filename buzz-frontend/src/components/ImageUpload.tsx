@@ -71,14 +71,58 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
   // Initialize with existing images
   useEffect(() => {
-    if (initialImages.length > 0) {
-      setState(prev => ({
-        ...prev,
-        previews: initialImages,
-        uploadedUrls: initialImages
-      }))
+    console.log('🔍 initialImages useEffect triggered:', {
+      initialImages,
+      currentState: {
+        previews: state.previews,
+        uploadedUrls: state.uploadedUrls,
+        uploading: state.uploading
+      }
+    })
+    
+    // Don't interfere if we're currently uploading
+    if (state.uploading) {
+      console.log('⏸️ Skipping initialImages update - upload in progress')
+      return
     }
-  }, [initialImages])
+    
+    setState(prev => {
+      // Check if initialImages are already set to prevent unnecessary updates
+      const currentUrls = [...prev.uploadedUrls, ...prev.previews.filter(url => !url.startsWith('blob:'))]
+      const newUrls = [...initialImages]
+      
+      // Compare arrays to see if they're the same
+      if (currentUrls.length === newUrls.length && 
+          currentUrls.every((url, index) => url === newUrls[index])) {
+        console.log('✅ Initial images unchanged, skipping update')
+        return prev
+      }
+      
+      // Only update if initialImages is actually different and not empty when we have uploaded content
+      if (prev.uploadedUrls.length > 0 && initialImages.length === 0) {
+        console.log('⚠️ Preventing reset of uploaded images by empty initialImages')
+        return prev
+      }
+      
+      console.log('🔄 Setting initial state from:', prev, 'to initialImages:', initialImages)
+      // Clean up any existing blob URLs that aren't in initialImages
+      const blobsToCleanup = prev.previews.filter(url => 
+        url.startsWith('blob:') && !initialImages.includes(url)
+      )
+      blobsToCleanup.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+      
+      return {
+        ...prev,
+        previews: [...initialImages],
+        uploadedUrls: [...initialImages],
+        files: [] // Clear files since we're setting from initialImages
+      }
+    })
+  }, [initialImages, state.uploading])
 
   // Cleanup abort controller on unmount
   useEffect(() => {
@@ -240,13 +284,67 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         setState(prev => ({ ...prev, progress: 100 }))
       }
 
-      setState(prev => ({ 
-        ...prev, 
-        uploading: false, 
-        progress: 100,
-        uploadedUrls: [...prev.uploadedUrls, ...uploadedUrls],
-        failedFiles: []
-      }))
+      setState(prev => {
+        console.log('🔄 Upload complete, updating state:', {
+          mode,
+          uploadedUrls,
+          currentPreviews: prev.previews,
+          currentUploadedUrls: prev.uploadedUrls
+        })
+        
+        // In multiple mode, replace blob URLs with uploaded URLs
+        if (mode === 'multiple') {
+          const newPreviews = [...prev.previews]
+          const newUploadedUrls = [...prev.uploadedUrls, ...uploadedUrls]
+          
+          // Replace blob URLs with uploaded URLs in order
+          uploadedUrls.forEach((uploadedUrl, index) => {
+            const blobIndex = newPreviews.findIndex(url => url.startsWith('blob:'))
+            if (blobIndex !== -1) {
+              console.log(`🔄 Replacing blob URL at index ${blobIndex} with uploaded URL:`, uploadedUrl)
+              newPreviews[blobIndex] = uploadedUrl
+            } else {
+              console.log('⚠️ No blob URL found to replace, adding to end:', uploadedUrl)
+              newPreviews.push(uploadedUrl)
+            }
+          })
+          
+          // Clean up remaining blob URLs
+          const remainingBlobUrls = newPreviews.filter(url => url.startsWith('blob:'))
+          cleanupPreviews(remainingBlobUrls)
+          
+          console.log('✅ Multiple mode - new state:', {
+            previews: newPreviews,
+            uploadedUrls: newUploadedUrls
+          })
+          
+          return {
+            ...prev, 
+            uploading: false, 
+            progress: 100,
+            uploadedUrls: newUploadedUrls,
+            previews: newPreviews,
+            failedFiles: []
+          }
+        } else {
+          // Single mode - replace everything with the uploaded URL
+          cleanupPreviews(prev.previews.filter(url => url.startsWith('blob:')))
+          
+          console.log('✅ Single mode - new state:', {
+            previews: uploadedUrls,
+            uploadedUrls: uploadedUrls
+          })
+          
+          return {
+            ...prev, 
+            uploading: false, 
+            progress: 100,
+            uploadedUrls: uploadedUrls,
+            previews: uploadedUrls,
+            failedFiles: []
+          }
+        }
+      })
 
       if (onUploadComplete) {
         onUploadComplete(uploadedUrls)
@@ -358,7 +456,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       return {
         ...prev,
         files: updatedFiles,
-        previews: updatedPreviews
+        previews: updatedPreviews,
+        // Clear uploadedUrls in single mode when adding new files
+        uploadedUrls: mode === 'single' ? [] : prev.uploadedUrls
       }
     })
 
@@ -472,11 +572,41 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }))
   }, [])
 
-  // Notify parent of changes
+  // Track the last notified URLs to prevent infinite loops
+  const lastNotifiedUrls = useRef<string[]>([])
+
+  // Notify parent of changes - use useCallback to prevent infinite loops
+  const notifyParent = useCallback((uploadedUrls: string[], previews: string[]) => {
+    const allUrls = [...uploadedUrls, ...previews.filter(url => !url.startsWith('blob:'))]
+    
+    console.log('🔔 notifyParent called:', {
+      uploadedUrls,
+      previews,
+      filteredPreviews: previews.filter(url => !url.startsWith('blob:')),
+      allUrls
+    })
+    
+    // Check if URLs have actually changed to prevent infinite loops
+    const urlsChanged = allUrls.length !== lastNotifiedUrls.current.length || 
+                       allUrls.some((url, index) => url !== lastNotifiedUrls.current[index])
+    
+    if (urlsChanged) {
+      console.log('📤 Sending to parent (URLs changed):', allUrls)
+      lastNotifiedUrls.current = [...allUrls]
+      onImagesChange(allUrls)
+    } else {
+      console.log('⏸️ Not sending to parent (URLs unchanged)')
+    }
+  }, [onImagesChange])
+
   useEffect(() => {
-    const allUrls = [...state.uploadedUrls, ...state.previews.filter(url => !url.startsWith('blob:'))]
-    onImagesChange(allUrls)
-  }, [state.uploadedUrls, state.previews, onImagesChange])
+    console.log('ImageUpload state:', {
+      uploadedUrls: state.uploadedUrls,
+      previews: state.previews,
+      mode
+    })
+    notifyParent(state.uploadedUrls, state.previews)
+  }, [state.uploadedUrls, state.previews, notifyParent, mode])
 
   // Cleanup on unmount
   useEffect(() => {

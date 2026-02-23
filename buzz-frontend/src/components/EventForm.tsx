@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import LocationPickerMap, { type LocationPickerMapHandle } from './LocationPickerMap'
 import ImageUpload from './ImageUpload'
 import type { Event, CreateEventRequest, UpdateEventRequest } from '../types/api'
@@ -152,13 +152,23 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
     }))
   }
 
-  const handleImageChange = (urls: string[]) => {
-    setBannerImage(urls)
-    // Clear any image-related errors
-    if (errors.image) {
+  const handleImageChange = useCallback((urls: string[]) => {
+    console.log('EventForm received image URLs:', urls)
+    // Only update if URLs have actually changed
+    setBannerImage(prev => {
+      if (prev.length === urls.length && prev.every((url, index) => url === urls[index])) {
+        return prev // No change, return same reference
+      }
+      return urls
+    })
+  }, [])
+
+  // Clear image errors when bannerImage changes
+  useEffect(() => {
+    if (errors.image && bannerImage.length > 0) {
       setErrors(prev => ({ ...prev, image: '' }))
     }
-  }
+  }, [bannerImage.length, errors.image])
 
   return (
     <div className="event-form-container">
@@ -230,6 +240,7 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
 
           <div className="form-group">
             <label>Banner Image</label>
+            {console.log('EventForm rendering with bannerImage:', bannerImage)}
             <ImageUpload
               mode="single"
               onImagesChange={handleImageChange}
