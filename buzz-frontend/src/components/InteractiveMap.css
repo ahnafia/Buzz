@@ -1395,6 +1395,31 @@
   padding: 6px 8px 4px;
   display: flex;
   flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: #c4c4c4 transparent;
+}
+
+.pin-detail-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pin-detail-body::-webkit-scrollbar-button {
+  display: none;
+  height: 0;
+  width: 0;
+}
+
+.pin-detail-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pin-detail-body::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 5px;
+}
+
+.pin-detail-body::-webkit-scrollbar-thumb:hover {
+  background: #d4d4d4;
 }
 
 /* Flag-specific sidebar content: image carousel, owner, caption, location, tags */
@@ -1421,7 +1446,7 @@
 
 .pin-detail-flag-single-image-container {
   width: 100%;
-  aspect-ratio: 4 / 3;
+  min-height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1434,11 +1459,14 @@
   border-radius: 8px;
 }
 
-.pin-detail-flag-single-carousel .pin-detail-flag-image {
+/* Let the image dictate height so taller pictures get more vertical space */
+.pin-detail-flag-single-carousel .pin-detail-flag-single-image-container .pin-detail-flag-image {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
+  max-height: 70vh;
+  object-fit: contain;
   display: block;
+  vertical-align: top;
 }
 
 .pin-detail-flag-single-carousel .pin-detail-flag-carousel-nav {
