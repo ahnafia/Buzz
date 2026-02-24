@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { useProfile, useFriends, useBusinessEvents } from '../hooks/useProfile'
 import { useUser } from '../contexts/UserContext'
@@ -8,6 +8,7 @@ import BusinessMapView from '../components/BusinessMapView'
 import ProfileImage from '../components/ProfileImage'
 import '../components/BusinessMapView.css'
 import { api } from '../utils/api'
+import { uploadProfileImage } from '../utils/storage'
 import type { Event, UserProfile, Friend, Landmark } from '../types/api'
 import './ProfileScreen.css'
 
@@ -243,6 +244,9 @@ const ProfileScreen = () => {
   const [landmarkFormName, setLandmarkFormName] = useState('')
   const [landmarkSaving, setLandmarkSaving] = useState(false)
   const [landmarkError, setLandmarkError] = useState<string | null>(null)
+  const [profileImageUploading, setProfileImageUploading] = useState(false)
+  const [profileImageError, setProfileImageError] = useState<string | null>(null)
+  const profileImageInputRef = useRef<HTMLInputElement>(null)
 
   // Business events hook - only used for business profiles
   const businessEvents = useBusinessEvents()
@@ -398,6 +402,29 @@ const ProfileScreen = () => {
       await refetch()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete')
+    }
+  }
+
+  const handleChangeProfileImageClick = () => {
+    profileImageError && setProfileImageError(null)
+    profileImageInputRef.current?.click()
+  }
+
+  const handleProfileImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) return
+    setProfileImageUploading(true)
+    setProfileImageError(null)
+    try {
+      const path = await uploadProfileImage(file)
+      await api.updateCurrentUserProfile({ profileImagePath: path })
+      await refetch()
+      setAvatarLightboxOpen(false)
+    } catch (err) {
+      setProfileImageError(err instanceof Error ? err.message : 'Failed to upload profile picture')
+    } finally {
+      setProfileImageUploading(false)
+      e.target.value = ''
     }
   }
 
@@ -620,13 +647,28 @@ const ProfileScreen = () => {
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  className="profile-avatar-lightbox-change-btn"
-                  aria-label="Change profile picture"
-                >
-                  Change profile picture
-                </button>
+                <input
+                  ref={profileImageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="profile-avatar-lightbox-file-input"
+                  aria-hidden
+                  onChange={handleProfileImageFileChange}
+                />
+                {currentUsername === profile.username && (
+                  <button
+                    type="button"
+                    className="profile-avatar-lightbox-change-btn"
+                    aria-label="Change profile picture"
+                    onClick={handleChangeProfileImageClick}
+                    disabled={profileImageUploading}
+                  >
+                    {profileImageUploading ? 'Uploading…' : 'Change profile picture'}
+                  </button>
+                )}
+                {profileImageError && (
+                  <p className="profile-avatar-lightbox-error" role="alert">{profileImageError}</p>
+                )}
               </div>
             </div>
           )}
@@ -784,13 +826,28 @@ const ProfileScreen = () => {
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className="profile-avatar-lightbox-change-btn"
-                    aria-label="Change profile picture"
-                  >
-                    Change profile picture
-                  </button>
+                  <input
+                    ref={profileImageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="profile-avatar-lightbox-file-input"
+                    aria-hidden
+                    onChange={handleProfileImageFileChange}
+                  />
+                  {currentUsername === profile.username && (
+                    <button
+                      type="button"
+                      className="profile-avatar-lightbox-change-btn"
+                      aria-label="Change profile picture"
+                      onClick={handleChangeProfileImageClick}
+                      disabled={profileImageUploading}
+                    >
+                      {profileImageUploading ? 'Uploading…' : 'Change profile picture'}
+                    </button>
+                  )}
+                  {profileImageError && (
+                    <p className="profile-avatar-lightbox-error" role="alert">{profileImageError}</p>
+                  )}
                 </div>
               </div>
             )}

@@ -241,6 +241,34 @@ export const uploadFlagImages = async (files: File[], bucket: string = 'Media'):
 }
 
 /**
+ * Upload a profile picture to Supabase storage
+ * @param file Image file to upload
+ * @param bucket Storage bucket name (default: 'Media')
+ * @returns Promise<string> Path in form "BucketName/profiles/filename" for backend profileImagePath
+ */
+export const uploadProfileImage = async (file: File, bucket: string = 'Media'): Promise<string> => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    throw new Error('User must be authenticated to upload profile image')
+  }
+  const compressedFile = await compressImage(file, 800, 800, 0.85)
+  const fileName = generateFileName(file.name)
+  const filePath = `profiles/${fileName}`
+  const { error } = await supabase.storage
+    .from(bucket)
+    .upload(filePath, compressedFile, {
+      cacheControl: '31536000',
+      upsert: false,
+      contentType: compressedFile.type
+    })
+  if (error) {
+    console.error('Error uploading profile image:', error)
+    throw new Error(`Failed to upload profile image: ${error.message}`)
+  }
+  return `${bucket}/${filePath}`
+}
+
+/**
  * Delete images from Supabase storage
  * @param urls Array of image URLs to delete
  * @param bucket Storage bucket name (default: 'Media')

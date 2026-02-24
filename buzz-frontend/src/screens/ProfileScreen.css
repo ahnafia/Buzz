@@ -253,6 +253,25 @@
   background: #e8894d;
 }
 
+.profile-avatar-lightbox-change-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.profile-avatar-lightbox-file-input {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.profile-avatar-lightbox-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: #c00;
+}
+
 .profile-avatar-lightbox-default-svg {
   width: 70%;
   height: 70%;
