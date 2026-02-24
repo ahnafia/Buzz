@@ -7,6 +7,7 @@ import UserSelector from '../components/UserSelector'
 type MapLocationState = {
   findFriendsUsername?: string
   focusFlag?: { id: string; lat: number; lon: number }
+  initialMyMapFocusFlag?: { id: string; lat: number; lon: number }
 }
 
 const MainMapScreen = () => {
@@ -16,6 +17,7 @@ const MainMapScreen = () => {
   const state = location.state as MapLocationState | null
   const findFriendsUsername = state?.findFriendsUsername
   const focusFlag = state?.focusFlag
+  const initialMyMapFocusFlag = state?.initialMyMapFocusFlag
 
   const handleInitialFocusDone = () => {
     navigate('.', { replace: true, state: {} })
@@ -34,6 +36,7 @@ const MainMapScreen = () => {
           ref={mapRef}
           initialFindFriendsUsername={findFriendsUsername}
           initialFocusFlag={focusFlag}
+          initialMyMapFocusFlag={initialMyMapFocusFlag}
           onInitialFocusDone={handleInitialFocusDone}
         />
       </div>

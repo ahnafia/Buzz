@@ -22,6 +22,8 @@ export type InteractiveMapProps = {
   initialFindFriendsUsername?: string
   /** Flag to zoom to and select (same zoom as clicking a pin: 15). */
   initialFocusFlag?: { id: string; lat: number; lon: number }
+  /** Open My Map and zoom to this flag (from personal profile own-flag click). */
+  initialMyMapFocusFlag?: { id: string; lat: number; lon: number }
   /** Called after initial focus is applied so parent can clear location state. */
   onInitialFocusDone?: () => void
 }
@@ -351,7 +353,7 @@ function buildPopupHtml(pin: PinData) {
 
 
 const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(function InteractiveMap(
-  { initialFindFriendsUsername, initialFocusFlag, onInitialFocusDone },
+  { initialFindFriendsUsername, initialFocusFlag, initialMyMapFocusFlag, onInitialFocusDone },
   ref
 ) {
   const navigate = useNavigate()
@@ -941,6 +943,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     fetchViewedUserFlags(initialFindFriendsUsername)
   }, [initialFindFriendsUsername])
 
+  // From personal profile: open My Map and zoom to the clicked flag
+  useEffect(() => {
+    if (!initialMyMapFocusFlag || initialFocusDoneRef.current) return
+    setMapMode('My Map')
+  }, [initialMyMapFocusFlag])
+
   // After viewed user flags load, zoom to the focused flag (same zoom as pin click: 15)
   useEffect(() => {
     if (
@@ -962,6 +970,26 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     initialFocusDoneRef.current = true
     onInitialFocusDone?.()
   }, [viewedUserFlags, viewedUsername, initialFindFriendsUsername, initialFocusFlag, onInitialFocusDone])
+
+  // After My Map profile flags load, zoom to the focused flag
+  useEffect(() => {
+    if (
+      initialFocusDoneRef.current ||
+      !initialMyMapFocusFlag ||
+      profileFlags.length === 0 ||
+      !map.current
+    ) {
+      return
+    }
+    const pin = profileFlags.find((p) => p.id === initialMyMapFocusFlag.id)
+    if (!pin) return
+    setSelectedPin(pin)
+    setSidebarOpen(true)
+    const targetZoom = 15
+    map.current.flyTo([pin.lat, pin.lng], targetZoom, { duration: 1.2, easeLinearity: 0.25 })
+    initialFocusDoneRef.current = true
+    onInitialFocusDone?.()
+  }, [profileFlags, initialMyMapFocusFlag, onInitialFocusDone])
 
   // Find Friends: debounced user search for suggestions
   useEffect(() => {

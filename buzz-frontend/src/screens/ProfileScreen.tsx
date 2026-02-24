@@ -867,7 +867,13 @@ const ProfileScreen = () => {
                           className={`list-item-btn ${pressedItem === flag.id ? 'pressed' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation()
-                            setPressedItem(pressedItem === flag.id ? null : flag.id)
+                            if (currentUsername && profile.username === currentUsername) {
+                              navigate('/', {
+                                state: { initialMyMapFocusFlag: { id: flag.id, lat: flag.lat, lon: flag.lon } }
+                              })
+                            } else {
+                              setPressedItem(pressedItem === flag.id ? null : flag.id)
+                            }
                           }}
                         >
                           <span className="list-item-icon flag-icon">
