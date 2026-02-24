@@ -61,14 +61,10 @@
   height: 40px;
 }
 
-/* Profile circle styling for main profile */
-.profile-circle .profile-image {
-  width: 80px;
-  height: 80px;
-  border: 3px solid #FF9B56;
-}
-
+/* Profile circle styling for main profile - fill the circle */
+.profile-circle .profile-image,
 .profile-circle .profile-image.large {
-  width: 100px;
-  height: 100px;
+  width: 125px;
+  height: 125px;
+  border: none;
 }

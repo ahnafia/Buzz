@@ -167,13 +167,13 @@
 }
 
 .profile-circle {
-  width: 120px;
-  height: 120px;
-  min-width: 120px;
-  min-height: 120px;
+  width: 125px;
+  height: 125px;
+  min-width: 125px;
+  min-height: 125px;
   border-radius: 50%;
-  background: #FFE2B7;
-  border: 2px solid #FF9B56;
+  background: transparent;
+  border: none;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -185,7 +185,7 @@
   cursor: pointer;
   padding: 0;
   margin: 0;
-  background: #FFE2B7;
+  background: transparent;
 }
 
 .profile-circle-clickable:hover {
@@ -1185,8 +1185,8 @@
   left: 1.5rem;
   width: 56px;
   height: 56px;
-  background: #ffe2b7;
-  color: #FF9B56;
+  background: #FF9B56;
+  color: white;
   border: 2px solid #FF9B56;
   border-radius: 50%;
   display: flex;
@@ -1200,7 +1200,9 @@
 
 .profile-fab:hover {
   transform: scale(1.1);
-  color: #FFF7eb;
+  color: white;
+  background: #e8894d;
+  border-color: #e8894d;
 }
 
 .profile-fab-icon {
