@@ -36,6 +36,11 @@ const CreateEventScreen = () => {
     }
   }, [profile])
 
+  const primaryBusinessLocation =
+    profile?.userType === 'BUSINESS' && profile.lat && profile.lon
+      ? { lat: profile.lat, lon: profile.lon }
+      : undefined
+
   const handleSubmit = async (eventData: CreateEventRequest | unknown) => {
     if (!location) {
       alert('Location is required to create an event')
@@ -86,6 +91,7 @@ const CreateEventScreen = () => {
           onCancel={handleCancel}
           isLoading={isLoading}
           location={location}
+          primaryBusinessLocation={primaryBusinessLocation}
         />
       </div>
     </div>

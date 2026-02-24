@@ -19,6 +19,48 @@
   border-right: 1px solid #e2e8f0;
 }
 
+.event-form-map-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.5rem 1rem 0.25rem 1rem;
+  gap: 1rem;
+}
+
+.event-form-map-header-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.event-form-map-header h3 {
+  margin: 0;
+}
+
+.use-primary-location-btn {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid #FF9B56;
+  background: #FFF7ED;
+  color: #FF9B56;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.use-primary-location-btn:hover {
+  background: #FFE0C4;
+  border-color: #FF9B56;
+  color: #FF9B56;
+}
+
+.use-primary-location-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .event-form-fields-column {
   flex: 1;
   /* Take up remaining space */

@@ -11,10 +11,20 @@ interface EventFormProps {
   onSubmit: (eventData: CreateEventRequest | UpdateEventRequest) => Promise<void>
   onCancel: () => void
   isLoading?: boolean
+  /** Initial map location (may come from business or geolocation) */
   location?: { lat: number; lon: number }
+  /** Primary business location, used by the "Use Primary Business Location" button */
+  primaryBusinessLocation?: { lat: number; lon: number }
 }
 
-const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: EventFormProps) => {
+const EventForm = ({
+  event,
+  onSubmit,
+  onCancel,
+  isLoading = false,
+  location,
+  primaryBusinessLocation
+}: EventFormProps) => {
   const [formData, setFormData] = useState({
     title: event?.title || '',
     category: event?.category || '',
@@ -152,6 +162,15 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
     }))
   }
 
+  const handleUsePrimaryBusinessLocation = () => {
+    if (!primaryBusinessLocation) return
+    setFormData(prev => ({
+      ...prev,
+      lat: primaryBusinessLocation.lat,
+      lon: primaryBusinessLocation.lon
+    }))
+  }
+
   const handleImageChange = useCallback((urls: string[]) => {
     console.log('EventForm received image URLs:', urls)
     // Only update if URLs have actually changed
@@ -173,8 +192,22 @@ const EventForm = ({ event, onSubmit, onCancel, isLoading = false, location }: E
   return (
     <div className="event-form-container">
       <div className="event-form-map-column">
-        <h3>📍 Pin Location</h3>
-        <p className="map-instruction">Click on the map to set the event location.</p>
+        <div className="event-form-map-header">
+          <div className="event-form-map-header-text">
+            <h3>📍 Pin Location</h3>
+            <p className="map-instruction">Click on the map to set the event location.</p>
+          </div>
+          {primaryBusinessLocation && (
+            <button
+              type="button"
+              className="use-primary-location-btn"
+              onClick={handleUsePrimaryBusinessLocation}
+              disabled={isLoading}
+            >
+              Use Primary Business Location
+            </button>
+          )}
+        </div>
         <div className="map-wrapper">
           <LocationPickerMap
             ref={mapRef}
