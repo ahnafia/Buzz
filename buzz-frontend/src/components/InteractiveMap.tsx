@@ -62,19 +62,23 @@ type PinData = {
   status?: string
 }
 
-/** Parse flag image URLs from both legacy imageUrl and new imagePaths fields */
+/** Parse flag image URLs from both legacy imageUrl and new imagePaths fields. Deduplicates so each image appears once. */
 function parseFlagImageUrls(flag: Flag): string[] {
+  let urls: string[] = []
   // Prefer the new imagePaths array if it exists and has content
   if (flag.imagePaths && flag.imagePaths.length > 0) {
-    return flag.imagePaths.filter(Boolean)
+    urls = flag.imagePaths.filter(Boolean)
+  } else if (flag.imageUrl && flag.imageUrl.trim()) {
+    // Fall back to legacy imageUrl field (could be comma-separated)
+    urls = flag.imageUrl.split(',').map((s) => s.trim()).filter(Boolean)
   }
-  
-  // Fall back to legacy imageUrl field (could be comma-separated)
-  if (flag.imageUrl && flag.imageUrl.trim()) {
-    return flag.imageUrl.split(',').map((s) => s.trim()).filter(Boolean)
-  }
-  
-  return []
+  // Deduplicate by URL so each picture appears only once (preserve order)
+  const seen = new Set<string>()
+  return urls.filter((url) => {
+    if (seen.has(url)) return false
+    seen.add(url)
+    return true
+  })
 }
 
 /** Convert profile Flag (has lat, lon) to PinData for map */
