@@ -197,16 +197,14 @@ const EventForm = ({
             <h3>📍 Pin Location</h3>
             <p className="map-instruction">Click on the map to set the event location.</p>
           </div>
-          {primaryBusinessLocation && (
-            <button
-              type="button"
-              className="use-primary-location-btn"
-              onClick={handleUsePrimaryBusinessLocation}
-              disabled={isLoading}
-            >
-              Use Primary Business Location
-            </button>
-          )}
+          <button
+            type="button"
+            className="use-primary-location-btn"
+            onClick={handleUsePrimaryBusinessLocation}
+            disabled={isLoading || !primaryBusinessLocation}
+          >
+            Use Primary Business Location
+          </button>
         </div>
         <div className="map-wrapper">
           <LocationPickerMap

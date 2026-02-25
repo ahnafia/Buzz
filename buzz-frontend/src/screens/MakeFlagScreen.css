@@ -9,8 +9,9 @@
 .make-flag-header {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 5px 20px;
+  justify-content: center;
+  min-height: 56px;
+  padding: 14px 20px;
   background: #FFFBF5;
   border-bottom: 1px solid rgba(255, 155, 86, 0.2);
   position: sticky;
@@ -20,12 +21,17 @@
 }
 
 .make-flag-back {
+  position: absolute;
+  left: 20px;
   color: #FF9B56;
-  text-decoration: none;
   font-weight: 600;
   font-size: 16px;
   padding: 8px 0;
   transition: color 0.2s;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .make-flag-back:hover {
@@ -37,6 +43,7 @@
   font-size: 24px;
   font-weight: 700;
   color: #333;
+  text-align: center;
 }
 
 .make-flag-body {

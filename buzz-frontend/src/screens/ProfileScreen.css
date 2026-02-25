@@ -656,6 +656,91 @@
   color: #b71c1c;
 }
 
+/* Delete flag confirmation modal */
+.profile-delete-flag-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 1rem;
+}
+
+.profile-delete-flag-modal {
+  background: #FFFBF5;
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 155, 86, 0.2);
+}
+
+.profile-delete-flag-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.profile-delete-flag-message {
+  margin: 0 0 1.5rem 0;
+  font-size: 0.95rem;
+  color: #555;
+  line-height: 1.45;
+}
+
+.profile-delete-flag-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.profile-delete-flag-cancel-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 155, 86, 0.5);
+  background: transparent;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.profile-delete-flag-cancel-btn:hover:not(:disabled) {
+  background: rgba(255, 155, 86, 0.12);
+  border-color: #FF9B56;
+}
+
+.profile-delete-flag-cancel-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.profile-delete-flag-delete-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  background: #c62828;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.profile-delete-flag-delete-btn:hover:not(:disabled) {
+  background: #b71c1c;
+}
+
+.profile-delete-flag-delete-btn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
 .profile-flag-row .list-item-btn {
   padding-right: 8rem;
 }

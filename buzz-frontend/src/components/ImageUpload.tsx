@@ -577,12 +577,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
   // Notify parent of changes - use useCallback to prevent infinite loops
   const notifyParent = useCallback((uploadedUrls: string[], previews: string[]) => {
-    const allUrls = [...uploadedUrls, ...previews.filter(url => !url.startsWith('blob:'))]
+    const nonBlobPreviews = previews.filter(url => !url.startsWith('blob:'))
+    const combined = [...uploadedUrls, ...nonBlobPreviews]
+    const allUrls = [...new Set(combined)]
     
     console.log('🔔 notifyParent called:', {
       uploadedUrls,
       previews,
-      filteredPreviews: previews.filter(url => !url.startsWith('blob:')),
+      filteredPreviews: nonBlobPreviews,
       allUrls
     })
     

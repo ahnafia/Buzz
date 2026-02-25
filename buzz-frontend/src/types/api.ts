@@ -136,6 +136,18 @@ export interface CreateFlagRequest {
   isPublic?: boolean
 }
 
+/** Backend only updates title, description, city, addressText, category, color, isPublic (no lat/lon or images). */
+export interface UpdateFlagRequest {
+  title?: string | null
+  description?: string | null
+  city?: string | null
+  addressText?: string | null
+  category?: string | null
+  imageUrl?: string | null
+  color?: string | null
+  isPublic?: boolean
+}
+
 export interface FlagWithLikeCount {
   flag: Flag
   likeCount: number

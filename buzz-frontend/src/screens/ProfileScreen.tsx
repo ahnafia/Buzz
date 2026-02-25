@@ -246,6 +246,8 @@ const ProfileScreen = () => {
   const [landmarkError, setLandmarkError] = useState<string | null>(null)
   const [profileImageUploading, setProfileImageUploading] = useState(false)
   const [profileImageError, setProfileImageError] = useState<string | null>(null)
+  const [deleteFlagConfirm, setDeleteFlagConfirm] = useState<{ id: string; title: string } | null>(null)
+  const [deleteFlagInProgress, setDeleteFlagInProgress] = useState(false)
   const profileImageInputRef = useRef<HTMLInputElement>(null)
 
   // Business events hook - only used for business profiles
@@ -330,6 +332,15 @@ const ProfileScreen = () => {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [editProfileOpen, landmarkFormOpen])
+
+  useEffect(() => {
+    if (!deleteFlagConfirm) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !deleteFlagInProgress) setDeleteFlagConfirm(null)
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [deleteFlagConfirm, deleteFlagInProgress])
 
   const handleSaveProfile = async () => {
     if (!profile) return
@@ -429,16 +440,19 @@ const ProfileScreen = () => {
   }
 
   const handleDeleteFlag = async (flagId: string, flagTitle: string) => {
-    if (!confirm(`Delete "${flagTitle}"? This will permanently remove the flag and its images.`)) return
+    setDeleteFlagInProgress(true)
     try {
       console.log('🗑️ Starting flag deletion:', { flagId, flagTitle })
       await api.deleteFlag(flagId)
       console.log('✅ Flag deleted successfully, refreshing profile...')
+      setDeleteFlagConfirm(null)
       await refetch() // Refresh profile to update flag list
       console.log('✅ Profile refreshed after flag deletion')
     } catch (err) {
       console.error('❌ Failed to delete flag:', err)
       alert(err instanceof Error ? err.message : 'Failed to delete flag')
+    } finally {
+      setDeleteFlagInProgress(false)
     }
   }
 
@@ -949,7 +963,7 @@ const ProfileScreen = () => {
                             className="profile-flag-edit-btn"
                             onClick={(e) => {
                               e.stopPropagation()
-                              // TODO: edit flag
+                              navigate('/make_flag', { state: { editingFlag: flag } })
                             }}
                             aria-label={`Edit ${flag.title}`}
                           >
@@ -960,7 +974,7 @@ const ProfileScreen = () => {
                             className="profile-flag-trash-btn"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleDeleteFlag(flag.id, flag.title)
+                              setDeleteFlagConfirm({ id: flag.id, title: flag.title })
                             }}
                             aria-label={`Delete ${flag.title}`}
                           >
@@ -1254,6 +1268,35 @@ const ProfileScreen = () => {
       >
         <span className="profile-fab-icon">+</span>
       </Link>
+
+      {deleteFlagConfirm && (
+        <div className="profile-delete-flag-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-flag-title">
+          <div className="profile-delete-flag-modal">
+            <h2 id="delete-flag-title" className="profile-delete-flag-title">Delete flag?</h2>
+            <p className="profile-delete-flag-message">
+              Are you sure you want to delete &quot;{deleteFlagConfirm.title}&quot;? This will permanently remove the flag and its images.
+            </p>
+            <div className="profile-delete-flag-actions">
+              <button
+                type="button"
+                className="profile-delete-flag-cancel-btn"
+                onClick={() => setDeleteFlagConfirm(null)}
+                disabled={deleteFlagInProgress}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="profile-delete-flag-delete-btn"
+                onClick={() => deleteFlagConfirm && handleDeleteFlag(deleteFlagConfirm.id, deleteFlagConfirm.title)}
+                disabled={deleteFlagInProgress}
+              >
+                {deleteFlagInProgress ? 'Deleting…' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

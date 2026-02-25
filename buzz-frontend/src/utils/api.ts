@@ -1,5 +1,5 @@
 // API utility functions - backend integration
-import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest, Flag, CreateFlagRequest, Landmark, CreateLandmarkRequest, UpdateLandmarkRequest } from '../types/api'
+import type { UserProfile, UsersResponse, Event, EventsResponse, CreateEventRequest, UpdateEventRequest, Flag, CreateFlagRequest, UpdateFlagRequest, Landmark, CreateLandmarkRequest, UpdateLandmarkRequest } from '../types/api'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
@@ -624,6 +624,33 @@ export const api = {
     const result = await response.json()
     console.log('✅ Successfully created flag:', result)
     return result
+  },
+
+  updateFlag: async (flagId: string, request: UpdateFlagRequest): Promise<Flag> => {
+    const currentUserId = getCurrentUserId()
+    if (!currentUserId) throw new Error('Not logged in')
+    const response = await fetch(`${API_BASE_URL}/flags/${flagId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-Id': currentUserId
+      },
+      body: JSON.stringify({
+        title: request.title ?? null,
+        description: request.description ?? null,
+        city: request.city ?? null,
+        addressText: request.addressText ?? null,
+        category: request.category ?? null,
+        imageUrl: request.imageUrl ?? null,
+        color: request.color ?? null,
+        isPublic: request.isPublic ?? null
+      })
+    })
+    if (!response.ok) {
+      const text = await response.text()
+      throw new Error(response.status === 401 ? 'Not logged in' : `Failed to update flag: ${response.status} ${text}`)
+    }
+    return response.json()
   },
 
   deleteFlag: async (flagId: string): Promise<boolean> => {

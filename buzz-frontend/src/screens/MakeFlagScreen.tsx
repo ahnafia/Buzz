@@ -1,20 +1,26 @@
-import { useState, useCallback } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useCallback, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import LocationPickerMap from '../components/LocationPickerMap'
 import ImageUpload from '../components/ImageUpload'
 import '../components/LocationPickerMap.css'
 import './MakeFlagScreen.css'
 import { api } from '../utils/api'
 import { uploadFlagImages } from '../utils/storage'
+import type { Flag } from '../types/api'
 
 export const FLAG_COLORS = ['#64B9D3', '#FF9B56', '#F7CA1D', '#FF5B59'] as const
 
 export type FlagLocation = { lat: number; lng: number } | null
 
+type MakeFlagLocationState = { editingFlag?: Flag }
+
 const MakeFlagScreen = () => {
   const navigate = useNavigate()
+  const location = useLocation()
+  const editingFlag = (location.state as MakeFlagLocationState | null)?.editingFlag
+
   const [flagName, setFlagName] = useState('')
-  const [location, setLocation] = useState<FlagLocation>(null)
+  const [locationCoord, setLocationCoord] = useState<FlagLocation>(null)
   const [locationLabel, setLocationLabel] = useState('')
   const [caption, setCaption] = useState('')
   const [tags, setTags] = useState('')
@@ -22,6 +28,17 @@ const MakeFlagScreen = () => {
   const [flagColor, setFlagColor] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!editingFlag) return
+    setFlagName(editingFlag.title)
+    setLocationCoord({ lat: editingFlag.lat, lng: editingFlag.lon })
+    setLocationLabel(editingFlag.addressText ?? editingFlag.city ?? '')
+    setCaption(editingFlag.description ?? '')
+    setTags(editingFlag.category ?? '')
+    setImageUrls(editingFlag.imagePaths?.length ? [...editingFlag.imagePaths] : editingFlag.imageUrl ? [editingFlag.imageUrl] : [])
+    setFlagColor(editingFlag.color ?? null)
+  }, [editingFlag])
 
   const handleImagesChange = useCallback((urls: string[]) => {
     setImageUrls(urls)
@@ -38,13 +55,13 @@ const MakeFlagScreen = () => {
       setCreateError('Please enter a flag name.')
       return
     }
-    if (!location) {
+    if (!locationCoord) {
       console.error('❌ No location selected')
       setCreateError('Please choose a location on the map.')
       return
     }
     
-    console.log('📍 Selected location:', location)
+    console.log('📍 Selected location:', locationCoord)
     console.log('🏷️ Location label:', locationLabel)
     console.log('💬 Caption:', caption)
     console.log('🏷️ Tags:', tags)
@@ -88,26 +105,40 @@ const MakeFlagScreen = () => {
       const allImageUrls = [...existingUrls, ...uploadedImageUrls]
       console.log('🖼️ All image URLs combined:', allImageUrls)
 
-      const flagRequest = {
-        title: name,
-        description: caption.trim() || null,
-        lat: location.lat,
-        lon: location.lng,
-        city: locationLabel.trim() || null,
-        addressText: locationLabel.trim() || null,
-        category: tags.trim() || null,
-        imagePaths: allImageUrls.length > 0 ? allImageUrls : null,
-        color,
-        isPublic: true
+      if (editingFlag) {
+        const updatePayload = {
+          title: name,
+          description: caption.trim() || null,
+          city: locationLabel.trim() || null,
+          addressText: locationLabel.trim() || null,
+          category: tags.trim() || null,
+          imageUrl: allImageUrls.length > 0 ? allImageUrls[0] : null,
+          color,
+          isPublic: true
+        }
+        console.log('📋 Update flag request:', updatePayload)
+        await api.updateFlag(editingFlag.id, updatePayload)
+        console.log('✅ Flag updated successfully, navigating to profile')
+        navigate('/profile', { replace: true })
+      } else {
+        const flagRequest = {
+          title: name,
+          description: caption.trim() || null,
+          lat: locationCoord.lat,
+          lon: locationCoord.lng,
+          city: locationLabel.trim() || null,
+          addressText: locationLabel.trim() || null,
+          category: tags.trim() || null,
+          imagePaths: allImageUrls.length > 0 ? allImageUrls : null,
+          color,
+          isPublic: true
+        }
+        console.log('📋 Final flag request object:', flagRequest)
+        console.log('🚀 Calling api.createFlag...')
+        await api.createFlag(flagRequest)
+        console.log('✅ Flag created successfully, navigating to home')
+        navigate('/', { replace: true })
       }
-      
-      console.log('📋 Final flag request object:', flagRequest)
-      console.log('🚀 Calling api.createFlag...')
-
-      await api.createFlag(flagRequest)
-      
-      console.log('✅ Flag created successfully, navigating to home')
-      navigate('/', { replace: true })
     } catch (e) {
       console.error('❌ Error creating flag:', e)
       console.error('❌ Error details:', {
@@ -125,8 +156,8 @@ const MakeFlagScreen = () => {
   return (
     <div className="make-flag-screen">
       <header className="make-flag-header">
-        <Link to="/" className="make-flag-back">← Back</Link>
-        <h1 className="make-flag-title">Create a flag</h1>
+        <button type="button" className="make-flag-back" onClick={() => navigate(-1)}>← Back</button>
+        <h1 className="make-flag-title">{editingFlag ? 'Edit flag' : 'Create a flag'}</h1>
       </header>
 
       <div className="make-flag-body">
@@ -136,6 +167,7 @@ const MakeFlagScreen = () => {
               mode="multiple"
               maxFiles={10}
               onImagesChange={handleImagesChange}
+              initialImages={imageUrls}
               className="make-flag-image-upload"
             />
           </div>
@@ -211,15 +243,15 @@ const MakeFlagScreen = () => {
             onClick={handleGenerate}
             disabled={creating}
           >
-            {creating ? 'Creating…' : 'Generate'}
+            {creating ? (editingFlag ? 'Saving…' : 'Creating…') : (editingFlag ? 'Save changes' : 'Generate')}
           </button>
         </div>
 
         <div className="make-flag-map-column">
           <p className="make-flag-map-label">Choose location</p>
           <LocationPickerMap
-            initialLocation={location ?? undefined}
-            onLocationSelect={(loc) => setLocation(loc)}
+            initialLocation={locationCoord ?? undefined}
+            onLocationSelect={setLocationCoord}
           />
         </div>
       </div>
