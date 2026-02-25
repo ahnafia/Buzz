@@ -369,6 +369,62 @@
   box-shadow: 0 0 0 3px rgba(255, 155, 86, 0.2);
 }
 
+.make-flag-tag-error {
+  margin: 6px 0 0 0;
+  font-size: 14px;
+  color: #c62828;
+  text-align: center;
+}
+
+.make-flag-tags-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.make-flag-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(255, 155, 86, 0.18);
+  border: 1px solid rgba(255, 155, 86, 0.4);
+  border-radius: 20px;
+  font-size: 14px;
+  color: #333;
+  width: fit-content;
+}
+
+.make-flag-tag-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: rgba(255, 155, 86, 0.35);
+  color: #333;
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.make-flag-tag-chip-remove:hover {
+  background: rgba(255, 155, 86, 0.55);
+}
+
+.make-flag-tag-chip-remove:focus-visible {
+  outline: 2px solid #FF9B56;
+  outline-offset: 2px;
+}
+
 .make-flag-generate-btn {
   width: 100%;
   max-width: min(560px, 90vw);

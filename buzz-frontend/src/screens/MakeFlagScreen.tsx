@@ -23,7 +23,10 @@ const MakeFlagScreen = () => {
   const [locationCoord, setLocationCoord] = useState<FlagLocation>(null)
   const [locationLabel, setLocationLabel] = useState('')
   const [caption, setCaption] = useState('')
-  const [tags, setTags] = useState('')
+  const [taggedUserTags, setTaggedUserTags] = useState<string[]>([])
+  const [tagInputValue, setTagInputValue] = useState('')
+  const [tagError, setTagError] = useState<string | null>(null)
+  const [tagChecking, setTagChecking] = useState(false)
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [flagColor, setFlagColor] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -35,13 +38,47 @@ const MakeFlagScreen = () => {
     setLocationCoord({ lat: editingFlag.lat, lng: editingFlag.lon })
     setLocationLabel(editingFlag.addressText ?? editingFlag.city ?? '')
     setCaption(editingFlag.description ?? '')
-    setTags(editingFlag.category ?? '')
+    const cat = editingFlag.category ?? ''
+    setTaggedUserTags(cat ? cat.split(/\s+/).filter(Boolean) : [])
     setImageUrls(editingFlag.imagePaths?.length ? [...editingFlag.imagePaths] : editingFlag.imageUrl ? [editingFlag.imageUrl] : [])
     setFlagColor(editingFlag.color ?? null)
   }, [editingFlag])
 
   const handleImagesChange = useCallback((urls: string[]) => {
     setImageUrls(urls)
+  }, [])
+
+  const isValidUserTag = (s: string) => /^@[a-zA-Z0-9_.-]+$/.test(s.trim())
+  const sanitizeTagInput = useCallback((value: string) => {
+    if (!value) return ''
+    if (value.startsWith('@')) {
+      return '@' + value.slice(1).replace(/[^a-zA-Z0-9_.-]/g, '')
+    }
+    return value.replace(/[^a-zA-Z0-9_.-]/g, '')
+  }, [])
+  const addTag = useCallback(async () => {
+    const v = tagInputValue.trim()
+    if (!v) return
+    const normalized = v.startsWith('@') ? v : `@${v}`
+    if (!isValidUserTag(normalized)) return
+    const username = normalized.slice(1)
+    setTagError(null)
+    setTagChecking(true)
+    try {
+      const profile = await api.getEnhancedProfile(username)
+      if (!profile) {
+        setTagError('Invalid Username Entered')
+        return
+      }
+      setTaggedUserTags((prev) => (prev.includes(normalized) ? prev : [...prev, normalized]))
+      setTagInputValue('')
+    } finally {
+      setTagChecking(false)
+    }
+  }, [tagInputValue])
+
+  const removeTag = useCallback((tag: string) => {
+    setTaggedUserTags((prev) => prev.filter((t) => t !== tag))
   }, [])
 
   const handleGenerate = async () => {
@@ -64,7 +101,7 @@ const MakeFlagScreen = () => {
     console.log('📍 Selected location:', locationCoord)
     console.log('🏷️ Location label:', locationLabel)
     console.log('💬 Caption:', caption)
-    console.log('🏷️ Tags:', tags)
+    console.log('🏷️ Tags:', taggedUserTags)
     console.log('🖼️ Image URLs:', imageUrls)
     
     const color = flagColor ?? FLAG_COLORS[Math.floor(Math.random() * FLAG_COLORS.length)]
@@ -111,7 +148,7 @@ const MakeFlagScreen = () => {
           description: caption.trim() || null,
           city: locationLabel.trim() || null,
           addressText: locationLabel.trim() || null,
-          category: tags.trim() || null,
+          category: taggedUserTags.length > 0 ? taggedUserTags.join(' ') : null,
           imageUrl: allImageUrls.length > 0 ? allImageUrls[0] : null,
           color,
           isPublic: true
@@ -128,7 +165,7 @@ const MakeFlagScreen = () => {
           lon: locationCoord.lng,
           city: locationLabel.trim() || null,
           addressText: locationLabel.trim() || null,
-          category: tags.trim() || null,
+          category: taggedUserTags.length > 0 ? taggedUserTags.join(' ') : null,
           imagePaths: allImageUrls.length > 0 ? allImageUrls : null,
           color,
           isPublic: true
@@ -205,15 +242,45 @@ const MakeFlagScreen = () => {
             />
           </div>
 
-          <div className="make-flag-field">
+          <div className="make-flag-field make-flag-field--tags">
             <label className="make-flag-label">Tags:</label>
             <input
               type="text"
               className="make-flag-input"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="Enter tags (e.g. food, fun)"
+              value={tagInputValue}
+              onChange={(e) => {
+                setTagInputValue(sanitizeTagInput(e.target.value))
+                setTagError(null)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addTag()
+                }
+              }}
+              placeholder="Enter @username to tag"
+              disabled={tagChecking}
             />
+            {tagError && (
+              <p className="make-flag-tag-error" role="alert">{tagError}</p>
+            )}
+            {taggedUserTags.length > 0 && (
+              <div className="make-flag-tags-list">
+                {taggedUserTags.map((tag) => (
+                  <span key={tag} className="make-flag-tag-chip">
+                    {tag}
+                    <button
+                      type="button"
+                      className="make-flag-tag-chip-remove"
+                      onClick={() => removeTag(tag)}
+                      aria-label={`Remove ${tag}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="make-flag-field">

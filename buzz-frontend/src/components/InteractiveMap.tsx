@@ -1562,7 +1562,18 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
                   )}
                   {selectedPin.category && (
                     <div className="pin-detail-flag-tags">
-                      <span className="pin-detail-flag-tag">{selectedPin.category}</span>
+                      {selectedPin.category.split(/\s+/).filter(Boolean).map((tag) => {
+                        const username = tag.startsWith('@') ? tag.slice(1) : tag
+                        return (
+                          <Link
+                            key={tag}
+                            to={`/profile-viewer/${encodeURIComponent(username)}`}
+                            className="pin-detail-flag-tag"
+                          >
+                            {tag}
+                          </Link>
+                        )
+                      })}
                     </div>
                   )}
                 </div>

@@ -1658,6 +1658,14 @@
   font-weight: 500;
   background: rgba(255, 155, 86, 0.2);
   color: #FF9B56;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.pin-detail-flag-tag:hover {
+  background: rgba(255, 155, 86, 0.35);
+  color: #e8884a;
 }
 
 .pin-detail-card {
