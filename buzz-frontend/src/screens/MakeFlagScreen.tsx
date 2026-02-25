@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import LocationPickerMap from '../components/LocationPickerMap'
 import ImageUpload from '../components/ImageUpload'
@@ -6,7 +6,9 @@ import '../components/LocationPickerMap.css'
 import './MakeFlagScreen.css'
 import { api } from '../utils/api'
 import { uploadFlagImages } from '../utils/storage'
-import type { Flag } from '../types/api'
+import { useUser } from '../contexts/UserContext'
+import { useFriends } from '../hooks/useProfile'
+import type { Flag, UserProfile } from '../types/api'
 
 export const FLAG_COLORS = ['#64B9D3', '#FF9B56', '#F7CA1D', '#FF5B59'] as const
 
@@ -17,7 +19,10 @@ type MakeFlagLocationState = { editingFlag?: Flag }
 const MakeFlagScreen = () => {
   const navigate = useNavigate()
   const location = useLocation()
+  const { currentUsername } = useUser()
+  const { friends } = useFriends(currentUsername || '')
   const editingFlag = (location.state as MakeFlagLocationState | null)?.editingFlag
+  const friendIds = useMemo(() => new Set((friends?.users ?? []).map((f) => f.id)), [friends?.users])
 
   const [flagName, setFlagName] = useState('')
   const [locationCoord, setLocationCoord] = useState<FlagLocation>(null)
@@ -27,10 +32,58 @@ const MakeFlagScreen = () => {
   const [tagInputValue, setTagInputValue] = useState('')
   const [tagError, setTagError] = useState<string | null>(null)
   const [tagChecking, setTagChecking] = useState(false)
+  const [tagSuggestions, setTagSuggestions] = useState<UserProfile[]>([])
+  const [tagSuggestionsLoading, setTagSuggestionsLoading] = useState(false)
+  const [tagSuggestionHighlight, setTagSuggestionHighlight] = useState(-1)
+  const tagFieldRef = useRef<HTMLDivElement>(null)
   const [imageUrls, setImageUrls] = useState<string[]>([])
   const [flagColor, setFlagColor] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const q = tagInputValue.trim().replace(/^@/, '')
+    if (!q) {
+      setTagSuggestions([])
+      setTagSuggestionHighlight(-1)
+      return
+    }
+    const t = setTimeout(async () => {
+      setTagSuggestionsLoading(true)
+      try {
+        const users = await api.searchUsers(q, 10)
+        const taggedUsernames = new Set(
+          taggedUserTags.map((tag) => (tag.startsWith('@') ? tag.slice(1) : tag).toLowerCase().trim()).filter(Boolean)
+        )
+        const filtered = users.filter(
+          (u) => u.username && !taggedUsernames.has((u.username || '').toLowerCase())
+        )
+        const sorted = [...filtered].sort((a, b) => {
+          const aFriend = friendIds.has(a.id)
+          const bFriend = friendIds.has(b.id)
+          if (aFriend && !bFriend) return -1
+          if (!aFriend && bFriend) return 1
+          return 0
+        })
+        setTagSuggestions(sorted)
+        setTagSuggestionHighlight(sorted.length > 0 ? 0 : -1)
+      } finally {
+        setTagSuggestionsLoading(false)
+      }
+    }, 300)
+    return () => clearTimeout(t)
+  }, [tagInputValue, taggedUserTags, friendIds])
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tagFieldRef.current && !tagFieldRef.current.contains(e.target as Node)) {
+        setTagSuggestions([])
+        setTagSuggestionHighlight(-1)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   useEffect(() => {
     if (!editingFlag) return
@@ -79,6 +132,15 @@ const MakeFlagScreen = () => {
 
   const removeTag = useCallback((tag: string) => {
     setTaggedUserTags((prev) => prev.filter((t) => t !== tag))
+  }, [])
+
+  const addTagFromUser = useCallback((user: UserProfile) => {
+    const tag = `@${user.username}`
+    setTaggedUserTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]))
+    setTagInputValue('')
+    setTagError(null)
+    setTagSuggestions([])
+    setTagSuggestionHighlight(-1)
   }, [])
 
   const handleGenerate = async () => {
@@ -242,25 +304,79 @@ const MakeFlagScreen = () => {
             />
           </div>
 
-          <div className="make-flag-field make-flag-field--tags">
+          <div className="make-flag-field make-flag-field--tags" ref={tagFieldRef}>
             <label className="make-flag-label">Tags:</label>
-            <input
-              type="text"
-              className="make-flag-input"
-              value={tagInputValue}
-              onChange={(e) => {
-                setTagInputValue(sanitizeTagInput(e.target.value))
-                setTagError(null)
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  addTag()
-                }
-              }}
-              placeholder="Enter @username to tag"
-              disabled={tagChecking}
-            />
+            <div className="make-flag-tag-input-wrap">
+              <input
+                type="text"
+                className="make-flag-input"
+                value={tagInputValue}
+                onChange={(e) => {
+                  setTagInputValue(sanitizeTagInput(e.target.value))
+                  setTagError(null)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    if (tagSuggestions.length > 0 && tagSuggestionHighlight >= 0 && tagSuggestionHighlight < tagSuggestions.length) {
+                      addTagFromUser(tagSuggestions[tagSuggestionHighlight])
+                    } else {
+                      addTag()
+                    }
+                    return
+                  }
+                  if (e.key === 'Escape') {
+                    setTagSuggestions([])
+                    setTagSuggestionHighlight(-1)
+                    return
+                  }
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault()
+                    setTagSuggestionHighlight((prev) =>
+                      tagSuggestions.length === 0 ? -1 : Math.min(prev + 1, tagSuggestions.length - 1)
+                    )
+                    return
+                  }
+                  if (e.key === 'ArrowUp') {
+                    e.preventDefault()
+                    setTagSuggestionHighlight((prev) => (prev <= 0 ? -1 : prev - 1))
+                    return
+                  }
+                }}
+                placeholder="Enter @username to tag"
+                disabled={tagChecking}
+                autoComplete="off"
+                aria-autocomplete="list"
+                aria-expanded={tagSuggestions.length > 0}
+              />
+              {tagSuggestions.length > 0 || tagSuggestionsLoading ? (
+                <div className="make-flag-tag-suggestions">
+                  {tagSuggestionsLoading ? (
+                    <div className="make-flag-tag-suggestion-item make-flag-tag-suggestion-loading">
+                      Searching…
+                    </div>
+                  ) : (
+                    tagSuggestions.map((user, i) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        className={`make-flag-tag-suggestion-item ${i === tagSuggestionHighlight ? 'make-flag-tag-suggestion-item--highlight' : ''}`}
+                        onMouseEnter={() => setTagSuggestionHighlight(i)}
+                        onClick={() => addTagFromUser(user)}
+                      >
+                        <span className="make-flag-tag-suggestion-text">
+                          <span className="make-flag-tag-suggestion-name">{user.displayName || user.username}</span>
+                          <span className="make-flag-tag-suggestion-username">@{user.username}</span>
+                        </span>
+                        {friendIds.has(user.id) && (
+                          <span className="make-flag-tag-suggestion-friend-label">Friends</span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              ) : null}
+            </div>
             {tagError && (
               <p className="make-flag-tag-error" role="alert">{tagError}</p>
             )}

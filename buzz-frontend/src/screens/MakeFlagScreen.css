@@ -369,6 +369,80 @@
   box-shadow: 0 0 0 3px rgba(255, 155, 86, 0.2);
 }
 
+.make-flag-tag-input-wrap {
+  position: relative;
+}
+
+.make-flag-tag-suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  background: white;
+  border: 2px solid rgba(255, 155, 86, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 20;
+}
+
+.make-flag-tag-suggestion-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 15px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.make-flag-tag-suggestion-friend-label {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #888;
+  margin-left: auto;
+}
+
+.make-flag-tag-suggestion-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 1;
+}
+
+.make-flag-tag-suggestion-item:hover,
+.make-flag-tag-suggestion-item--highlight {
+  background: rgba(255, 155, 86, 0.12);
+}
+
+.make-flag-tag-suggestion-name {
+  font-weight: 600;
+}
+
+.make-flag-tag-suggestion-username {
+  font-size: 13px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.make-flag-tag-suggestion-loading {
+  color: #666;
+  cursor: default;
+}
+
+.make-flag-tag-suggestion-loading:hover {
+  background: transparent;
+}
+
 .make-flag-tag-error {
   margin: 6px 0 0 0;
   font-size: 14px;
