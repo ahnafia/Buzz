@@ -653,6 +653,41 @@
   border-radius: 20px;
 }
 
+/* City zoom marker – shown when zoomed out; click zooms into city (e.g. State College) */
+.buzz-city-zoom-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.buzz-city-zoom-marker-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.2));
+}
+
+.buzz-city-zoom-marker-inner:hover {
+  transform: scale(1.08);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.buzz-city-zoom-marker-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  display: block;
+}
+
+.buzz-city-zoom-marker-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #FF9B56;
+  white-space: nowrap;
+}
+
 /* Small Buzz Logo - Top Left */
 .buzz-logo-small {
   position: absolute;

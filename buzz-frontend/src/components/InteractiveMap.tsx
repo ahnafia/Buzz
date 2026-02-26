@@ -30,6 +30,21 @@ export type InteractiveMapProps = {
 
 const FLAG_COLORS = ['#64B9D3', '#FF9B56', '#F7CA1D', '#FF5B59'] as const
 
+/** Event pins are hidden when map zoom is below this level (more zoomed out). */
+const EVENT_PINS_MIN_ZOOM = 11
+
+/** Cities shown when zoomed out; clicking a marker zooms into that area. */
+const CITY_ZOOM_LEVEL = 13
+/** Distance threshold (in degrees) for hiding flags near a city center when zoomed out. ~0.05 degrees ≈ 5-6km radius. */
+const CITY_PROXIMITY_THRESHOLD = 0.05
+
+const CITIES: { label: string; lat: number; lng: number }[] = [
+  { label: 'State College', lat: 40.7934, lng: -77.8616 },
+  { label: 'Chicago', lat: 41.8781, lng: -87.6298 },
+  { label: 'Nashville', lat: 36.1627, lng: -86.7816 },
+  { label: 'New York', lat: 40.7128, lng: -74.006 }
+]
+
 function defaultFlagColor(flagId: string): string {
   let n = 0
   for (let i = 0; i < flagId.length; i++) n += flagId.charCodeAt(i)
@@ -201,6 +216,21 @@ function pinIconForPin(pin: PinData, isSelected?: boolean) {
     html: `<span class="buzz-pin-dot"><span class="buzz-pin-logo"><span class="buzz-pin-letter">${letter}</span></span></span>`,
     iconSize: [48, 48],
     iconAnchor: [24, 16]
+  })
+}
+
+/** Icon for a city zoom marker – Buzz logo + city label; click zooms in. */
+function cityZoomIcon(cityLabel: string) {
+  const safeLabel = cityLabel.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+  return L.divIcon({
+    className: 'buzz-city-zoom-marker',
+    html: `
+      <div class="buzz-city-zoom-marker-inner">
+        <img src="/IMG_0203.svg" alt="" class="buzz-city-zoom-marker-logo" />
+        <span class="buzz-city-zoom-marker-label">${safeLabel}</span>
+      </div>`,
+    iconSize: [80, 56],
+    iconAnchor: [40, 48]
   })
 }
 
@@ -463,6 +493,7 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
   const map = useRef<L.Map | null>(null)
   const markersRef = useRef<L.Marker[]>([])
   const initialFocusDoneRef = useRef(false)
+  const [mapZoom, setMapZoom] = useState(13)
   const [showCreatePopup, setShowCreatePopup] = useState(false)
   const [selectedPin, setSelectedPin] = useState<PinData | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -600,6 +631,30 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     () => [...visiblePins].sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })),
     [visiblePins]
   )
+
+  // Pins to show on map: event pins and flags near city center are hidden when zoomed out past EVENT_PINS_MIN_ZOOM
+  const pinsToShowOnMap = useMemo(() => {
+    if (mapZoom >= EVENT_PINS_MIN_ZOOM) return visiblePins
+    
+    // When zoomed out, hide event pins and flags within proximity of any city
+    return visiblePins.filter((p) => {
+      // Always hide event pins when zoomed out
+      if (p.type === 'event') return false
+      
+      // Hide flags that are close to any city center
+      if (p.type === 'flag') {
+        const isNearAnyCity = CITIES.some(
+          (city) =>
+            Math.abs(p.lat - city.lat) < CITY_PROXIMITY_THRESHOLD &&
+            Math.abs(p.lng - city.lng) < CITY_PROXIMITY_THRESHOLD
+        )
+        return !isNearAnyCity
+      }
+      
+      // Keep other pin types (landmarks, etc.)
+      return true
+    })
+  }, [visiblePins, mapZoom])
 
   const applyCategoryFilter = () => setAppliedCategorySearch(categorySearch)
 
@@ -1066,6 +1121,13 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       }
     })
 
+    // Track zoom level so we can hide event pins when zoomed out
+    const onZoomEnd = () => {
+      if (map.current) setMapZoom(map.current.getZoom())
+    }
+    map.current.on('zoomend', onZoomEnd)
+    setMapZoom(map.current.getZoom())
+
     return () => {
       markersRef.current.forEach((m) => m.remove())
       markersRef.current = []
@@ -1093,16 +1155,16 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     }
   }, [mapModeDropdownOpen])
 
-  // Clear selected pin if it's hidden by category filter; retract sidebar when selection is cleared
+  // Clear selected pin if it's hidden by category filter or by zoom (event pins hidden when zoomed out); retract sidebar when selection is cleared
   useEffect(() => {
     if (
       selectedPin &&
-      !visiblePins.some((p) => p.id === selectedPin.id)
+      !pinsToShowOnMap.some((p) => p.id === selectedPin.id)
     ) {
       setSelectedPin(null)
       setSidebarOpen(false)
     }
-  }, [visiblePins, selectedPin])
+  }, [pinsToShowOnMap, selectedPin])
 
   // Reset flag image index when a different flag is selected
   useEffect(() => {
@@ -1138,21 +1200,21 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     }
   }, [selectedPin?.id])
 
-  // Update markers when visible pins change (filtered by category search)
+  // Update markers when visible pins or zoom change (event pins hidden when zoomed out)
   useEffect(() => {
     if (!map.current) return
 
-    const flagCount = visiblePins.filter((p) => p.type === 'flag').length
-    const eventCount = visiblePins.filter((p) => p.type === 'event').length
-    console.log('[Map] Updating markers', { total: visiblePins.length, flags: flagCount, events: eventCount, visiblePins })
+    const flagCount = pinsToShowOnMap.filter((p) => p.type === 'flag').length
+    const eventCount = pinsToShowOnMap.filter((p) => p.type === 'event').length
+    console.log('[Map] Updating markers', { total: pinsToShowOnMap.length, flags: flagCount, events: eventCount, mapZoom })
 
     // Clear existing markers
     markersRef.current.forEach((m) => m.remove())
     markersRef.current = []
 
-    // Add new markers only for visible pins (pins or flags)
+    // Add new markers only for pins to show (event pins excluded when zoomed out)
     const markers: L.Marker[] = []
-    for (const pin of visiblePins) {
+    for (const pin of pinsToShowOnMap) {
       const icon = pin.type === 'flag'
         ? flagIconForFlag(pin, selectedPin?.id === pin.id)
         : pinIconForPin(pin, selectedPin?.id === pin.id)
@@ -1180,8 +1242,24 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       })
       markers.push(marker)
     }
+
+    // When zoomed out past event-pin threshold, show city pins (Buzz logo + label) that zoom in on click
+    if (mapZoom < EVENT_PINS_MIN_ZOOM) {
+      for (const city of CITIES) {
+        const cityIcon = cityZoomIcon(city.label)
+        const cityMarker = L.marker([city.lat, city.lng], { icon: cityIcon })
+        cityMarker.addTo(map.current)
+        cityMarker.on('click', () => {
+          if (map.current) {
+            map.current.flyTo([city.lat, city.lng], CITY_ZOOM_LEVEL, { duration: 1.2, easeLinearity: 0.25 })
+          }
+        })
+        markers.push(cityMarker)
+      }
+    }
+
     markersRef.current = markers
-  }, [visiblePins, selectedPin])
+  }, [pinsToShowOnMap, selectedPin, mapZoom])
 
   // Handle location picker marker
   const locationMarkerRef = useRef<L.Marker | null>(null)
