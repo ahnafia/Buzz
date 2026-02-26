@@ -240,12 +240,21 @@ function flagIconForFlag(pin: PinData, isSelected?: boolean) {
   const selectedClass = isSelected ? ' buzz-flag-icon--selected' : ''
   const color = pin.flagColor ?? FLAG_COLORS[0]
 
+  // Generate a consistent animation delay based on flag ID (0-1.4s range to cover full animation cycle)
+  // This ensures each flag animates independently but the delay stays consistent for the same flag
+  let delayHash = 0
+  for (let i = 0; i < pin.id.length; i++) {
+    delayHash = ((delayHash << 5) - delayHash) + pin.id.charCodeAt(i)
+    delayHash = delayHash & delayHash // Convert to 32-bit integer
+  }
+  const animationDelay = Math.abs(delayHash % 1400) / 1000 // 0 to 1.4 seconds
+
   // Traditional flag: pole + banner (one peak, one low on top/bottom), higher on pole, slightly smaller
   const escapedLetter = letter.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   return L.divIcon({
     className: `buzz-flag-icon${selectedClass}`,
     html: `<div class="buzz-flag-container">
-             <div class="buzz-flag-sway">
+             <div class="buzz-flag-sway" style="animation-delay: ${animationDelay}s;">
                <svg class="buzz-flag-svg" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                  <path class="buzz-flag-pole" d="M10 6 L10 44" stroke="#000" stroke-width="2.8" stroke-linecap="round"/>
                  <path class="buzz-flag-pole" d="M10 6 L10 44" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
