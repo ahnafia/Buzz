@@ -68,9 +68,11 @@ type PinData = {
   expiresAt?: string
   imageUrl?: string
   userId?: string // For flags, to track the owner
-  ownerProfileImageUrl?: string // For flags, the owner's profile image
-  /** For flags: display name of the user who created the flag */
+  ownerProfileImageUrl?: string // Owner's profile image (flags and events)
+  /** Display name of the user who created the flag / hosts the event */
   ownerDisplayName?: string
+  /** Username for linking to profile viewer */
+  ownerUsername?: string
   /** For flags: all image URLs (comma-separated in API, parsed to array) */
   flagImageUrls?: string[]
   /** For flags: hex color for the icon. If missing, derived from id. */
@@ -104,7 +106,8 @@ function flagToPinData(
   _userLat: number,
   _userLon: number,
   ownerProfileImageUrl?: string,
-  ownerDisplayName?: string
+  ownerDisplayName?: string,
+  ownerUsername?: string
 ): PinData {
   const flagImageUrls = parseFlagImageUrls(flag)
   return {
@@ -121,14 +124,21 @@ function flagToPinData(
     userId: flag.userId,
     ownerProfileImageUrl,
     ownerDisplayName,
+    ownerUsername,
     flagImageUrls: flagImageUrls.length > 0 ? flagImageUrls : undefined,
     flagColor: flag.color ?? defaultFlagColor(flag.id)
   }
 }
 
-/** Convert Event to PinData. Use ownerDisplayName when provided so the pin shows display name instead of owner ID. */
-function eventToPinData(event: Event, _userLat: number, _userLon: number, ownerDisplayName?: string): PinData {
-  // Calculate approximate distance in feet (rough calculation)
+/** Convert Event to PinData. Use ownerDisplayName/ownerUsername/ownerProfileImageUrl when provided. */
+function eventToPinData(
+  event: Event,
+  _userLat: number,
+  _userLon: number,
+  ownerDisplayName?: string,
+  ownerUsername?: string,
+  ownerProfileImageUrl?: string
+): PinData {
   const startDate = new Date(event.startTime)
   const expiresDate = new Date(event.expiresAt)
   const now = new Date()
@@ -151,6 +161,8 @@ function eventToPinData(event: Event, _userLat: number, _userLon: number, ownerD
     tips: `Status: ${status}`,
     status: status,
     ownerDisplayName: ownerDisplayName ?? event.owner,
+    ownerUsername,
+    ownerProfileImageUrl,
     type: 'event',
     imageUrl: event.imagePath
   }
@@ -268,239 +280,18 @@ function flagIconForFlag(pin: PinData, isSelected?: boolean) {
   })
 }
 
-function buildPopupHtml(pin: PinData) {
-  console.log('Building popup for pin:', pin.title, 'imageUrl:', pin.imageUrl, 'type:', pin.type, 'flagImageUrls:', pin.flagImageUrls)
-
-  // Helper function to escape HTML to prevent XSS
-  const escapeHtml = (text: string): string => {
-    const div = document.createElement('div')
-    div.textContent = text
-    return div.innerHTML
-  }
-
-  // Enhanced event image handling with better fallback and error states
-  const eventImageHtml = pin.type === 'event' 
-    ? pin.imageUrl 
-      ? (() => {
-          const safeImageUrl = escapeHtml(pin.imageUrl)
-          const safeImageUrlForJs = pin.imageUrl.replace(/'/g, "\\'").replace(/"/g, '\\"')
-          const safeTitleForJs = pin.title.replace(/'/g, "\\'").replace(/"/g, '\\"')
-          return `<div class="buzz-popup-image-container buzz-popup-image-container--event">
-           <img src="${safeImageUrl}" 
-                alt="${escapeHtml(pin.title)} banner image" 
-                class="buzz-popup-image buzz-popup-image--event" 
-                onerror="console.error('Event banner image failed to load:', '${safeImageUrlForJs}'); this.style.display='none'; this.parentElement.classList.add('buzz-popup-image-container--error');" 
-                onload="console.log('Event banner image loaded successfully:', '${safeImageUrlForJs}'); this.parentElement.classList.add('buzz-popup-image-container--loaded');" />
-           <div class="buzz-popup-image-fallback buzz-popup-image-fallback--event">
-             <svg viewBox="0 0 24 24" fill="#FF9B56" style="width:48px;height:48px;">
-               <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
-             </svg>
-             <span class="buzz-popup-image-fallback-text">Image unavailable</span>
-           </div>
-         </div>`
-        })()
-      : '' // No image section when no banner image exists (Requirement 4.3)
-    : ''
-
-  // Flag image carousel HTML for multiple images (Requirements 2.1, 2.2, 2.3)
-  const flagImageHtml = pin.type === 'flag' && pin.flagImageUrls && pin.flagImageUrls.length > 0
-    ? `<div class="buzz-popup-flag-carousel" data-pin-id="${escapeHtml(pin.id)}">
-         <div class="buzz-popup-flag-carousel-main">
-           <div class="buzz-popup-flag-carousel-track" style="transform: translateX(0%)">
-             ${pin.flagImageUrls.map((imageUrl, index) => {
-               const safeImageUrl = escapeHtml(imageUrl)
-               const safeImageUrlForJs = imageUrl.replace(/'/g, "\\'").replace(/"/g, '\\"')
-               return `
-               <div class="buzz-popup-flag-carousel-slide">
-                 <img src="${safeImageUrl}" 
-                      alt="Flag image ${index + 1} of ${pin.flagImageUrls!.length}" 
-                      class="buzz-popup-flag-carousel-image"
-                      onerror="console.error('Flag image failed to load:', '${safeImageUrlForJs}'); this.style.display='none'; this.nextElementSibling.style.display='flex';" 
-                      onload="this.nextElementSibling.style.display='none';" />
-                 <div class="buzz-popup-flag-carousel-error" style="display: none;">
-                   <div class="buzz-popup-flag-carousel-error-icon">⚠️</div>
-                   <div class="buzz-popup-flag-carousel-error-text">Failed to load image</div>
-                 </div>
-               </div>
-               `
-             }).join('')}
-           </div>
-           ${pin.flagImageUrls.length > 1 ? `
-             <button class="buzz-popup-flag-carousel-nav buzz-popup-flag-carousel-nav--prev" 
-                     onclick="window.buzzFlagCarouselPrev && window.buzzFlagCarouselPrev('${escapeHtml(pin.id)}')"
-                     aria-label="Previous image">
-               <span class="buzz-popup-flag-carousel-nav-icon">‹</span>
-             </button>
-             <button class="buzz-popup-flag-carousel-nav buzz-popup-flag-carousel-nav--next" 
-                     onclick="window.buzzFlagCarouselNext && window.buzzFlagCarouselNext('${escapeHtml(pin.id)}')"
-                     aria-label="Next image">
-               <span class="buzz-popup-flag-carousel-nav-icon">›</span>
-             </button>
-             <div class="buzz-popup-flag-carousel-counter">
-               <span class="buzz-popup-flag-carousel-counter-current">1</span> / ${pin.flagImageUrls.length}
-             </div>
-           ` : ''}
-         </div>
-         ${pin.flagImageUrls.length > 1 && pin.flagImageUrls.length <= 5 ? `
-           <div class="buzz-popup-flag-carousel-thumbnails">
-             ${pin.flagImageUrls.map((imageUrl, index) => {
-               const safeImageUrl = escapeHtml(imageUrl)
-               return `
-               <button class="buzz-popup-flag-carousel-thumbnail ${index === 0 ? 'buzz-popup-flag-carousel-thumbnail--active' : ''}" 
-                       onclick="window.buzzFlagCarouselGoTo && window.buzzFlagCarouselGoTo('${escapeHtml(pin.id)}', ${index})"
-                       aria-label="Go to image ${index + 1}">
-                 <img src="${safeImageUrl}" alt="Thumbnail ${index + 1}" class="buzz-popup-flag-carousel-thumbnail-image" />
-               </button>
-               `
-             }).join('')}
-           </div>
-         ` : pin.flagImageUrls.length > 1 ? `
-           <div class="buzz-popup-flag-carousel-dots">
-             ${pin.flagImageUrls.map((_, index) => `
-               <button class="buzz-popup-flag-carousel-dot ${index === 0 ? 'buzz-popup-flag-carousel-dot--active' : ''}" 
-                       onclick="window.buzzFlagCarouselGoTo && window.buzzFlagCarouselGoTo('${escapeHtml(pin.id)}', ${index})"
-                       aria-label="Go to image ${index + 1}"></button>
-             `).join('')}
-           </div>
-         ` : ''}
-       </div>`
-    : '' // No image section when no flag images exist (Requirement 2.4)
-
-  // Enhanced popup content with better structure
-  return `
-    <div class="buzz-popup-card ${pin.type === 'event' ? 'buzz-popup-card--event' : pin.type === 'flag' ? 'buzz-popup-card--flag' : ''}">
-      ${eventImageHtml}
-      ${flagImageHtml}
-      <div class="buzz-popup-content">
-        <h4 class="buzz-popup-title">${escapeHtml(pin.title)}</h4>
-        ${pin.description ? `<p class="buzz-popup-description">${escapeHtml(pin.description)}</p>` : ''}
-        ${pin.type === 'event' ? `
-          <div class="buzz-popup-event-details">
-            ${pin.hours ? `<div class="buzz-popup-event-time">${escapeHtml(pin.hours)}</div>` : ''}
-            ${pin.status ? `<div class="buzz-popup-event-status buzz-popup-event-status--${escapeHtml(pin.status.toLowerCase())}">${escapeHtml(pin.status)}</div>` : ''}
-          </div>
-          <button class="buzz-popup-details-btn" onclick="if(window.buzzNavigateToEvent) { window.buzzNavigateToEvent('${escapeHtml(pin.id)}'); }">
-            View Event Details
-          </button>
-        ` : pin.type === 'flag' && pin.ownerDisplayName ? `
-          <div class="buzz-popup-flag-details">
-            <div class="buzz-popup-flag-owner">By ${escapeHtml(pin.ownerDisplayName)}</div>
-            ${pin.address ? `<div class="buzz-popup-flag-location">${escapeHtml(pin.address)}</div>` : ''}
-          </div>
-        ` : ''}
-      </div>
-    </div>
-  `
-}
-
-
-
 const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(function InteractiveMap(
   { initialFindFriendsUsername, initialFocusFlag, initialMyMapFocusFlag, onInitialFocusDone },
   ref
 ) {
   const navigate = useNavigate()
 
-  // Expose navigation to global scope for Leaflet popups
-  useEffect(() => {
-    (window as any).buzzNavigateToEvent = (id: string) => {
-      navigate(`/event/${id}`)
-    }
-
-    // Flag carousel navigation functions for popup context
-    const carouselStates = new Map<string, { currentIndex: number; totalImages: number }>()
-
-    const updateCarouselDisplay = (pinId: string, newIndex: number) => {
-      const carousel = document.querySelector(`[data-pin-id="${pinId}"]`)
-      if (!carousel) return
-
-      const track = carousel.querySelector('.buzz-popup-flag-carousel-track') as HTMLElement
-      const counter = carousel.querySelector('.buzz-popup-flag-carousel-counter-current')
-      const thumbnails = carousel.querySelectorAll('.buzz-popup-flag-carousel-thumbnail')
-      const dots = carousel.querySelectorAll('.buzz-popup-flag-carousel-dot')
-
-      if (track) {
-        track.style.transform = `translateX(-${newIndex * 100}%)`
-      }
-      if (counter) {
-        counter.textContent = (newIndex + 1).toString()
-      }
-
-      // Update thumbnail active state
-      thumbnails.forEach((thumb, index) => {
-        thumb.classList.toggle('buzz-popup-flag-carousel-thumbnail--active', index === newIndex)
-      })
-
-      // Update dot active state
-      dots.forEach((dot, index) => {
-        dot.classList.toggle('buzz-popup-flag-carousel-dot--active', index === newIndex)
-      })
-
-      // Update carousel state
-      const state = carouselStates.get(pinId)
-      if (state) {
-        state.currentIndex = newIndex
-      }
-    }
-
-    ;(window as any).buzzFlagCarouselPrev = (pinId: string) => {
-      const carousel = document.querySelector(`[data-pin-id="${pinId}"]`)
-      if (!carousel) return
-
-      let state = carouselStates.get(pinId)
-      if (!state) {
-        const images = carousel.querySelectorAll('.buzz-popup-flag-carousel-slide')
-        state = { currentIndex: 0, totalImages: images.length }
-        carouselStates.set(pinId, state)
-      }
-
-      const newIndex = state.currentIndex > 0 ? state.currentIndex - 1 : state.totalImages - 1
-      updateCarouselDisplay(pinId, newIndex)
-    }
-
-    ;(window as any).buzzFlagCarouselNext = (pinId: string) => {
-      const carousel = document.querySelector(`[data-pin-id="${pinId}"]`)
-      if (!carousel) return
-
-      let state = carouselStates.get(pinId)
-      if (!state) {
-        const images = carousel.querySelectorAll('.buzz-popup-flag-carousel-slide')
-        state = { currentIndex: 0, totalImages: images.length }
-        carouselStates.set(pinId, state)
-      }
-
-      const newIndex = state.currentIndex < state.totalImages - 1 ? state.currentIndex + 1 : 0
-      updateCarouselDisplay(pinId, newIndex)
-    }
-
-    ;(window as any).buzzFlagCarouselGoTo = (pinId: string, index: number) => {
-      const carousel = document.querySelector(`[data-pin-id="${pinId}"]`)
-      if (!carousel) return
-
-      let state = carouselStates.get(pinId)
-      if (!state) {
-        const images = carousel.querySelectorAll('.buzz-popup-flag-carousel-slide')
-        state = { currentIndex: 0, totalImages: images.length }
-        carouselStates.set(pinId, state)
-      }
-
-      if (index >= 0 && index < state.totalImages) {
-        updateCarouselDisplay(pinId, index)
-      }
-    }
-
-    return () => {
-      // Clean up
-      delete (window as any).buzzNavigateToEvent
-      delete (window as any).buzzFlagCarouselPrev
-      delete (window as any).buzzFlagCarouselNext
-      delete (window as any).buzzFlagCarouselGoTo
-    }
-  }, [navigate])
-
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
-  const markersRef = useRef<L.Marker[]>([])
+  /** Pin markers by pin id – kept across zoom so animations don't reset */
+  const pinMarkersRef = useRef<Map<string, { marker: L.Marker; pin: PinData }>>(new Map())
+  /** City markers (shown when zoomed out); recreated when zoom crosses threshold */
+  const cityMarkersRef = useRef<L.Marker[]>([])
   const initialFocusDoneRef = useRef(false)
   const [mapZoom, setMapZoom] = useState(13)
   const [showCreatePopup, setShowCreatePopup] = useState(false)
@@ -809,21 +600,30 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
         console.log('[Events] Converted to events', { count: events.length, events })
         setEvents(events)
 
-        // Resolve owner IDs to display names (business name for businesses, else display name)
+        // Resolve owner IDs to display names, usernames, and profile images
         const ownerIds = [...new Set(events.map(e => e.owner).filter(Boolean))]
-        const ownerDisplayNames = new Map<string, string>()
+        const ownerInfo = new Map<string, { displayName: string; username: string; profileImageUrl?: string }>()
         await Promise.all(
           ownerIds.map(async (id) => {
             const user = await api.getUserById(id)
-            const name = user?.businessName ?? user?.displayName ?? user?.username
-            if (name) ownerDisplayNames.set(id, name)
+            if (!user) return
+            const displayName = user.businessName ?? user.displayName ?? user.username
+            ownerInfo.set(id, { displayName, username: user.username, profileImageUrl: user.profileImageUrl })
           })
         )
 
         // Convert events to pins (flags come from user profile)
-        const eventPinData = events.map(event =>
-          eventToPinData(event, mapCenter.lat, mapCenter.lng, ownerDisplayNames.get(event.owner))
-        )
+        const eventPinData = events.map(event => {
+          const info = ownerInfo.get(event.owner)
+          return eventToPinData(
+            event,
+            mapCenter.lat,
+            mapCenter.lng,
+            info?.displayName,
+            info?.username,
+            info?.profileImageUrl
+          )
+        })
         setEventPins(eventPinData)
         console.log('[Events] Set eventPins', { count: eventPinData.length, eventPinData })
       } else {
@@ -865,7 +665,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
               mapCenter.lat,
               mapCenter.lng,
               profile?.profileImageUrl,
-              profile?.displayName ?? user.displayName ?? user.username
+              profile?.displayName ?? user.displayName ?? user.username,
+              user.username
             )
           )
         }
@@ -886,13 +687,17 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
       return
     }
     try {
-      const myEventsRes = await api.getMyEvents()
+      const [myEventsRes, currentProfile] = await Promise.all([
+        api.getMyEvents(),
+        api.getCurrentUserProfile()
+      ])
       const events = myEventsRes?.events ?? []
       console.log('[My Map] myEvents result', { count: events.length })
 
-      const myDisplayName = backendUser?.businessName ?? backendUser?.displayName ?? backendUser?.username
+      const myDisplayName = currentProfile?.businessName ?? currentProfile?.displayName ?? currentProfile?.username ?? backendUser?.businessName ?? backendUser?.displayName ?? backendUser?.username
+      const myProfileImageUrl = currentProfile?.profileImageUrl
       const pinData = events.map(event =>
-        eventToPinData(event, mapCenter.lat, mapCenter.lng, myDisplayName)
+        eventToPinData(event, mapCenter.lat, mapCenter.lng, myDisplayName, currentUsername ?? undefined, myProfileImageUrl)
       )
       setMyEvents(pinData)
     } catch (error) {
@@ -919,7 +724,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
           mapCenter.lat,
           mapCenter.lng,
           profile?.profileImageUrl,
-          profile?.displayName ?? trimmed
+          profile?.displayName ?? trimmed,
+          trimmed
         )
       )
       setViewedUserFlags(pinData)
@@ -971,7 +777,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
           mapCenter.lat,
           mapCenter.lng,
           userProfile?.profileImageUrl,
-          userProfile?.displayName ?? currentUsername ?? undefined
+          userProfile?.displayName ?? currentUsername ?? undefined,
+          currentUsername ?? undefined
         )
       )
       setProfileFlags(pinData)
@@ -1138,8 +945,10 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     setMapZoom(map.current.getZoom())
 
     return () => {
-      markersRef.current.forEach((m) => m.remove())
-      markersRef.current = []
+      pinMarkersRef.current.forEach(({ marker }) => marker.remove())
+      pinMarkersRef.current.clear()
+      cityMarkersRef.current.forEach((m) => m.remove())
+      cityMarkersRef.current = []
       if (map.current) {
         map.current.remove()
         map.current = null
@@ -1209,7 +1018,8 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     }
   }, [selectedPin?.id])
 
-  // Update markers when visible pins or zoom change (event pins hidden when zoomed out)
+  // Update markers when visible pins or zoom change. Reuse existing markers when possible
+  // so zooming does not remove/re-add pins and reset their animations.
   useEffect(() => {
     if (!map.current) return
 
@@ -1217,28 +1027,32 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
     const eventCount = pinsToShowOnMap.filter((p) => p.type === 'event').length
     console.log('[Map] Updating markers', { total: pinsToShowOnMap.length, flags: flagCount, events: eventCount, mapZoom })
 
-    // Clear existing markers
-    markersRef.current.forEach((m) => m.remove())
-    markersRef.current = []
+    const pinIdsToShow = new Set(pinsToShowOnMap.map((p) => p.id))
+    const existing = pinMarkersRef.current
 
-    // Add new markers only for pins to show (event pins excluded when zoomed out)
-    const markers: L.Marker[] = []
-    for (const pin of pinsToShowOnMap) {
-      const icon = pin.type === 'flag'
-        ? flagIconForFlag(pin, selectedPin?.id === pin.id)
-        : pinIconForPin(pin, selectedPin?.id === pin.id)
-      const marker = L.marker([pin.lat, pin.lng], { icon })
-      
-      // Only bind popup for events, not flags (flags use sidebar only)
-      if (pin.type === 'event') {
-        marker.bindPopup(buildPopupHtml(pin), {
-          className: 'buzz-marker-popup',
-          maxWidth: 320,
-          minWidth: 260,
-          autoPan: false
-        })
+    // Remove markers for pins that are no longer in pinsToShowOnMap
+    existing.forEach((entry, id) => {
+      if (!pinIdsToShow.has(id)) {
+        entry.marker.remove()
+        existing.delete(id)
       }
-      
+    })
+
+    // Add or update markers for each pin in pinsToShowOnMap
+    for (const pin of pinsToShowOnMap) {
+      const isSelected = selectedPin?.id === pin.id
+      const icon = pin.type === 'flag'
+        ? flagIconForFlag(pin, isSelected)
+        : pinIconForPin(pin, isSelected)
+
+      const entry = existing.get(pin.id)
+      if (entry) {
+        entry.pin = pin
+        entry.marker.setIcon(icon)
+        continue
+      }
+
+      const marker = L.marker([pin.lat, pin.lng], { icon })
       marker.addTo(map.current)
       marker.on('click', () => {
         setSelectedPin(pin)
@@ -1249,25 +1063,30 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
           map.current.flyTo([pin.lat, pin.lng], targetZoom, { duration: 1.2, easeLinearity: 0.25 })
         }
       })
-      markers.push(marker)
+      existing.set(pin.id, { marker, pin })
     }
 
-    // When zoomed out past event-pin threshold, show city pins (Buzz logo + label) that zoom in on click
+    // City markers: only visible when zoomed out; recreate only when crossing zoom threshold
     if (mapZoom < EVENT_PINS_MIN_ZOOM) {
-      for (const city of CITIES) {
-        const cityIcon = cityZoomIcon(city.label)
-        const cityMarker = L.marker([city.lat, city.lng], { icon: cityIcon })
-        cityMarker.addTo(map.current)
-        cityMarker.on('click', () => {
-          if (map.current) {
-            map.current.flyTo([city.lat, city.lng], CITY_ZOOM_LEVEL, { duration: 1.2, easeLinearity: 0.25 })
-          }
-        })
-        markers.push(cityMarker)
+      if (cityMarkersRef.current.length === 0) {
+        const cityMarkers: L.Marker[] = []
+        for (const city of CITIES) {
+          const cityIcon = cityZoomIcon(city.label)
+          const cityMarker = L.marker([city.lat, city.lng], { icon: cityIcon })
+          cityMarker.addTo(map.current)
+          cityMarker.on('click', () => {
+            if (map.current) {
+              map.current.flyTo([city.lat, city.lng], CITY_ZOOM_LEVEL, { duration: 1.2, easeLinearity: 0.25 })
+            }
+          })
+          cityMarkers.push(cityMarker)
+        }
+        cityMarkersRef.current = cityMarkers
       }
+    } else {
+      cityMarkersRef.current.forEach((m) => m.remove())
+      cityMarkersRef.current = []
     }
-
-    markersRef.current = markers
   }, [pinsToShowOnMap, selectedPin, mapZoom])
 
   // Handle location picker marker
@@ -1629,19 +1448,26 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
                       </div>
                     )}
                   </div>
-                  {(selectedPin.ownerDisplayName || selectedPin.address || selectedPin.fullDescription) && (
+                  {(selectedPin.ownerDisplayName || selectedPin.ownerUsername) && (
+                    <div className="pin-detail-host-row-wrap">
+                      {selectedPin.ownerUsername ? (
+                        <Link
+                          to={`/profile-viewer/${encodeURIComponent(selectedPin.ownerUsername)}`}
+                          className="pin-detail-host-row"
+                          aria-label={`View ${selectedPin.ownerDisplayName ?? selectedPin.ownerUsername}'s profile`}
+                        >
+                          <span className="pin-detail-host-name">{selectedPin.ownerDisplayName ?? selectedPin.ownerUsername}</span>
+                        </Link>
+                      ) : (
+                        <div className="pin-detail-host-row pin-detail-host-row--plain">
+                          <span className="pin-detail-host-name">{selectedPin.ownerDisplayName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!selectedPin.address && selectedPin.fullDescription && (
                     <p className="pin-detail-flag-owner-line">
-                      {selectedPin.ownerDisplayName && (
-                        <span className="pin-detail-flag-owner">{selectedPin.ownerDisplayName}</span>
-                      )}
-                      {selectedPin.ownerDisplayName && (selectedPin.address || selectedPin.fullDescription) && (
-                        <span className="pin-detail-flag-owner-location-sep"> · </span>
-                      )}
-                      {(selectedPin.address || selectedPin.fullDescription) && (
-                        <span className="pin-detail-flag-location">
-                          {selectedPin.address ?? selectedPin.fullDescription}
-                        </span>
-                      )}
+                      <span className="pin-detail-flag-location">{selectedPin.fullDescription}</span>
                     </p>
                   )}
                   {selectedPin.description && (
@@ -1683,10 +1509,24 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
                   >
                     View Event
                   </button>
-                  {selectedPin.ownerDisplayName && (
+                  {(selectedPin.ownerDisplayName || selectedPin.ownerUsername) && (
                     <div className="pin-detail-block">
                       <span className="pin-detail-label">Hosted by</span>
-                      <p className="pin-detail-text">{selectedPin.ownerDisplayName}</p>
+                      <div className="pin-detail-host-row-wrap">
+                        {selectedPin.ownerUsername ? (
+                          <Link
+                            to={`/profile-viewer/${encodeURIComponent(selectedPin.ownerUsername)}`}
+                            className="pin-detail-host-row"
+                            aria-label={`View ${selectedPin.ownerDisplayName ?? selectedPin.ownerUsername}'s profile`}
+                          >
+                            <span className="pin-detail-host-name">{selectedPin.ownerDisplayName ?? selectedPin.ownerUsername}</span>
+                          </Link>
+                        ) : (
+                          <div className="pin-detail-host-row pin-detail-host-row--plain">
+                            <span className="pin-detail-host-name">{selectedPin.ownerDisplayName}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -1708,13 +1548,6 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
                     </div>
                   )}
 
-                  {selectedPin.address && (
-                    <div className="pin-detail-block">
-                      <span className="pin-detail-label">Address</span>
-                      <p className="pin-detail-text">{selectedPin.address}</p>
-                    </div>
-                  )}
-
                   {selectedPin.status && (
                     <div className="pin-detail-block">
                       <span className="pin-detail-label">Status</span>
@@ -1726,7 +1559,12 @@ const InteractiveMap = forwardRef<InteractiveMapHandle, InteractiveMapProps>(fun
             </div>
           )}
 
-
+          {!sidebarCollapsed && selectedPin?.address && (
+            <div className="pin-detail-address-bubble">
+              <span className="pin-detail-address-bubble-label">Address</span>
+              <span className="pin-detail-address-bubble-text">{selectedPin.address}</span>
+            </div>
+          )}
 
           <div className="pin-detail-footer">
             <button
