@@ -68,6 +68,23 @@ public class FlagRepository {
         return jdbc.query(sql, this::mapFlag, userId, limit);
     }
 
+    /**
+     * Fetch all flags for a user, including private and expired ones.
+     * Used for the creator's own "My Map" so their history is always visible.
+     */
+    public List<Flag> fetchAllFlagsByUserIncludingExpired(UUID userId, int limit) {
+        String sql = """
+            SELECT id, user_id, title, description,
+                   st_y(location::geometry) as lat, st_x(location::geometry) as lon,
+                   city, address_text, category, image_paths, color, is_public, expires_at, created_at, updated_at
+            FROM flags
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+        """;
+        return jdbc.query(sql, this::mapFlag, userId, limit);
+    }
+
     public List<Flag> fetchFlagsNearby(
             double lon,
             double lat,

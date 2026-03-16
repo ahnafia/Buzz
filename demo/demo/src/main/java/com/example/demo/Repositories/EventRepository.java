@@ -49,11 +49,12 @@ public List<EventPin> fetchPins(
           description,
           event_image_path as image_path
         from events
-        where st_dwithin(
-          location,
-          st_setsrid(st_makepoint(?, ?), 4326)::geography,
-          ?
-        )
+        where coalesce(expires_at, end_time) > now()
+          and st_dwithin(
+            location,
+            st_setsrid(st_makepoint(?, ?), 4326)::geography,
+            ?
+          )
         %s
         order by start_time asc
         limit ?;

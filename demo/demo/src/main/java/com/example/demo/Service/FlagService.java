@@ -26,8 +26,8 @@ public class FlagService {
         System.out.println("🚀 FlagService.createFlag called with request: " + request);
         System.out.println("👤 User ID: " + userId);
         
-        OffsetDateTime expiresAt = request.isPublic() != null ? 
-                OffsetDateTime.now().plusDays(7) : null;
+        // Flags no longer expire by default: store NULL in expires_at so they are permanent
+        OffsetDateTime expiresAt = null;
 
         // Handle image paths - prefer imagePaths over imageUrl
         String imageUrl = null;
@@ -80,6 +80,15 @@ public class FlagService {
     public List<Flag> getUserFlags(UUID userId, int limit) {
         int clampedLimit = Math.max(1, Math.min(limit, MAX_LIMIT));
         return repo.fetchFlagsByUser(userId, clampedLimit);
+    }
+
+    /**
+     * Get all flags for a user, including private and expired ones.
+     * Used for the creator's own "My Map" so their full history is visible.
+     */
+    public List<Flag> getAllUserFlags(UUID userId, int limit) {
+        int clampedLimit = Math.max(1, Math.min(limit, MAX_LIMIT));
+        return repo.fetchAllFlagsByUserIncludingExpired(userId, clampedLimit);
     }
 
     public List<Flag> getFlagsNearby(double lat, double lon, double radiusMiles, int limit) {

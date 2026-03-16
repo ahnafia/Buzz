@@ -322,7 +322,14 @@ public EnhancedUserProfile getEnhancedPublicProfile(String username, UUID curren
     int totalLikesGiven = flagService.getUserLikeCount(user.id());
 
     List<Landmark> landmarks = landmarkService.getUserLandmarks(user.id(), 10);
-    List<Flag> recentFlags = flagService.getUserFlags(user.id(), 1000);
+    // For the creator viewing their own profile, show all flags (including private/expired).
+    // For other viewers, only show public, non-expired flags.
+    List<Flag> recentFlags;
+    if (currentUserId != null && currentUserId.equals(user.id())) {
+        recentFlags = flagService.getAllUserFlags(user.id(), 1000);
+    } else {
+        recentFlags = flagService.getUserFlags(user.id(), 1000);
+    }
 
     // Attach like counts to flags
     List<FlagWithLikeCount> flagsWithLikeCounts = recentFlags.stream()
